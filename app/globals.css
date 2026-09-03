@@ -1,27 +1,107 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+* {
+  box-sizing: border-box;
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: #faf6ef;
+  font-family: 'IBM Plex Sans KR', system-ui, -apple-system, sans-serif;
+  color: #2b2420;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
+a {
+  color: #e85d3d;
+}
+a:hover {
+  color: #c74b2e;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(232, 93, 61, 0.45);
   }
+  100% {
+    box-shadow: 0 0 0 14px rgba(232, 93, 61, 0);
+  }
+}
+
+@keyframes slidein {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #e3dcce;
+  border-radius: 4px;
+}
+
+.jua {
+  font-family: 'Jua', 'IBM Plex Sans KR', sans-serif;
+}
+
+.hov-accent:hover {
+  border-color: #e85d3d !important;
+}
+.hov-card:hover {
+  border-color: #e85d3d !important;
+  box-shadow: 0 2px 10px rgba(232, 93, 61, 0.1);
+}
+.btn-primary:hover {
+  background: #c74b2e !important;
+}
+
+/* 지도 핀 — 평소엔 점, 호버·선택 시에만 이름표를 펼쳐 겹침을 막는다 */
+.map-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+.map-pin-body {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 7px;
+  border: 2px solid;
+  border-radius: 99px;
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  box-shadow: 0 3px 8px rgba(43, 36, 32, 0.18);
+  transition: transform 0.12s ease-out;
+}
+.map-pin-label {
+  display: none;
+}
+.map-pin:hover .map-pin-label,
+.map-pin.on .map-pin-label {
+  display: inline;
+}
+.map-pin:hover .map-pin-body,
+.map-pin.on .map-pin-body {
+  padding-right: 10px;
+  transform: scale(1.06);
+}
+.map-pin.on .map-pin-body {
+  animation: pulse 1.4s ease-out infinite;
+}
+.map-pin-stem {
+  width: 2px;
+  height: 9px;
 }
