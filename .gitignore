@@ -24,9 +24,18 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.log
+
+# editors
+.vscode/
+.idea/
 
 # local env files
+# .env* 를 전부 막는다 — .env*.local 만으로는 .env / .env.production 이 통과한다
 .env*.local
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
