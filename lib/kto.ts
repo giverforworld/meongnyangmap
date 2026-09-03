@@ -42,6 +42,20 @@ export async function call<T = any>(
   }
 
   const json = JSON.parse(text)
+
+  // 한도 초과·인증 실패는 XML 말고 이 JSON 봉투로도 온다. 봉투가 달라서
+  // response.body 가 undefined 가 되고, 놓치면 아래에서 '결과 0건'으로
+  // 통과해 화면에는 '조건 정보 미등록'으로 잘못 표시된다.
+  const err = json?.OpenAPI_ServiceResponse?.cmmMsgHeader
+  if (err) {
+    throw new Error(`KTO API 오류 (${op}): ${err.returnAuthMsg ?? err.errMsg ?? 'UNKNOWN'}`)
+  }
+
+  const header = json?.response?.header
+  if (header?.resultCode && header.resultCode !== '0000') {
+    throw new Error(`KTO API 오류 (${op}): ${header.resultMsg ?? header.resultCode}`)
+  }
+
   const body = json?.response?.body
   const raw = body?.items
 
