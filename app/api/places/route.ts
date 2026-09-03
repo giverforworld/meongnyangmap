@@ -22,6 +22,18 @@ function put(key: string, data: unknown) {
   cache.set(key, { at: Date.now(), data })
 }
 
+/**
+ * 동반 조건은 거의 바뀌지 않는 정보라 contentid 단위로 오래 캐싱한다.
+ * 이게 없으면 페이지를 열 때마다 장소 수만큼 부른다 — 서울 78, 경기 125.
+ */
+const DETAIL_TTL = 24 * 60 * 60 * 1000
+const detailCache = new Map<string, { at: number; raw: PetTourRaw | null }>()
+
+function cachedDetail(id: string) {
+  const hit = detailCache.get(id)
+  return hit && Date.now() - hit.at < DETAIL_TTL ? hit : null
+}
+
 /** 동시 호출 수를 제한한 map */
 async function pooled<T, R>(items: T[], size: number, fn: (t: T) => Promise<R>) {
   const out: R[] = []
@@ -59,18 +71,27 @@ export async function GET(req: Request) {
     const rows = lists.flat().filter((x) => x.contenttypeid !== '38')
 
     // ② 각 장소의 동반 조건
-    //    병렬 8 로 부르면 data.go.kr 이 스로틀링하는데, 오류가 아니라 '200 + 빈 items' 로
-    //    응답한다. 서울 78건 기준 전건이 빈 응답이었고 4 로 낮추니 78/78 정상이었다.
+    //    병렬 8 에서 전건 빈 응답, 4 로 낮추니 78/78 정상이었다. 원인을 스로틀링으로
+    //    단정하지는 못했다 — 한도 초과 응답이 kto.call 에서 빈 결과로 새어나오고
+    //    있었기 때문이다(지금은 예외로 잡는다). 4 는 실측으로 안전이 확인된 값이다.
     //    조회 실패와 '조건 정보 미등록'도 다른 상태다. 실패를 null 로 뭉개면
     //    화면에는 "정보가 등록되지 않은 장소"로 잘못 표시된다.
+    const fresh = new Map<string, PetTourRaw | null>()
+
     const details = await pooled(rows, 4, async (r) => {
+      const id = String(r.contentid)
+      const hit = cachedDetail(id)
+      if (hit) return { ok: true, raw: hit.raw }
+
       try {
         const { items } = await call<PetTourRaw>('detailPetTour2', {
           contentId: r.contentid,
           numOfRows: 10,
           pageNo: 1,
         })
-        return { ok: true, raw: items[0] ?? null }
+        const raw = items[0] ?? null
+        fresh.set(id, raw)
+        return { ok: true, raw }
       } catch {
         return { ok: false, raw: null }
       }
@@ -94,8 +115,12 @@ export async function GET(req: Request) {
     // 반려동물 목록에서 온 데이터인 이상 정상이 아니라고 본다.
     const degraded = failed > 0 || (places.length > 0 && places.every((p) => !p.rules))
 
-    // 이런 결과를 캐시하면 잘못된 판정이 TTL 동안 굳어버린다
-    if (!degraded) put(key, places)
+    // 이런 결과를 캐시하면 잘못된 판정이 TTL 동안 굳어버린다.
+    // 스로틀링된 빈 응답을 조건 캐시에 넣으면 24시간을 굳히므로 함께 막는다.
+    if (!degraded) {
+      put(key, places)
+      fresh.forEach((raw, id) => detailCache.set(id, { at: Date.now(), raw }))
+    }
 
     return NextResponse.json({ places, failed, degraded, cached: false })
   } catch (e) {
