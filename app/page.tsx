@@ -48,6 +48,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [failed, setFailed] = useState(0)
   const [degraded, setDegraded] = useState(false)
+  const [tels, setTels] = useState<string[] | null>(null)
+  const [telLoading, setTelLoading] = useState(false)
 
   const [petKey, setPetKey] = useState('choco')
   const [cat, setCat] = useState('전체')
@@ -78,6 +80,25 @@ export default function Home() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
   }, [regnCd, signguCd])
+
+  // 장소를 바꾸면 앞서 조회한 번호가 남지 않게 초기화한다
+  useEffect(() => {
+    setTels(null)
+    setTelLoading(false)
+  }, [selectedId])
+
+  async function loadTels(p: Judged) {
+    setTelLoading(true)
+    try {
+      const r = await fetch(`/api/contact?contentId=${p.contentid}&contentTypeId=${p.contenttypeid}`)
+      const d = await r.json()
+      setTels(d.tels ?? [])
+    } catch {
+      setTels([])
+    } finally {
+      setTelLoading(false)
+    }
+  }
 
   // ── 판정
   const judged: Judged[] = useMemo(
@@ -259,8 +280,25 @@ export default function Home() {
                   <div style={{ display: 'flex', gap: 8, marginTop: 'auto' }}>
                     <a className="btn-primary" href={`https://map.kakao.com/link/to/${encodeURIComponent(sel.title)},${sel.mapy},${sel.mapx}`} target="_blank" rel="noreferrer"
                       style={{ flex: 1, fontSize: 14, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: 'none', background: '#E85D3D', color: '#FFFFFF', cursor: 'pointer', textAlign: 'center', textDecoration: 'none' }}>길찾기</a>
-                    <button className="hov-accent"
-                      style={{ flex: 1, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>전화 확인</button>
+                    {tels === null ? (
+                      <button className="hov-accent" disabled={telLoading} onClick={() => loadTels(sel)}
+                        style={{ flex: 1, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: telLoading ? '#B3A78F' : '#2B2420', cursor: telLoading ? 'default' : 'pointer' }}>
+                        {telLoading ? '확인 중…' : '전화 확인'}
+                      </button>
+                    ) : tels.length === 0 ? (
+                      <span style={{ flex: 1, fontSize: 13, color: '#A08872', textAlign: 'center', alignSelf: 'center', lineHeight: 1.3 }}>
+                        등록된 전화번호가<br />없어요
+                      </span>
+                    ) : (
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                        {tels.map((t) => (
+                          <a key={t} className="hov-accent" href={`tel:${t.replace(/[^0-9+]/g, '')}`}
+                            style={{ fontSize: 14, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', textAlign: 'center', textDecoration: 'none' }}>
+                            ☎ {t}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
