@@ -239,9 +239,11 @@ export default function Home() {
 
   // '전체'에서는 세분류가 20종을 넘어 필터 바가 넘친다. 많은 순 상위만 노출한다
   const subs = useMemo(() => {
+    // 좁은 화면에서는 세부 줄이 목록을 아래로 밀어낸다. 카테고리를 고른 뒤에만 보여준다
+    if (isMobile && cat === '전체') return []
     const keys = Object.keys(subCounts).sort((a, b) => subCounts[b] - subCounts[a])
-    return keys.length > 1 ? keys.slice(0, 10) : []
-  }, [subCounts])
+    return keys.length > 1 ? keys.slice(0, isMobile ? 6 : 10) : []
+  }, [subCounts, isMobile, cat])
 
   const filtered = useMemo(
     () => inCat.filter((p) => sub === '전체' || p.lclsSystm2 === sub),
@@ -318,7 +320,7 @@ export default function Home() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: isMobile ? 0 : 1100, overflow: 'hidden' }}>
       {/* ── 상단 바 */}
-      <header style={{ display: 'flex', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: isMobile ? 8 : 16, padding: isMobile ? '10px 12px' : '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
+      <header style={{ display: 'flex', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: isMobile ? 6 : 16, padding: isMobile ? '8px 12px' : '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
         <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 12, padding: '7px 12px' }}>
           <span>📍</span>
           <select value={regnCd} onChange={(e) => { setRegnCd(e.target.value); setSignguCd('') }}
@@ -362,14 +364,16 @@ export default function Home() {
           <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, background: '#FFE0D3', borderRadius: '50%', fontSize: 16 }}>{pet.emoji}</span>
           <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
             <span style={{ fontWeight: 700 }}>{pet.name} · {pet.breed}</span>
-            <span style={{ fontSize: 11.5, color: '#A08872' }}>{pet.kg}kg · {pet.sizeLabel} · 프로필 전환 ▾</span>
+            <span style={{ fontSize: 11.5, color: '#A08872' }}>
+              {pet.kg}kg · {pet.sizeLabel}{isMobile ? ' ▾' : ' · 프로필 전환 ▾'}
+            </span>
           </span>
         </button>
       </header>
 
       {/* ── 필터 바 */}
       <div style={{ background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
-        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '8px 12px 0' : '10px 20px 0', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '7px 12px 0' : '10px 20px 0', overflowX: 'auto', whiteSpace: 'nowrap' }}>
           {cats.map((label) => {
             const on = label === cat
             const n = label === '전체' ? places.length : catCounts[label]
@@ -390,7 +394,8 @@ export default function Home() {
         </div>
 
         {/* 세분류 — 쇼핑처럼 한 타입에 수천 곳이 몰릴 때 좁혀 보기 위한 2차 필터 */}
-        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '6px 12px 8px' : '8px 20px 10px', flexWrap: isMobile ? 'nowrap' : 'wrap', overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap' }}>
+        {(!isMobile || subs.length > 0) && (
+        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '5px 12px 7px' : '8px 20px 10px', flexWrap: isMobile ? 'nowrap' : 'wrap', overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap' }}>
           {subs.length > 0 && (
             <>
               <span style={{ fontSize: 12, color: '#B3A78F', marginRight: 2 }}>세부</span>
@@ -416,6 +421,7 @@ export default function Home() {
             {hiddenCount > 0 && ` · 동반 불가 ${hiddenCount}곳 숨김`}
           </span>
         </div>
+        )}
       </div>
 
       {/* ── 본문 */}
@@ -426,7 +432,7 @@ export default function Home() {
             const on = v === mobileView
             return (
               <button key={v} onClick={() => setMobileView(v)}
-                style={{ flex: 1, fontFamily: 'inherit', fontSize: 13.5, fontWeight: on ? 700 : 500, padding: '9px 0', borderRadius: 10, border: `1.5px solid ${on ? '#2B2420' : '#E3DCCE'}`, background: on ? '#2B2420' : '#FFFFFF', color: on ? '#FFFFFF' : '#6E5F4D', cursor: 'pointer' }}>
+                style={{ flex: 1, fontFamily: 'inherit', fontSize: 13.5, fontWeight: on ? 700 : 500, padding: '8px 0', borderRadius: 10, border: `1.5px solid ${on ? '#2B2420' : '#E3DCCE'}`, background: on ? '#2B2420' : '#FFFFFF', color: on ? '#FFFFFF' : '#6E5F4D', cursor: 'pointer' }}>
                 {v === 'list' ? `목록 ${visible.length}` : '지도'}
               </button>
             )
@@ -441,7 +447,9 @@ export default function Home() {
             <span style={{ fontSize: 14, fontWeight: 700 }}>
               {pet.name}가 갈 수 있는 곳 <span style={{ color: '#E85D3D' }}>{visible.length}</span>
             </span>
-            <span style={{ fontSize: 12, color: '#B3A78F' }}>이름 순</span>
+            <span style={{ fontSize: 12, color: '#B3A78F' }}>
+              {isMobile && subs.length === 0 ? `${filtered.length.toLocaleString()}곳 중` : '이름 순'}
+            </span>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', padding: '4px 12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 interface Post {
   id: number
@@ -22,6 +23,7 @@ function when(iso: string) {
 }
 
 export default function Community() {
+  const isMobile = useIsMobile()
   const [posts, setPosts] = useState<Post[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
@@ -92,17 +94,17 @@ export default function Community() {
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#FAF6EF' }}>
-      <div style={{ maxWidth: 820, margin: '0 auto', padding: '28px 20px 56px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <header style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+      <div style={{ maxWidth: 820, margin: '0 auto', padding: isMobile ? '20px 14px 48px' : '28px 20px 56px', display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <header style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'flex-end', justifyContent: 'space-between', gap: 12, flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <h1 className="jua" style={{ margin: 0, fontSize: 26, color: '#2B2420' }}>커뮤니티</h1>
-            <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65' }}>
+            <h1 className="jua" style={{ margin: 0, fontSize: isMobile ? 23 : 26, color: '#2B2420' }}>커뮤니티</h1>
+            <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', wordBreak: 'keep-all' }}>
               우리 아이랑 다녀온 곳, 좋았던 순간을 나눠요
             </p>
           </div>
           {!offline && (
             <button className="btn-primary" onClick={() => setWriting((v) => !v)}
-              style={{ fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '10px 20px', borderRadius: 12, border: 'none', background: writing ? '#8A7A65' : '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}>
+              style={{ flex: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '11px 20px', borderRadius: 12, border: 'none', background: writing ? '#8A7A65' : '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}>
               {writing ? '접기' : '글쓰기'}
             </button>
           )}
@@ -153,19 +155,22 @@ export default function Community() {
           )}
           {posts.map((p, i) => (
             <Link key={p.id} href={`/community/${p.id}`} className="hov-row"
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', textDecoration: 'none', borderTop: i === 0 ? 'none' : '1px solid #F3EEE4' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 14px', textDecoration: 'none', borderTop: i === 0 ? 'none' : '1px solid #F3EEE4' }}>
               <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 600, color: '#2B2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.title}
               </span>
-              <span style={{ flex: 'none', fontSize: 12.5, color: '#8A7A65', maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ flex: 'none', fontSize: 12.5, color: '#8A7A65', maxWidth: isMobile ? 70 : 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.nickname}
               </span>
-              <span style={{ flex: 'none', fontSize: 12, color: '#B3A78F', width: 44, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+              <span style={{ flex: 'none', fontSize: 12, color: '#B3A78F', width: 42, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
                 {when(p.created_at)}
               </span>
-              <span style={{ flex: 'none', fontSize: 12, color: '#C4B8A4', width: 34, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {p.views}
-              </span>
+              {/* 좁은 화면에서는 조회수를 뺀다 — 제목이 잘리는 쪽이 손해가 크다 */}
+              {!isMobile && (
+                <span style={{ flex: 'none', fontSize: 12, color: '#C4B8A4', width: 34, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  {p.views}
+                </span>
+              )}
             </Link>
           ))}
         </div>

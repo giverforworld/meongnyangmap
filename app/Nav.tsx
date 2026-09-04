@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
 
 /**
@@ -18,37 +19,48 @@ const MENUS = [
 export default function Nav() {
   const path = usePathname()
   const isMobile = useIsMobile()
+  const active = useRef<HTMLAnchorElement>(null)
+
+  // 좁은 화면에서 메뉴가 넘칠 때, 지금 보고 있는 메뉴가 화면 밖에 있으면 안 된다
+  useEffect(() => {
+    active.current?.scrollIntoView({ block: 'nearest', inline: 'center' })
+  }, [path])
 
   return (
     <nav
+      className="chip-row"
       style={{
         display: 'flex',
         alignItems: 'stretch',
-        gap: isMobile ? 2 : 6,
-        padding: isMobile ? '0 12px' : '0 24px',
+        gap: isMobile ? 0 : 6,
+        padding: isMobile ? '0 6px' : '0 24px',
         background: '#FFFFFF',
         borderBottom: '1px solid #EAE3D6',
         flex: 'none',
         overflowX: 'auto',
         whiteSpace: 'nowrap',
       }}
-      className="chip-row"
     >
+      {/* 좁은 화면에서는 로고가 메뉴 하나를 밀어낸다. 발자국만 남긴다 */}
       <Link
         href="/"
+        aria-label="멍냥맵 홈"
         style={{
           display: 'flex',
           alignItems: 'center',
           gap: 8,
-          marginRight: isMobile ? 10 : 22,
+          marginRight: isMobile ? 4 : 22,
+          marginLeft: isMobile ? 4 : 0,
           textDecoration: 'none',
           flex: 'none',
         }}
       >
-        <span className="jua" style={{ fontSize: isMobile ? 23 : 28, color: '#E85D3D', lineHeight: 1 }}>
-          멍냥맵
-        </span>
-        <span style={{ fontSize: isMobile ? 17 : 20 }}>🐾</span>
+        {!isMobile && (
+          <span className="jua" style={{ fontSize: 28, color: '#E85D3D', lineHeight: 1 }}>
+            멍냥맵
+          </span>
+        )}
+        <span style={{ fontSize: isMobile ? 19 : 20 }}>🐾</span>
       </Link>
 
       {MENUS.map((m) => {
@@ -59,14 +71,15 @@ export default function Nav() {
             href={m.href}
             title={m.hint}
             className="nav-tab"
+            ref={on ? active : undefined}
             style={{
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
               gap: 2,
               flex: 'none',
-              padding: isMobile ? '13px 12px 11px' : '15px 16px 12px',
-              fontSize: isMobile ? 15 : 16.5,
+              padding: isMobile ? '12px 11px 10px' : '15px 16px 12px',
+              fontSize: isMobile ? 14.5 : 16.5,
               fontWeight: on ? 700 : 500,
               color: on ? '#2B2420' : '#8A7A65',
               textDecoration: 'none',
