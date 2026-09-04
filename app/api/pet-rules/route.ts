@@ -33,8 +33,8 @@ function cached(id: string) {
   return hit && Date.now() - hit.at < TTL ? hit : null
 }
 
-/** 한 요청이 부를 수 있는 상한 — 화면 한 페이지(200) 분량 */
-const MAX_IDS = 200
+/** 한 요청이 부를 수 있는 상한 — 화면 한 페이지(50) 분량 */
+const MAX_IDS = 50
 
 /** 동시 호출 수를 제한한 map */
 async function pooled<T, R>(items: T[], size: number, fn: (t: T) => Promise<R>) {

@@ -124,3 +124,14 @@ a:hover {
   outline-offset: 2px;
   border-radius: 6px;
 }
+
+/* 대메뉴 — 현재 위치가 아닌 항목만 호버에 반응한다 */
+.nav-tab:hover {
+  color: #2b2420 !important;
+  background: #faf6ef;
+}
+
+/* 게시판 목록 행 */
+.hov-row:hover {
+  background: #faf6ef;
+}

@@ -42,7 +42,7 @@ const CAT_EMOJI: Record<string, string> = {
 const CAT_ORDER = ['관광지', '음식점', '숙박', '문화시설', '레포츠', '쇼핑', '행사']
 
 /** 한 번에 그리는 카드 수. 이 수만큼만 동반 조건을 조회한다 */
-const PAGE = 200
+const PAGE = 50
 
 interface Region {
   code: string
@@ -68,8 +68,7 @@ type Judged = Place & { j: Judgement | null; state: CardState }
 export default function Home() {
   const [regions, setRegions] = useState<Region[]>([])
   const [regnCd, setRegnCd] = useState('11')
-  /** 첫 화면은 서울 종로구로 연다 — 전국·시도 전체는 목록이 너무 넓다 */
-  const [signguCd, setSignguCd] = useState('110')
+  const [signguCd, setSignguCd] = useState('')
   const [places, setPlaces] = useState<Place[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -317,14 +316,9 @@ export default function Home() {
   const region = regions.find((r) => r.code === regnCd)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100dvh', minWidth: isMobile ? 0 : 1100, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: isMobile ? 0 : 1100, overflow: 'hidden' }}>
       {/* ── 상단 바 */}
       <header style={{ display: 'flex', alignItems: 'center', flexWrap: isMobile ? 'wrap' : 'nowrap', gap: isMobile ? 8 : 16, padding: isMobile ? '10px 12px' : '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-          <span className="jua" style={{ fontSize: isMobile ? 21 : 26, color: '#E85D3D' }}>멍냥맵</span>
-          <span style={{ fontSize: isMobile ? 16 : 20 }}>🐾</span>
-        </div>
-
         <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 12, padding: '7px 12px' }}>
           <span>📍</span>
           <select value={regnCd} onChange={(e) => { setRegnCd(e.target.value); setSignguCd('') }}
