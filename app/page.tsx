@@ -75,6 +75,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  /** 소개글은 길어서 접어 둔다 — 판정과 현장 규정이 먼저 보여야 한다 */
+  const [overviewOpen, setOverviewOpen] = useState(false)
   /** 검색어와 '내 주변' — 셋 다 같은 전국 목록 위에서 걸러낸다 */
   const [q, setQ] = useState('')
   /** 현재 위치로 고른 contentid 목록. 좌표 자체는 서버로 보내지 않는다 */
@@ -147,6 +149,7 @@ export default function Home() {
   // 장소를 바꾸면 앞 장소의 정보가 남지 않게 비우고 새로 받는다
   useEffect(() => {
     setDetail(null)
+    setOverviewOpen(false)
     // 다른 장소를 열었는데 앞 장소에서 내려둔 스크롤이 남아 있으면 제목과 판정이 가려진다
     panelBody.current?.scrollTo({ top: 0 })
     if (!selectedId) return
@@ -614,20 +617,36 @@ export default function Home() {
                     </div>
                   )}
 
-                  {/* 소개글 — 사람이 쓴 문장이라 그대로 보여준다 */}
-                  {detail?.overview && (
-                    <div style={{ fontSize: 12.5, lineHeight: 1.6, color: '#6E5F4D', whiteSpace: 'pre-line' }}>
-                      {detail.overview.length > 260 ? detail.overview.slice(0, 260) + '…' : detail.overview}
-                    </div>
-                  )}
-
-                  {/* 조건이 비어 있거나 애매할 때 마지막으로 기댈 곳 */}
-                  {detail?.homepage && (
-                    <a className="hov-accent" href={detail.homepage} target="_blank" rel="noreferrer"
-                      style={{ fontSize: 12.5, fontWeight: 700, color: '#E85D3D', textDecoration: 'none' }}>
-                      🔗 공식 홈페이지에서 확인하기
-                    </a>
-                  )}
+                  {/* 소개글 — 사람이 쓴 문장이라 손대지 않고 그대로 보여준다.
+                      판정·현장 규정 같은 '결정에 쓰는' 블록과 구분되게 테두리 대신
+                      작은 표제와 가는 선으로 묶는다. 길면 접어 두고 펼치게 한다 */}
+                  {detail?.overview && (() => {
+                    const LIMIT = 200
+                    const long = detail.overview.length > LIMIT
+                    // 문장 중간에서 끊지 않는다 — 마지막 마침표까지만 보여준다
+                    const cut = () => {
+                      const head = detail.overview.slice(0, LIMIT)
+                      const end = Math.max(head.lastIndexOf('. '), head.lastIndexOf('.\n'), head.lastIndexOf('다.'))
+                      return (end > LIMIT * 0.5 ? head.slice(0, end + 1) : head.replace(/[\s,·]+$/, '') + '…')
+                    }
+                    const shown = !long || overviewOpen ? detail.overview : cut()
+                    return (
+                      <section style={{ borderTop: '1px solid #EFE8DA', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 7 }}>
+                        <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: '#B3A78F' }}>
+                          이런 곳이에요
+                        </span>
+                        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.75, color: '#5C5347', whiteSpace: 'pre-line', wordBreak: 'keep-all' }}>
+                          {shown}
+                        </p>
+                        {long && (
+                          <button onClick={() => setOverviewOpen((v) => !v)}
+                            style={{ alignSelf: 'flex-start', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: '#E85D3D', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
+                            {overviewOpen ? '접기' : '더 보기'}
+                          </button>
+                        )}
+                      </section>
+                    )
+                  })()}
 
                   {/* 사진이 더 있으면 — Type3 은 변경 금지라 자르거나 덧씌우지 않는다 */}
                   {detail && detail.images.length > 1 && (
@@ -645,6 +664,14 @@ export default function Home() {
                       길찾기
                     </a>
 
+                    {detail?.homepage && (
+                      <a className="hov-accent" href={detail.homepage} target="_blank" rel="noreferrer"
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 13px', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', textDecoration: 'none' }}>
+                        <span style={{ fontSize: 13, flex: 'none', color: '#A08872' }}>🔗</span>
+                        <span style={{ fontSize: 13.5, fontWeight: 700, color: '#2B2420' }}>공식 홈페이지</span>
+                      </a>
+                    )}
+
                     {detailLoading ? (
                       <span style={{ fontSize: 12.5, color: '#B3A78F', textAlign: 'center' }}>연락처 확인 중…</span>
                     ) : !detail || detail.tels.length === 0 ? (
@@ -655,15 +682,15 @@ export default function Home() {
                         return (
                           <a key={t} className="hov-accent" href={`tel:${num.replace(/[^0-9+]/g, '')}`}
                             style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 13px', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', textDecoration: 'none' }}>
-                            <span style={{ fontSize: 14, flex: 'none' }}>☎</span>
+                            <span style={{ fontSize: 13, flex: 'none', color: '#A08872' }}>☎</span>
+                            <span style={{ fontSize: 14, fontWeight: 700, color: '#2B2420', whiteSpace: 'nowrap' }}>
+                              {num}
+                            </span>
                             {label && (
-                              <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: '#A08872', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: '#A08872', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {label}
                               </span>
                             )}
-                            <span style={{ marginLeft: label ? 0 : 'auto', fontSize: 14, fontWeight: 700, color: '#2B2420', whiteSpace: 'nowrap' }}>
-                              {num}
-                            </span>
                           </a>
                         )
                       })

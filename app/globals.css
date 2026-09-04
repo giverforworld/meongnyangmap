@@ -113,3 +113,14 @@ a:hover {
 .chip-row::-webkit-scrollbar {
   display: none;
 }
+
+/* 마우스로 누른 뒤에도 파란 포커스 링이 남는 것을 막는다.
+   키보드로 이동할 때는 그대로 보여야 하므로 :focus-visible 만 남긴다 */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+:focus-visible {
+  outline: 2px solid #e85d3d;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
