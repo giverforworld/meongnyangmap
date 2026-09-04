@@ -1,10 +1,16 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
   title: '멍냥맵 — 우리 아이 기준 반려동물 동반 판정',
   description:
     '반려동물 동반 조건을 우리 아이 기준으로 판정해 헛걸음을 막아주는 지도 서비스. 출처: ⓒ한국관광공사',
+}
+
+/** 밖에서 폰으로 쓰는 서비스라 모바일 폭에 맞춰 그린다 */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

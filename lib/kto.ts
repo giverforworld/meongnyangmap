@@ -2,12 +2,17 @@
 
 const BASE = 'https://apis.data.go.kr/B551011/KorPetTourService2'
 
-/** 콘텐츠 타입 — 15(행사)는 실데이터 0건, 38(쇼핑)은 조건 데이터 0%라 제외 */
+/**
+ * 콘텐츠 타입 — API가 제공하는 7종 전부를 받는다. 무엇을 볼지는 화면 필터가 정한다.
+ * 15(행사)는 현재 전 지역 0건이지만, 데이터가 생기면 자동으로 잡히도록 남겨둔다.
+ */
 export const CONTENT_TYPES = {
   12: '관광지',
   14: '문화시설',
+  15: '행사',
   28: '레포츠',
   32: '숙박',
+  38: '쇼핑',
   39: '음식점',
 } as const
 
@@ -48,7 +53,11 @@ export async function call<T = any>(
   // 통과해 화면에는 '조건 정보 미등록'으로 잘못 표시된다.
   const err = json?.OpenAPI_ServiceResponse?.cmmMsgHeader
   if (err) {
-    throw new Error(`KTO API 오류 (${op}): ${err.returnAuthMsg ?? err.errMsg ?? 'UNKNOWN'}`)
+    // 코드(errMsg)와 한글 설명(returnAuthMsg)을 함께 남긴다. 한글만 남기면
+    // 호출한 쪽에서 '한도 초과'인지 코드로 판별할 수 없다.
+    const code = err.errMsg ?? 'UNKNOWN'
+    const why = err.returnAuthMsg ? ` — ${err.returnAuthMsg}` : ''
+    throw new Error(`KTO API 오류 (${op}): ${code}${why}`)
   }
 
   const header = json?.response?.header

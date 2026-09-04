@@ -1,128 +1,67 @@
 import { NextResponse } from 'next/server'
-import { ALL, CONTENT_TYPES, call, type ContentTypeId } from '@/lib/kto'
-import { parseRules } from '@/lib/petTour'
-import type { Place, PetTourRaw } from '@/lib/types'
+import { catalog } from '@/lib/catalog'
+import type { Place } from '@/lib/types'
 
 export const dynamic = 'force-dynamic'
 
 /**
- * 서버 메모리 캐시 — 개발 중 호출 한도(오퍼레이션당 일 1,000건)를 아끼기 위한 것.
- * TTL 을 짧게 두어 실시간 호출 원칙을 유지한다.
+ * 목록 조회 — 지역 / 이름 검색 / contentid 지정.
+ *
+ * 좌표는 받지 않는다. 사용자 위치를 서버로 전송하면 저장 여부와 무관하게
+ * 위치기반서비스사업자 신고 대상이 되기 때문이다(공모전 공지 FAQ). '내 주변'은
+ * 브라우저가 /api/places/coords 로 거리 계산을 하고, 고른 contentid 만 ids 로 넘긴다.
+ *
+ * 동반 조건은 여기서 받지 않는다 — 장소당 1콜이라 /api/pet-rules 가 화면에 그려질
+ * 것만 따로 받는다.
  */
-const TTL = 5 * 60 * 1000
-const cache = new Map<string, { at: number; data: unknown }>()
-
-function cached<T>(key: string): T | null {
-  const hit = cache.get(key)
-  if (hit && Date.now() - hit.at < TTL) return hit.data as T
-  return null
-}
-
-function put(key: string, data: unknown) {
-  cache.set(key, { at: Date.now(), data })
-}
-
 /**
- * 동반 조건은 거의 바뀌지 않는 정보라 contentid 단위로 오래 캐싱한다.
- * 이게 없으면 페이지를 열 때마다 장소 수만큼 부른다 — 서울 78, 경기 125.
+ * 표시 순서 — 타입 먼저, 그다음 이름.
+ *
+ * 이름순만 쓰면 숫자·기호로 시작하는 쇼핑(약국·안경원 8,647곳)이 앞을 통째로 덮어
+ * 첫 화면에 관광지가 한 곳도 안 보인다. 쇼핑은 사후면세점이라 여행지로서 값이 낮고
+ * 동반 조건도 수집 대상 밖이라, 목록에는 남기되 맨 뒤로 보낸다.
  */
-const DETAIL_TTL = 24 * 60 * 60 * 1000
-const detailCache = new Map<string, { at: number; raw: PetTourRaw | null }>()
-
-function cachedDetail(id: string) {
-  const hit = detailCache.get(id)
-  return hit && Date.now() - hit.at < DETAIL_TTL ? hit : null
+const TYPE_ORDER = ['12', '39', '32', '14', '28', '15', '38']
+const rank = (t: string) => {
+  const i = TYPE_ORDER.indexOf(t)
+  return i === -1 ? TYPE_ORDER.length : i
 }
-
-/** 동시 호출 수를 제한한 map */
-async function pooled<T, R>(items: T[], size: number, fn: (t: T) => Promise<R>) {
-  const out: R[] = []
-  for (let i = 0; i < items.length; i += size) {
-    out.push(...(await Promise.all(items.slice(i, i + size).map(fn))))
-  }
-  return out
-}
+const sortForDisplay = (a: Place, b: Place) =>
+  rank(a.contenttypeid) - rank(b.contenttypeid) || a.title.localeCompare(b.title, 'ko')
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const regnCd = searchParams.get('regnCd') ?? '11'
+  const regnCd = searchParams.get('regnCd') ?? ''
   const signguCd = searchParams.get('signguCd') ?? ''
-
-  const key = `places:${regnCd}:${signguCd}`
-  const hit = cached<Place[]>(key)
-  if (hit) return NextResponse.json({ places: hit, failed: 0, degraded: false, cached: true })
+  const q = (searchParams.get('q') ?? '').trim()
+  const ids = (searchParams.get('ids') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
 
   try {
-    // ① 타입별 목록 — numOfRows 에 상한이 없어 타입당 1콜이면 전부 받는다
-    const lists = await Promise.all(
-      (Object.keys(CONTENT_TYPES) as unknown as ContentTypeId[]).map(async (t) => {
-        const { items } = await call<any>('areaBasedList2', {
-          numOfRows: ALL,
-          pageNo: 1,
-          contentTypeId: t,
-          lDongRegnCd: regnCd,
-          ...(signguCd ? { lDongSignguCd: signguCd } : {}),
-          arrange: 'A',
-        })
-        return items.map((x) => ({ ...x, __cat: CONTENT_TYPES[t] }))
-      })
-    )
+    const all = await catalog()
+    let places: Place[]
 
-    const rows = lists.flat().filter((x) => x.contenttypeid !== '38')
-
-    // ② 각 장소의 동반 조건
-    //    병렬 8 에서 전건 빈 응답, 4 로 낮추니 78/78 정상이었다. 원인을 스로틀링으로
-    //    단정하지는 못했다 — 한도 초과 응답이 kto.call 에서 빈 결과로 새어나오고
-    //    있었기 때문이다(지금은 예외로 잡는다). 4 는 실측으로 안전이 확인된 값이다.
-    //    조회 실패와 '조건 정보 미등록'도 다른 상태다. 실패를 null 로 뭉개면
-    //    화면에는 "정보가 등록되지 않은 장소"로 잘못 표시된다.
-    const fresh = new Map<string, PetTourRaw | null>()
-
-    const details = await pooled(rows, 4, async (r) => {
-      const id = String(r.contentid)
-      const hit = cachedDetail(id)
-      if (hit) return { ok: true, raw: hit.raw }
-
-      try {
-        const { items } = await call<PetTourRaw>('detailPetTour2', {
-          contentId: r.contentid,
-          numOfRows: 10,
-          pageNo: 1,
-        })
-        const raw = items[0] ?? null
-        fresh.set(id, raw)
-        return { ok: true, raw }
-      } catch {
-        return { ok: false, raw: null }
-      }
-    })
-
-    const failed = details.filter((d) => !d.ok).length
-
-    const places: Place[] = rows.map((r, i) => ({
-      contentid: String(r.contentid),
-      contenttypeid: String(r.contenttypeid),
-      title: r.title ?? '',
-      addr1: r.addr1 ?? '',
-      mapx: Number(r.mapx) || 0,
-      mapy: Number(r.mapy) || 0,
-      firstimage: r.firstimage ?? '',
-      cat: r.__cat,
-      rules: details[i].raw ? parseRules(details[i].raw!) : null,
-    }))
-
-    // 상류 장애는 예외 말고 '200 + 빈 items' 로도 온다. 조건 정보가 한 건도 없다면
-    // 반려동물 목록에서 온 데이터인 이상 정상이 아니라고 본다.
-    const degraded = failed > 0 || (places.length > 0 && places.every((p) => !p.rules))
-
-    // 이런 결과를 캐시하면 잘못된 판정이 TTL 동안 굳어버린다.
-    // 스로틀링된 빈 응답을 조건 캐시에 넣으면 24시간을 굳히므로 함께 막는다.
-    if (!degraded) {
-      put(key, places)
-      fresh.forEach((raw, id) => detailCache.set(id, { at: Date.now(), raw }))
+    if (ids.length > 0) {
+      // 브라우저가 거리로 골라 온 순서를 그대로 지킨다
+      const byId = new Map(all.map((p) => [p.contentid, p]))
+      places = ids.map((id) => byId.get(id)).filter((p): p is Place => Boolean(p))
+      return NextResponse.json({ places, total: places.length })
     }
 
-    return NextResponse.json({ places, failed, degraded, cached: false })
+    places = all
+    if (q) {
+      // 이름 검색은 전국에서 한다. 지역까지 겹쳐 걸면 "해수욕장"을 서울에서 찾다가
+      // 0건이 나오는 식이라, 검색하는 사람의 기대와 어긋난다.
+      const k = q.toLowerCase()
+      places = places.filter(
+        (p) => p.title.toLowerCase().includes(k) || p.addr1.toLowerCase().includes(k)
+      )
+    } else {
+      if (regnCd) places = places.filter((p) => p.regnCd === regnCd)
+      if (signguCd) places = places.filter((p) => p.signguCd === signguCd)
+    }
+    places = [...places].sort(sortForDisplay)
+
+    return NextResponse.json({ places, total: places.length })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message, places: [] }, { status: 500 })
   }

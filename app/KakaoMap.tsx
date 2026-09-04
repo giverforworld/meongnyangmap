@@ -2,13 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Script from 'next/script'
-import type { Judgement, Place } from '@/lib/types'
+import type { CardState, Place } from '@/lib/types'
 
-type Judged = Place & { j: Judgement }
+type Judged = Place & { state: CardState }
 
 const PIN = {
   ok: { bg: '#2F8F4E', border: '#256F3D', icon: '✓' },
   cond: { bg: '#C98A12', border: '#9C6B0C', icon: '△' },
+  loading: { bg: '#B3A78F', border: '#8E836E', icon: '…' },
+  failed: { bg: '#C0392B', border: '#96271B', icon: '!' },
 } as const
 
 declare global {
@@ -138,7 +140,7 @@ export default function KakaoMap({ places, selectedId, onSelect }: Props) {
 }
 
 function buildPin(p: Judged) {
-  const s = PIN[p.j.status as 'ok' | 'cond']
+  const s = PIN[p.state]
 
   const el = document.createElement('div')
   el.className = 'map-pin'

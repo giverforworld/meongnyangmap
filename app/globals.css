@@ -105,3 +105,11 @@ a:hover {
   width: 2px;
   height: 9px;
 }
+
+/* 필터 칩 줄은 가로로 스크롤된다. 좁은 화면에서 스크롤바가 한 줄을 더 먹지 않게 감춘다 */
+.chip-row {
+  scrollbar-width: none;
+}
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
