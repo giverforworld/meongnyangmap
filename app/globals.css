@@ -36,6 +36,17 @@ a:hover {
   }
 }
 
+@keyframes sheetup {
+  from {
+    transform: translateY(14px);
+    opacity: 0.6;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -126,12 +137,82 @@ a:hover {
 }
 
 /* 대메뉴 — 현재 위치가 아닌 항목만 호버에 반응한다 */
-.nav-tab:hover {
+.nav-tab:not(.on):hover {
   color: #2b2420 !important;
   background: #faf6ef;
+}
+
+/* 아이콘은 탭 글자색을 따라간다 — 활성 알약 위에서는 흰색이 된다 */
+.nav-tab {
+  transition: background 0.15s ease-out, color 0.15s ease-out;
+}
+.nav-tab svg {
+  transform-origin: 50% 82%;
+}
+
+/* 알약이 켜지는 순간 아이콘이 한 번 통통 튄다 */
+@keyframes ico-pop {
+  0% {
+    transform: scale(0.75);
+  }
+  55% {
+    transform: scale(1.15);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.nav-tab.on svg {
+  animation: ico-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* 호버 — 아이콘이 살짝 흔들린다. 지금 보고 있는 메뉴는 흔들지 않는다 */
+@keyframes tail-wag {
+  0% {
+    transform: rotate(0);
+  }
+  22% {
+    transform: rotate(-13deg);
+  }
+  46% {
+    transform: rotate(10deg);
+  }
+  70% {
+    transform: rotate(-6deg);
+  }
+  100% {
+    transform: rotate(0);
+  }
+}
+.nav-tab:not(.on):hover svg {
+  animation: tail-wag 0.55s ease-in-out;
+}
+
+/* 움직임을 줄여달라고 한 사람에게는 결과만 보여준다 */
+@media (prefers-reduced-motion: reduce) {
+  .nav-tab,
+  .nav-tab:not(.on):hover svg,
+  .nav-tab.on svg {
+    animation: none;
+    transition: none;
+  }
 }
 
 /* 게시판 목록 행 */
 .hov-row:hover {
   background: #faf6ef;
+}
+
+/* 좁은 화면에서는 핀이 서로 겹쳐 지도가 답답해진다. 한 단계 줄인다.
+   손가락으로 누르는 만큼 너무 작아지면 안 되므로 최소 크기는 지킨다 */
+@media (max-width: 820px) {
+  .map-pin-body {
+    gap: 3px;
+    padding: 3px 5px;
+    border-width: 1.5px;
+    font-size: 11px;
+  }
+  .map-pin-stem {
+    height: 7px;
+  }
 }

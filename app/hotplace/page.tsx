@@ -68,11 +68,11 @@ export default function Hotplace() {
       <div style={{ maxWidth: 1120, margin: '0 auto', padding: '24px 20px 56px' }}>
         <header style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
           <h1 className="jua" style={{ margin: 0, fontSize: 26, color: '#2B2420' }}>
-            확실히 갈 수 있는 곳
+            우리 아이랑 가기 좋은 곳
           </h1>
           <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', lineHeight: 1.6, maxWidth: 620 }}>
-            방문수 대신 <b style={{ color: '#2B2420' }}>규정이 확실한 정도</b>로 골랐어요.
-            전 구역 동반 가능하고, 조건 정보가 빠짐없이 등록돼 있고, 보여줄 사진과 소개가 있는 곳만 모았습니다.
+            <b style={{ color: '#2B2420' }}>문 앞에서 눈치 볼 일 없는 곳</b>만 모았어요.
+            구역 제한 없이 함께 들어갈 수 있고, 동반 조건이 빠짐없이 확인된 곳들이에요.
           </p>
         </header>
 
