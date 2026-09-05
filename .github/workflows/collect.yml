@@ -1,0 +1,61 @@
+name: 관광데이터 수집
+
+# data/ 의 스냅샷을 매일 새로 받아 커밋한다. 커밋이 곧 Vercel 재배포라,
+# 이 워크플로가 배포된 서비스의 데이터를 늙지 않게 하는 유일한 장치다.
+# 멈추면 사흘 뒤부터 서버가 실시간 조회로 넘어간다(lib/catalog.ts).
+#
+# 받는 것
+#   places.json    petTourSyncList2 1콜. 응답이 8.9MB 라 실시간으로 쓰기엔 무겁다
+#   petRules.json  detailPetTour2 — 장소당 1콜
+#   details.json   detailCommon2/Intro2/Info2/Image2 — 장소당 4콜
+#
+# 동반 조건·상세는 증분이다 — 이미 받은 장소는 건너뛰므로 다 채운 뒤로는
+# 새 장소가 생겼을 때만 바뀐다. 한도(개발계정 일 1,000건)에 걸리면 거기까지
+# 저장하고 멈추므로, 다음 날 실행이 이어서 받는다.
+#
+# 필요한 시크릿: Settings > Secrets and variables > Actions
+#   KTO_SERVICE_KEY  공공데이터포털 인증키(인코딩키)
+
+on:
+  schedule:
+    # 매일 03:00 KST (UTC 18:00). 한도가 자정 기준으로 초기화된 뒤에 돈다
+    - cron: '0 18 * * *'
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      # collect.mts 가 .env.local 을 직접 읽는다
+      - name: 인증키 준비
+        run: echo "KTO_SERVICE_KEY=${{ secrets.KTO_SERVICE_KEY }}" > .env.local
+
+      - name: 수집
+        run: npm run collect
+
+      - name: 변경분 커밋
+        run: |
+          rm -f .env.local
+
+          if git diff --quiet data/; then
+            echo "바뀐 것 없음 — 커밋 건너뜀"
+            exit 0
+          fi
+
+          git config user.name  'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          git add data/
+          git commit -m "chore: 관광데이터 스냅샷 갱신 ($(date -u +%Y-%m-%d))"
+          git push origin HEAD:main

@@ -25,6 +25,11 @@ function serviceKey() {
   return decodeURIComponent(k)
 }
 
+/**
+ * Next.js 데이터 캐시(`next: { revalidate }`)는 쓰지 않는다 —
+ * petTourSyncList2 응답이 8.9MB 라 캐시 항목 상한 2MB 를 넘겨 저장에 실패하고
+ * 경고만 쌓인다. 재조회를 막는 일은 부르는 쪽이 직접 한다.
+ */
 export async function call<T = any>(
   op: string,
   params: Record<string, string | number> = {}
