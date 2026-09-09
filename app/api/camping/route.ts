@@ -35,6 +35,7 @@ export async function GET(req: Request) {
   const region = (searchParams.get('do') ?? '').trim()
   const q = (searchParams.get('q') ?? '').trim().toLowerCase()
   const tag = (searchParams.get('tag') ?? '').trim()
+  const ids = (searchParams.get('ids') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   const raw = searchParams.get('size')
   const size: PetSize = raw === 'medium' || raw === 'large' ? raw : 'small'
   const petName = (searchParams.get('petName') ?? '우리 아이').slice(0, 20)
@@ -44,6 +45,16 @@ export async function GET(req: Request) {
 
   // 지역·검색·유형으로 먼저 좁힌 뒤 판정한다
   let list = CAMPS
+  let keepOrder = false
+
+  // '가까운 순' — 브라우저가 /api/camping/coords 로 거리를 재고 고른 id 만 넘어온다.
+  // 좌표는 여기까지 오지 않는다. 골라 온 순서가 곧 거리순이므로 그대로 지킨다
+  if (ids.length > 0) {
+    const byId = new Map(CAMPS.map((c) => [c.id, c]))
+    list = ids.map((id) => byId.get(id)).filter((c): c is Camp => Boolean(c))
+    keepOrder = true
+  }
+
   if (region) list = list.filter((c) => normalizeRegion(c.doNm) === region)
   if (tag) list = list.filter((c) => c.lctCl.includes(tag))
   if (q) {
@@ -64,14 +75,17 @@ export async function GET(req: Request) {
   const visible = judged.filter((c) => c.j.state !== 'no')
   const hidden = judged.length - visible.length
 
-  // 확실한 곳을 먼저, 그다음 사진 있는 곳, 그다음 이름순
+  // 확실한 곳을 먼저, 그다음 사진 있는 곳, 그다음 이름순.
+  // 거리순으로 골라 온 목록은 그 순서가 곧 답이라 다시 늘어놓지 않는다
   const rank = (s: CampState) => (s === 'ok' ? 0 : 1)
-  visible.sort(
-    (a, b) =>
-      rank(a.j.state) - rank(b.j.state) ||
-      (b.image ? 1 : 0) - (a.image ? 1 : 0) ||
-      a.name.localeCompare(b.name, 'ko')
-  )
+  if (!keepOrder) {
+    visible.sort(
+      (a, b) =>
+        rank(a.j.state) - rank(b.j.state) ||
+        (b.image ? 1 : 0) - (a.image ? 1 : 0) ||
+        a.name.localeCompare(b.name, 'ko')
+    )
+  }
 
   return NextResponse.json({
     camps: visible.slice(0, limit),

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { PETS, DEFAULT_PET } from '@/lib/pets'
 import { splitTags, type Camp, type CampJudge } from '@/lib/camping'
 import { distance } from '@/lib/geo'
@@ -349,11 +349,38 @@ type JudgedCamp = Camp & { j: CampJudge }
 /** 위치 유형 — 데이터에 실제로 쓰이는 값들. 어떤 곳인지 한 단어로 고르게 한다 */
 const TAGS = ['해변', '산', '숲', '강', '호수', '섬', '도심']
 
+/**
+ * 거리순으로 서버에 되물을 캠핑장 수.
+ *
+ * 목록 API 가 한 번에 내주는 상한이 200 곳이라 그보다 넉넉하다. 3,115곳의 id 를
+ * 전부 붙이면 주소가 18KB 로 불어나 요청이 잘린다.
+ */
+const NEAR_MAX = 300
+
+const CAMP_SORTS: { key: 'default' | 'near'; label: string }[] = [
+  { key: 'default', label: '확실한 곳 먼저' },
+  { key: 'near', label: '나와 가까운 순' },
+]
+
 function CampView() {
   const [petKey, setPetKey] = useState(DEFAULT_PET)
   const [region, setRegion] = useState('')
   const [tag, setTag] = useState('')
   const [limit, setLimit] = useState(PAGE)
+  /**
+   * 나와 가까운 순 — 좌표를 서버로 보내지 않는다.
+   *
+   * 캠핑 목록은 우리 아이 기준으로 서버가 걸러 한 페이지씩 보내므로, 받아온 24곳만
+   * 다시 늘어놓으면 '가까운 순'이 되지 않는다. 그래서 지도의 '내 주변'과 같은 길을 쓴다 —
+   * /api/camping/coords 로 좌표 색인만 받아 브라우저에서 거리를 재고, 가까운 id 만
+   * 서버에 되묻는다. 위치는 단말을 떠나지 않는다.
+   */
+  const [sort, setSort] = useState<'default' | 'near'>('default')
+  const [nearIds, setNearIds] = useState<string[] | null>(null)
+  const [nearDist, setNearDist] = useState<Record<string, number>>({})
+  const [geoBusy, setGeoBusy] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
+  const coordsRef = useRef<[string, number, number][] | null>(null)
   const [data, setData] = useState<{
     camps: JudgedCamp[]
     total: number
@@ -365,6 +392,46 @@ function CampView() {
 
   const pet = PETS[petKey]
 
+  async function pickSort(k: 'default' | 'near') {
+    setGeoError(null)
+    setLimit(PAGE)
+    if (k === 'default' || nearIds) {
+      setSort(k)
+      return
+    }
+    if (!navigator.geolocation) {
+      setGeoError('이 브라우저는 위치를 알려주지 못해요')
+      return
+    }
+    setGeoBusy(true)
+    try {
+      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 })
+      )
+      if (!coordsRef.current) {
+        const d = await fetch('/api/camping/coords').then((r) => r.json())
+        coordsRef.current = d.coords ?? []
+      }
+      const { latitude: lat, longitude: lng } = pos.coords
+      const near = coordsRef
+        .current!.map(([id, x, y]) => [id, distance(lat, lng, y, x)] as const)
+        .sort((a, b) => a[1] - b[1])
+        .slice(0, NEAR_MAX)
+
+      if (near.length === 0) {
+        setGeoError('좌표가 등록된 캠핑장이 없어요')
+        return
+      }
+      setNearDist(Object.fromEntries(near))
+      setNearIds(near.map(([id]) => id))
+      setSort('near')
+    } catch {
+      setGeoError('위치를 가져오지 못했어요 — 브라우저에서 위치 권한을 허용해주세요')
+    } finally {
+      setGeoBusy(false)
+    }
+  }
+
   useEffect(() => {
     setLoading(true)
     const qs = new URLSearchParams({
@@ -373,13 +440,14 @@ function CampView() {
       limit: String(limit),
       ...(region ? { do: region } : {}),
       ...(tag ? { tag } : {}),
+      ...(sort === 'near' && nearIds ? { ids: nearIds.join(',') } : {}),
     })
     fetch(`/api/camping?${qs}`)
       .then((r) => r.json())
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [pet.size, pet.name, region, tag, limit])
+  }, [pet.size, pet.name, region, tag, limit, sort, nearIds])
 
   const camps = data?.camps ?? []
 
@@ -436,6 +504,29 @@ function CampView() {
         })}
       </div>
 
+      {/* 정렬 — 거리는 브라우저에서만 잰다 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        {CAMP_SORTS.map(({ key: k, label }) => {
+          const on = k === sort
+          const busy = k === 'near' && geoBusy
+          return (
+            <button key={k} className="hov-accent" onClick={() => pickSort(k)} disabled={busy}
+              style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
+              {k === 'near' && '🧭 '}{busy ? '위치 확인 중…' : label}
+            </button>
+          )
+        })}
+        {sort === 'near' && nearIds && (
+          <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.5 }}>
+            내 위치에서 <b style={{ color: '#8A7A65' }}>가까운 {NEAR_MAX}곳</b> 안에서 봐요
+            · 위치는 이 브라우저 안에서만 쓰고 서버로 보내지 않아요
+          </span>
+        )}
+        {geoError && (
+          <span style={{ fontSize: 11.5, color: '#C0392B', lineHeight: 1.5 }}>{geoError}</span>
+        )}
+      </div>
+
       {!loading && camps.length === 0 && (
         <p style={{ padding: 40, textAlign: 'center', color: '#A08872', fontSize: 14, lineHeight: 1.7 }}>
           {pet.name}가 묵을 수 있는 캠핑장이<br />이 조건에는 없어요
@@ -461,6 +552,9 @@ function CampView() {
                 <p style={{ margin: 0, fontSize: 12, color: '#A08872' }}>
                   {c.doNm} {c.sigunguNm}
                   {c.induty && <> · {splitTags(c.induty)[0]}</>}
+                  {sort === 'near' && nearDist[c.id] !== undefined && (
+                    <span style={{ color: '#E85D3D', fontWeight: 700 }}> · {meters(nearDist[c.id])}</span>
+                  )}
                 </p>
 
                 <p style={{ margin: 0, fontSize: 12.5, color: ok ? '#2F8F4E' : '#8A6208', lineHeight: 1.5 }}>
