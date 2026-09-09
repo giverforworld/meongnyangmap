@@ -16,7 +16,6 @@ import { useIsMobile } from '@/lib/useIsMobile'
 const MENUS = [
   { href: '/', label: '멍냥맵', hint: '우리 아이 기준 동반 판정', Icon: PinIcon },
   { href: '/hotplace', label: '핫플레이스', hint: '확실히 갈 수 있는 곳', Icon: SparkleIcon },
-  { href: '/festival', label: '페스티벌', hint: '반려동물 행사·팝업', Icon: TentIcon },
   { href: '/community', label: '커뮤니티', hint: '다녀온 이야기', Icon: BubblePawIcon },
 ]
 
@@ -125,18 +124,6 @@ function SparkleIcon() {
     <svg viewBox="0 0 24 24" style={ico} aria-hidden="true" fill="currentColor">
       <path d="M9.8 2c.75 4.9 2.3 6.45 7.2 7.2-4.9.75-6.45 2.3-7.2 7.2-.75-4.9-2.3-6.45-7.2-7.2 4.9-.75 6.45-2.3 7.2-7.2Z" />
       <path d="M17.9 13.4c.36 2.35 1.15 3.15 3.5 3.5-2.35.36-3.14 1.15-3.5 3.5-.36-2.35-1.15-3.14-3.5-3.5 2.35-.35 3.14-1.15 3.5-3.5Z" />
-    </svg>
-  )
-}
-
-/** 페스티벌 — page.tsx 의 CAT_EMOJI 행사=🎪 와 같은 어휘 */
-function TentIcon() {
-  return (
-    <svg viewBox="0 0 24 24" style={ico} aria-hidden="true" fill="none" stroke="currentColor"
-      strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 7.2 3.6 19.8h16.8L12 7.2Z" />
-      <path d="M12 7.2v12.6M8.3 19.8c0-3 1.5-6 3.7-8.4M15.7 19.8c0-3-1.5-6-3.7-8.4" />
-      <path d="M12 7.2V3.6h3.3l-1.1 1.3 1.1 1.3H12" />
     </svg>
   )
 }

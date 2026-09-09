@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { PETS, DEFAULT_PET } from '@/lib/pets'
 import { splitTags, type Camp, type CampJudge } from '@/lib/camping'
+import { distance } from '@/lib/geo'
 
 interface Curated {
   contentid: string
@@ -10,6 +11,8 @@ interface Curated {
   addr1: string
   cat: string
   firstimage: string
+  mapx: number
+  mapy: number
   regnCd: string
   reasons: string[]
   summary: string
@@ -62,6 +65,18 @@ const TABS: { key: Tab; label: string; title: string; lede: React.ReactNode }[] 
     ),
   },
 ]
+
+/** 정렬 — 고르는 기준이 셋이라 각각 무엇을 앞으로 보내는지 이름에 담는다 */
+type Sort = 'default' | 'visitors' | 'near'
+
+const SORTS: { key: Sort; label: string }[] = [
+  { key: 'default', label: '조건이 확실한 순' },
+  { key: 'visitors', label: '요즘 붐비는 지역 순' },
+  { key: 'near', label: '나와 가까운 순' },
+]
+
+/** 거리 표기 — 1km 미만은 m 로 */
+const meters = (m: number) => (m < 1000 ? `${Math.round(m)}m` : `${(m / 1000).toFixed(1)}km`)
 
 const chip = (on: boolean): React.CSSProperties => ({
   flex: 'none',
@@ -144,8 +159,44 @@ function HotView() {
   const [limit, setLimit] = useState(PAGE)
   const [loading, setLoading] = useState(true)
   /** 기본은 '조건이 확실한 순'. 방문자 순은 지역 인기를 얹어 보는 것이다 */
-  const [sort, setSort] = useState<'default' | 'visitors'>('default')
+  const [sort, setSort] = useState<Sort>('default')
   const [period, setPeriod] = useState<{ from: string; to: string } | null>(null)
+
+  /**
+   * 나와 가까운 순 — 좌표를 서버로 보내지 않는다.
+   *
+   * 위치를 서버로 전송하면 저장 여부와 무관하게 위치기반서비스사업자 신고 대상이
+   * 된다(공모전 공지 FAQ). 목록이 이미 각 장소의 좌표를 들고 있으니, 브라우저에서
+   * 거리만 재고 다시 늘어놓는다. 위치는 단말을 떠나지 않는다.
+   */
+  const [here, setHere] = useState<{ lat: number; lng: number } | null>(null)
+  const [geoBusy, setGeoBusy] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
+
+  async function pickSort(k: Sort) {
+    setGeoError(null)
+    setLimit(PAGE)
+    if (k !== 'near' || here) {
+      setSort(k)
+      return
+    }
+    if (!navigator.geolocation) {
+      setGeoError('이 브라우저는 위치를 알려주지 못해요')
+      return
+    }
+    setGeoBusy(true)
+    try {
+      const pos = await new Promise<GeolocationPosition>((res, rej) =>
+        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 8000 })
+      )
+      setHere({ lat: pos.coords.latitude, lng: pos.coords.longitude })
+      setSort('near')
+    } catch {
+      setGeoError('위치를 가져오지 못했어요 — 브라우저에서 위치 권한을 허용해주세요')
+    } finally {
+      setGeoBusy(false)
+    }
+  }
 
   useEffect(() => {
     fetch('/api/regions')
@@ -154,13 +205,16 @@ function HotView() {
       .catch(() => {})
   }, [])
 
+  // 거리순은 받아온 목록을 브라우저에서 다시 늘어놓는 것이라 서버에 되묻지 않는다
+  const serverSort = sort === 'visitors' ? 'visitors' : 'default'
+
   useEffect(() => {
     setLoading(true)
     setLimit(PAGE)
     const qs = new URLSearchParams({
       kind: 'hotplace',
       ...(regnCd ? { regnCd } : {}),
-      ...(sort === 'visitors' ? { sort } : {}),
+      ...(serverSort === 'visitors' ? { sort: serverSort } : {}),
     })
     fetch(`/api/curated?${qs}`)
       .then((r) => r.json())
@@ -169,7 +223,7 @@ function HotView() {
         setPeriod(d.visitPeriod?.from ? d.visitPeriod : null)
       })
       .finally(() => setLoading(false))
-  }, [regnCd, sort])
+  }, [regnCd, serverSort])
 
   const cats = useMemo(() => {
     const m: Record<string, number> = {}
@@ -177,10 +231,17 @@ function HotView() {
     return ['전체', ...Object.keys(m).sort((a, b) => m[b] - m[a])]
   }, [items])
 
-  const matched = useMemo(
-    () => items.filter((i) => cat === '전체' || i.cat === cat),
-    [items, cat]
-  )
+  /** 좌표가 없는 곳은 거리를 알 수 없다 — 0km 로 속이지 말고 뒤로 보낸다 */
+  const matched = useMemo<(Curated & { meters?: number })[]>(() => {
+    const list = items.filter((i) => cat === '전체' || i.cat === cat)
+    if (sort !== 'near' || !here) return list
+    return list
+      .map((i) => ({
+        ...i,
+        meters: i.mapx && i.mapy ? distance(here.lat, here.lng, i.mapy, i.mapx) : Infinity,
+      }))
+      .sort((a, b) => a.meters - b.meters)
+  }, [items, cat, sort, here])
   const shown = matched.slice(0, limit)
 
   return (
@@ -208,15 +269,13 @@ function HotView() {
 
       {/* 정렬 — 방문자 데이터는 '지역'의 것이라 문구가 그 선을 넘지 않아야 한다 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        {([
-          ['default', '조건이 확실한 순'],
-          ['visitors', '요즘 붐비는 지역 순'],
-        ] as const).map(([k, label]) => {
+        {SORTS.map(({ key: k, label }) => {
           const on = k === sort
+          const busy = k === 'near' && geoBusy
           return (
-            <button key={k} className="hov-accent" onClick={() => setSort(k)}
-              style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: 'pointer' }}>
-              {label}
+            <button key={k} className="hov-accent" onClick={() => pickSort(k)} disabled={busy}
+              style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
+              {k === 'near' && '🧭 '}{busy ? '위치 확인 중…' : label}
             </button>
           )
         })}
@@ -225,6 +284,14 @@ function HotView() {
             장소가 아니라 <b style={{ color: '#8A7A65' }}>시군구</b> 기준 외지인 방문 수예요
             · {period.from.slice(4, 6)}.{period.from.slice(6)}~{period.to.slice(4, 6)}.{period.to.slice(6)} 집계
           </span>
+        )}
+        {sort === 'near' && here && (
+          <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.5 }}>
+            위치는 <b style={{ color: '#8A7A65' }}>이 브라우저 안에서만</b> 쓰고 서버로 보내지 않아요
+          </span>
+        )}
+        {geoError && (
+          <span style={{ fontSize: 11.5, color: '#C0392B', lineHeight: 1.5 }}>{geoError}</span>
         )}
       </div>
 
@@ -244,6 +311,9 @@ function HotView() {
               <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#2B2420', wordBreak: 'keep-all' }}>{p.title}</h2>
               <p style={{ margin: 0, fontSize: 12, color: '#A08872' }}>
                 {p.cat} · {p.addr1.split(' ').slice(0, 2).join(' ')}
+                {p.meters !== undefined && Number.isFinite(p.meters) && (
+                  <span style={{ color: '#E85D3D', fontWeight: 700 }}> · {meters(p.meters)}</span>
+                )}
               </p>
               {p.summary && (
                 <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: '#6E5F4D', wordBreak: 'keep-all' }}>
@@ -251,12 +321,6 @@ function HotView() {
                 </p>
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 'auto', paddingTop: 4 }}>
-                {/* 주어가 '지역'임을 배지 안에서 드러낸다 — 이 장소의 방문자 수가 아니다 */}
-                {sort === 'visitors' && p.regionRank !== null && p.regionRank <= 50 && (
-                  <span style={{ fontSize: 11.5, fontWeight: 600, padding: '3px 8px', borderRadius: 99, background: '#FFF4EF', color: '#E85D3D' }}>
-                    {p.regionName} 방문 {p.regionRank}위
-                  </span>
-                )}
                 {p.reasons.map((r) => (
                   <span key={r} style={{ fontSize: 11.5, fontWeight: 600, padding: '3px 8px', borderRadius: 99, background: '#EAF6EA', color: '#2F8F4E' }}>
                     {r}
