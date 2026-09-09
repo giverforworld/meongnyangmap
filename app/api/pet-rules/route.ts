@@ -33,8 +33,17 @@ function cached(id: string) {
   return hit && Date.now() - hit.at < TTL ? hit : null
 }
 
-/** 한 요청이 부를 수 있는 상한 — 화면 한 페이지(50) 분량 */
-const MAX_IDS = 50
+/**
+ * 한 요청이 다룰 수 있는 상한.
+ *
+ * 예전에는 50 이었다. 화면 한 페이지가 50건이라 맞춰 둔 값인데, 넘긴 것을
+ * **말없이 버렸다** — 51번째부터는 응답에 없으니 화면이 '조건 확인 실패'로 표시하고,
+ * 이미 물어본 것으로 기록해 다시 시도하지도 않았다. 새로고침 전까지 복구가 안 됐다.
+ *
+ * 지금은 동반 조건 9,690건이 전부 파일에 있어 대부분 호출 없이 끝난다.
+ * 화면이 100건을 그려도 안전하도록 올리고, 그래도 넘치면 버리지 말고 알린다.
+ */
+const MAX_IDS = 500
 
 /** 동시 호출 수를 제한한 map */
 async function pooled<T, R>(items: T[], size: number, fn: (t: T) => Promise<R>) {
@@ -47,13 +56,15 @@ async function pooled<T, R>(items: T[], size: number, fn: (t: T) => Promise<R>) 
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const ids = (searchParams.get('ids') ?? '')
+  const asked = (searchParams.get('ids') ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
-    .slice(0, MAX_IDS)
+  const ids = asked.slice(0, MAX_IDS)
+  /** 상한을 넘겨 이번에 다루지 못한 것. 조용히 버리지 않고 그대로 알린다 */
+  const skipped = asked.slice(MAX_IDS)
 
-  if (ids.length === 0) return NextResponse.json({ rules: {}, failed: [] })
+  if (ids.length === 0) return NextResponse.json({ rules: {}, failed: [], skipped })
 
   // 병렬 8 에서 전건 빈 응답, 4 로 낮추니 정상이었다. 원인을 스로틀링으로 단정하지는
   // 못했지만 4 는 실측으로 안전이 확인된 값이다. 조회 실패와 '조건 정보 미등록'은
@@ -98,5 +109,8 @@ export async function GET(req: Request) {
   return NextResponse.json({
     rules,
     failed: allEmpty ? [...failed, ...fetched.map((r) => r.id)] : failed,
+    // 화면이 다시 물어볼 수 있도록 넘겨준다. 이것을 알리지 않으면
+    // 조회하지 않은 장소가 '조회 실패'와 구분되지 않는다
+    skipped,
   })
 }

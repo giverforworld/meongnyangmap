@@ -43,8 +43,8 @@ const ASIDE_CAT = '쇼핑'
 /** 쇼핑을 뺀 나머지 전부 */
 const ALL = '갈 만한 곳'
 
-/** 한 번에 그리는 카드 수. 이 수만큼만 동반 조건을 조회한다 */
-const PAGE = 50
+/** 한 번에 그리는 카드 수. 서버가 이만큼만 보내고, 이 수만큼만 동반 조건을 조회한다 */
+const PAGE = 100
 
 interface Region {
   code: string
@@ -72,6 +72,14 @@ export default function Home() {
   const [regnCd, setRegnCd] = useState('11')
   const [signguCd, setSignguCd] = useState('')
   const [places, setPlaces] = useState<Place[]>([])
+  /** 걸러진 전체 개수. 화면에 그려진 수(places.length)와 다르다 */
+  const [total, setTotal] = useState(0)
+  /** 칩에 붙는 숫자 — 고르기 전 기준이라 서버가 세어 준다 */
+  const [counts, setCounts] = useState<{
+    all: number
+    byCat: Record<string, number>
+    bySub: Record<string, number>
+  }>({ all: 0, byCat: {}, bySub: {} })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
@@ -132,33 +140,51 @@ export default function Home() {
       .catch(() => {})
   }, [])
 
+  /**
+   * 지역·검색·내 주변이 바뀌면 보던 조건을 되돌린다.
+   * 목록을 비우지 않으면, 새 목록이 도착하기 전에 이전 지역 장소로 조건 조회가
+   * 한 번 더 나간다 — 조회 기록을 방금 비웠기 때문이다.
+   */
   useEffect(() => {
-    setLoading(true)
-    setError(null)
-    setSelectedId(null)
     setCat(ALL)
     setSub('전체')
     setLimit(PAGE)
+    setSelectedId(null)
     setRulesById({})
     // 이걸 비우지 않으면 지역을 갔다 돌아왔을 때 조회를 건너뛰어 카드가 '확인 중'에 멈춘다
     requested.current.clear()
-    // 목록을 비워두지 않으면, 새 목록이 도착하기 전에 이전 지역 장소로 조건 조회가
-    // 한 번 더 나간다 — 조회 기록을 방금 비웠기 때문이다. 그만큼 한도가 새어나간다.
     setPlaces([])
-    const qs = new URLSearchParams(
-      nearIds
+  }, [regnCd, signguCd, q, nearIds])
+
+  /**
+   * 목록 — **거르는 일은 서버가 한다.**
+   *
+   * 예전에는 지역 전체를 받아 브라우저가 걸렀다. 서울은 3,170곳이라 한 번에
+   * 1,008KB 였고 화면은 50곳만 그렸다. 지금은 그릴 만큼만 받는다(100건 32KB).
+   * 칩에 붙는 숫자도 서버가 세어 보낸다 — 전체를 갖고 있지 않으면 셀 수 없기 때문이다.
+   */
+  useEffect(() => {
+    setLoading(true)
+    setError(null)
+    const qs = new URLSearchParams({
+      ...(nearIds
         ? { ids: nearIds.join(',') }
-        : { regnCd, ...(signguCd ? { signguCd } : {}), ...(q ? { q } : {}) }
-    )
+        : { regnCd, ...(signguCd ? { signguCd } : {}), ...(q ? { q } : {}) }),
+      ...(cat !== ALL ? { cat } : {}),
+      ...(sub !== '전체' ? { sub } : {}),
+      limit: String(limit),
+    })
     fetch(`/api/places?${qs}`)
       .then((r) => r.json())
       .then((d) => {
         if (d.error) setError(d.error)
         setPlaces(d.places ?? [])
+        setTotal(d.total ?? 0)
+        setCounts(d.counts ?? { all: 0, byCat: {}, bySub: {} })
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
-  }, [regnCd, signguCd, q, nearIds])
+  }, [regnCd, signguCd, q, nearIds, cat, sub, limit])
 
   // 장소를 바꾸면 앞 장소의 정보가 남지 않게 비우고 새로 받는다
   useEffect(() => {
@@ -226,37 +252,16 @@ export default function Home() {
   }
 
   // ── 필터: 콘텐츠 타입 → 분류체계 세분류 → 표시 개수
-  //    거르는 일은 전부 여기서 한다. 서버는 API가 주는 7종을 그대로 내려준다.
-  const catCounts = useMemo(() => {
-    const m: Record<string, number> = {}
-    places.forEach((p) => (m[p.cat] = (m[p.cat] ?? 0) + 1))
-    return m
-  }, [places])
+  //    거르는 일은 서버가 한다. 여기서는 서버가 준 숫자로 칩만 그린다.
+  const catCounts = counts.byCat
+  const subCounts = counts.bySub
+  /** '갈 만한 곳'의 수 — 쇼핑을 뺀 나머지 */
+  const allCount = counts.all
 
   const cats = useMemo(
     () => [ALL, ...CAT_ORDER.filter((c) => (catCounts[c] ?? 0) > 0)],
     [catCounts]
   )
-
-  const inCat = useMemo(
-    () => places.filter((p) => (cat === ALL ? p.cat !== ASIDE_CAT : p.cat === cat)),
-    [places, cat]
-  )
-
-  /** '갈 만한 곳'의 수 — 쇼핑을 뺀 나머지 */
-  const allCount = useMemo(
-    () => places.reduce((n, p) => n + (p.cat === ASIDE_CAT ? 0 : 1), 0),
-    [places]
-  )
-
-  // 쇼핑처럼 한 타입에 수천 곳이 몰린 경우를 위한 2차 필터. 종류가 하나뿐이면 숨긴다
-  const subCounts = useMemo(() => {
-    const m: Record<string, number> = {}
-    inCat.forEach((p) => {
-      if (p.lclsSystm2) m[p.lclsSystm2] = (m[p.lclsSystm2] ?? 0) + 1
-    })
-    return m
-  }, [inCat])
 
   // '전체'에서는 세분류가 20종을 넘어 필터 바가 넘친다. 많은 순 상위만 노출한다
   const subs = useMemo(() => {
@@ -266,12 +271,11 @@ export default function Home() {
     return keys.length > 1 ? keys.slice(0, isMobile ? 6 : 10) : []
   }, [subCounts, isMobile, cat])
 
-  const filtered = useMemo(
-    () => inCat.filter((p) => sub === '전체' || p.lclsSystm2 === sub),
-    [inCat, sub]
-  )
+  /** 지금 고른 카테고리의 개수 — 세부분류를 고르기 전 기준이라 '전체' 칩에 쓴다 */
+  const inCatCount = cat === ALL ? allCount : catCounts[cat] ?? 0
 
-  const shown = useMemo(() => filtered.slice(0, limit), [filtered, limit])
+  /** 서버가 이미 걸러서 한 페이지만 보냈다 */
+  const shown = places
 
   // ── 동반 조건은 화면에 그려진 것만 조회한다.
   //    목록 전체를 조회하면 서울(3,170곳)에서 일일 한도를 한 번에 넘긴다.
@@ -297,9 +301,20 @@ export default function Home() {
       .then((r) => r.json())
       .then((d) => {
         const got: Record<string, any> = d.rules ?? {}
+        // 상한을 넘겨 이번에 다루지 못한 것. 조회 기록에서 빼 다음 번에 다시 묻는다 —
+        // 실패로 표시하면 새로고침 전까지 영영 '확인 실패'로 남는다
+        const skipped: string[] = d.skipped ?? []
+        skipped.forEach((id) => requested.current.delete(id))
+        const pending = new Set(skipped)
         // 조회 실패와 '조건 정보 미등록'은 다른 상태다. 실패를 미등록으로 뭉개면
         // 화면에 "정보가 없는 장소"로 잘못 표시된다.
-        mark((id) => (id in got ? { state: 'done', rules: got[id] } : { state: 'failed' }))
+        mark((id) =>
+          id in got
+            ? { state: 'done', rules: got[id] }
+            : pending.has(id)
+              ? { state: 'loading' }
+              : { state: 'failed' }
+        )
       })
       .catch(() => {
         need.forEach((id) => requested.current.delete(id))
@@ -429,7 +444,7 @@ export default function Home() {
         {pet.name}가 갈 수 있는 곳 <span style={{ color: '#E85D3D' }}>{visible.length}</span>
       </span>
       <span style={{ fontSize: 12, color: '#B3A78F' }}>
-        {isMobile ? `${filtered.length.toLocaleString()}곳 중` : '이름 순'}
+        {isMobile ? `${total.toLocaleString()}곳 중` : '이름 순'}
       </span>
     </div>
 
@@ -490,10 +505,10 @@ export default function Home() {
         )
       })}
 
-      {!loading && !error && shown.length < filtered.length && (
+      {!loading && !error && shown.length < total && (
         <button className="hov-accent" onClick={() => setLimit((n) => n + PAGE)}
           style={{ fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '11px 0', marginTop: 4, borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', cursor: 'pointer' }}>
-          {PAGE}곳 더 보기 <span style={{ fontWeight: 500, color: '#B3A78F' }}>({filtered.length - shown.length} 남음)</span>
+          {PAGE}곳 더 보기 <span style={{ fontWeight: 500, color: '#B3A78F' }}>({total - shown.length} 남음)</span>
         </button>
       )}
 
@@ -601,7 +616,7 @@ export default function Home() {
               {['전체', ...subs].map((code) => {
                 const on = code === sub
                 const label = code === '전체' ? '전체' : (catNames[code] ?? code)
-                const n = code === '전체' ? inCat.length : subCounts[code]
+                const n = code === '전체' ? inCatCount : subCounts[code]
                 return (
                   <button key={code} className="hov-accent"
                     onClick={() => { setSub(code); setLimit(PAGE); setSelectedId(null) }}
@@ -616,7 +631,7 @@ export default function Home() {
           <span style={{ fontSize: 12.5, color: '#B3A78F', flex: 'none', paddingLeft: isMobile ? 4 : 0 }}>
             {q && <b style={{ color: '#E85D3D' }}>전국 검색 · </b>}
             {nearIds && <b style={{ color: '#E85D3D' }}>내 주변 20km · </b>}
-            {filtered.length}곳 중 {shown.length}곳 확인함
+            {total}곳 중 {shown.length}곳 확인함
             {hiddenCount > 0 && ` · 동반 불가 ${hiddenCount}곳 숨김`}
           </span>
         </div>
@@ -688,7 +703,7 @@ export default function Home() {
                         <button key={code} className="hov-accent"
                           onClick={() => { setSub(code); setLimit(PAGE); setSelectedId(null) }}
                           style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '4px 11px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: 'pointer' }}>
-                          {code === '전체' ? '전체' : (catNames[code] ?? code)} <span style={{ opacity: .6, fontWeight: 500 }}>{code === '전체' ? inCat.length : subCounts[code]}</span>
+                          {code === '전체' ? '전체' : (catNames[code] ?? code)} <span style={{ opacity: .6, fontWeight: 500 }}>{code === '전체' ? inCatCount : subCounts[code]}</span>
                         </button>
                       )
                     })}
@@ -716,7 +731,7 @@ export default function Home() {
             <div style={{ flex: 'none', padding: '10px 16px calc(14px + env(safe-area-inset-bottom))', borderTop: '1px solid #F1EBE0' }}>
               <button className="btn-primary" onClick={() => setFilterOpen(false)}
                 style={{ width: '100%', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, padding: '13px 0', borderRadius: 14, border: 'none', background: '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}>
-                {loading ? '불러오는 중…' : `${filtered.length.toLocaleString()}곳 보기`}
+                {loading ? '불러오는 중…' : `${total.toLocaleString()}곳 보기`}
               </button>
             </div>
           </div>
