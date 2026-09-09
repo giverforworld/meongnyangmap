@@ -70,9 +70,9 @@ const TABS: { key: Tab; label: string; title: string; lede: React.ReactNode }[] 
 type Sort = 'default' | 'visitors' | 'near'
 
 const SORTS: { key: Sort; label: string }[] = [
+  { key: 'near', label: '나와 가까운 순' },
   { key: 'default', label: '조건이 확실한 순' },
   { key: 'visitors', label: '요즘 붐비는 지역 순' },
-  { key: 'near', label: '나와 가까운 순' },
 ]
 
 /** 거리 표기 — 1km 미만은 m 로 */
@@ -275,7 +275,7 @@ function HotView() {
           return (
             <button key={k} className="hov-accent" onClick={() => pickSort(k)} disabled={busy}
               style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
-              {k === 'near' && '🧭 '}{busy ? '위치 확인 중…' : label}
+              {busy ? '위치 확인 중…' : label}
             </button>
           )
         })}
@@ -358,8 +358,8 @@ const TAGS = ['해변', '산', '숲', '강', '호수', '섬', '도심']
 const NEAR_MAX = 300
 
 const CAMP_SORTS: { key: 'default' | 'near'; label: string }[] = [
-  { key: 'default', label: '확실한 곳 먼저' },
   { key: 'near', label: '나와 가까운 순' },
+  { key: 'default', label: '확실한 곳 먼저' },
 ]
 
 function CampView() {
@@ -512,7 +512,7 @@ function CampView() {
           return (
             <button key={k} className="hov-accent" onClick={() => pickSort(k)} disabled={busy}
               style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
-              {k === 'near' && '🧭 '}{busy ? '위치 확인 중…' : label}
+              {busy ? '위치 확인 중…' : label}
             </button>
           )
         })}
