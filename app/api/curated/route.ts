@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { hotplaces, needsReport } from '@/lib/curate'
+import { hotplaces, needsReport, VISIT_PERIOD } from '@/lib/curate'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,7 +12,10 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const kind = searchParams.get('kind') ?? 'hotplace'
   const regnCd = searchParams.get('regnCd') ?? ''
+  const sort = searchParams.get('sort') === 'visitors' ? 'visitors' : 'default'
 
-  const items = kind === 'needs' ? needsReport() : hotplaces(regnCd || undefined)
-  return NextResponse.json({ items, total: items.length })
+  const items = kind === 'needs' ? needsReport() : hotplaces(regnCd || undefined, sort)
+  // 집계 기간을 함께 보낸다 — 화면이 "언제 기준인지"를 밝히지 않으면
+  // 오늘 붐비는 곳으로 읽힌다. 실제로는 한 달쯤 지난 집계다
+  return NextResponse.json({ items, total: items.length, visitPeriod: VISIT_PERIOD })
 }

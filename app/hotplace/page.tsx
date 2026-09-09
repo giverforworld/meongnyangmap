@@ -16,6 +16,8 @@ interface Curated {
   needs: string[]
   usetime: string
   restdate: string
+  regionName: string
+  regionRank: number | null
 }
 
 interface Region {
@@ -141,6 +143,9 @@ function HotView() {
   const [cat, setCat] = useState('전체')
   const [limit, setLimit] = useState(PAGE)
   const [loading, setLoading] = useState(true)
+  /** 기본은 '조건이 확실한 순'. 방문자 순은 지역 인기를 얹어 보는 것이다 */
+  const [sort, setSort] = useState<'default' | 'visitors'>('default')
+  const [period, setPeriod] = useState<{ from: string; to: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/regions')
@@ -152,11 +157,19 @@ function HotView() {
   useEffect(() => {
     setLoading(true)
     setLimit(PAGE)
-    fetch(`/api/curated?kind=hotplace${regnCd ? `&regnCd=${regnCd}` : ''}`)
+    const qs = new URLSearchParams({
+      kind: 'hotplace',
+      ...(regnCd ? { regnCd } : {}),
+      ...(sort === 'visitors' ? { sort } : {}),
+    })
+    fetch(`/api/curated?${qs}`)
       .then((r) => r.json())
-      .then((d) => setItems(d.items ?? []))
+      .then((d) => {
+        setItems(d.items ?? [])
+        setPeriod(d.visitPeriod?.from ? d.visitPeriod : null)
+      })
       .finally(() => setLoading(false))
-  }, [regnCd])
+  }, [regnCd, sort])
 
   const cats = useMemo(() => {
     const m: Record<string, number> = {}
@@ -193,6 +206,28 @@ function HotView() {
         </span>
       </div>
 
+      {/* 정렬 — 방문자 데이터는 '지역'의 것이라 문구가 그 선을 넘지 않아야 한다 */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+        {([
+          ['default', '조건이 확실한 순'],
+          ['visitors', '요즘 붐비는 지역 순'],
+        ] as const).map(([k, label]) => {
+          const on = k === sort
+          return (
+            <button key={k} className="hov-accent" onClick={() => setSort(k)}
+              style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: 'pointer' }}>
+              {label}
+            </button>
+          )
+        })}
+        {sort === 'visitors' && period && (
+          <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.5 }}>
+            장소가 아니라 <b style={{ color: '#8A7A65' }}>시군구</b> 기준 외지인 방문 수예요
+            · {period.from.slice(4, 6)}.{period.from.slice(6)}~{period.to.slice(4, 6)}.{period.to.slice(6)} 집계
+          </span>
+        )}
+      </div>
+
       {!loading && matched.length === 0 && (
         <p style={{ padding: 40, textAlign: 'center', color: '#A08872', fontSize: 14 }}>
           이 지역에는 조건이 완전하게 등록된 곳이 아직 없어요
@@ -216,6 +251,12 @@ function HotView() {
                 </p>
               )}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 'auto', paddingTop: 4 }}>
+                {/* 주어가 '지역'임을 배지 안에서 드러낸다 — 이 장소의 방문자 수가 아니다 */}
+                {sort === 'visitors' && p.regionRank !== null && p.regionRank <= 50 && (
+                  <span style={{ fontSize: 11.5, fontWeight: 600, padding: '3px 8px', borderRadius: 99, background: '#FFF4EF', color: '#E85D3D' }}>
+                    {p.regionName} 방문 {p.regionRank}위
+                  </span>
+                )}
                 {p.reasons.map((r) => (
                   <span key={r} style={{ fontSize: 11.5, fontWeight: 600, padding: '3px 8px', borderRadius: 99, background: '#EAF6EA', color: '#2F8F4E' }}>
                     {r}

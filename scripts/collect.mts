@@ -239,6 +239,59 @@ async function main() {
   const yes = camping.filter((c) => /가능/.test(c.animal) && !/불가/.test(c.animal)).length
   console.log(`  ${camping.length.toLocaleString()}곳 · 반려동물 동반 가능 ${yes.toLocaleString()}곳`)
   save('camping.json', { collectedAt: new Date().toISOString(), camping })
+
+  // ── ⑤ 지역 방문자 수 — 관광 빅데이터(DataLabService).
+  //    "요즘 어디에 사람이 몰리나"를 아는 유일한 공개 데이터다. 다만 **지역 단위**이고
+  //    반려동물 구분이 없다 — 개별 장소의 인기도가 아니라는 걸 화면 문구가 지켜야 한다.
+  console.log('\n지역 방문자 수를 받는 중…')
+
+  const ymd = (d: Date) => d.toISOString().slice(0, 10).replace(/-/g, '')
+  const daysAgo = (n: number) => {
+    const d = new Date()
+    d.setDate(d.getDate() - n)
+    return d
+  }
+
+  // 집계가 한 달 남짓 늦게 올라온다. 어디까지 있는지 먼저 짚어야 헛되이 큰 범위를
+  // 요청하지 않는다 — 하루가 800행이라 범위를 넓히면 응답이 수 MB 로 불어난다.
+  let endAt = 0
+  for (const back of [20, 30, 40, 50, 60, 75]) {
+    const probe = ymd(daysAgo(back))
+    const { totalCount } = await call<any>('locgoRegnVisitrDDList', {
+      numOfRows: 1, pageNo: 1, startYmd: probe, endYmd: probe,
+    }, 'DataLabService')
+    if (totalCount > 0) { endAt = back; break }
+  }
+
+  if (endAt === 0) {
+    console.log('  최근 75일 안에 집계된 날이 없어요 — 건너뜁니다')
+  } else {
+    const to = ymd(daysAgo(endAt))
+    const from = ymd(daysAgo(endAt + 29))
+    const { items: rows } = await call<any>('locgoRegnVisitrDDList', {
+      numOfRows: 40000, pageNo: 1, startYmd: from, endYmd: to,
+    }, 'DataLabService')
+
+    // 외지인(touDivCd=2)만 센다. 현지인은 생활 인구라 '찾아간 곳'과 다르고,
+    // 외국인은 반려동물 동반여행과 관계가 옅다.
+    const sum = new Map<string, { name: string; n: number }>()
+    for (const r of rows) {
+      if (String(r.touDivCd) !== '2') continue
+      const code = String(r.signguCode)
+      const cur = sum.get(code) ?? { name: r.signguNm ?? '', n: 0 }
+      cur.n += Number(r.touNum) || 0
+      sum.set(code, cur)
+    }
+
+    const regions = [...sum.entries()]
+      .map(([code, v]) => ({ code, name: v.name, visitors: Math.round(v.n) }))
+      .sort((a, b) => b.visitors - a.visitors)
+      .map((r, i) => ({ ...r, rank: i + 1 }))
+
+    console.log(`  ${rows.length.toLocaleString()}행 → 시군구 ${regions.length}곳 (${from}~${to})`)
+    console.log(`  1위 ${regions[0]?.name} · 2위 ${regions[1]?.name} · 3위 ${regions[2]?.name}`)
+    save('visitors.json', { collectedAt: new Date().toISOString(), from, to, regions })
+  }
 }
 
 main().catch((e) => {
