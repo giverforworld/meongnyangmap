@@ -1,6 +1,15 @@
-/** 한국관광공사 반려동물 동반여행 서비스 (KorPetTourService2) 클라이언트 — 서버 전용 */
+/** 한국관광공사 OpenAPI 클라이언트 — 서버 전용 */
 
-const BASE = 'https://apis.data.go.kr/B551011/KorPetTourService2'
+const BASE = 'https://apis.data.go.kr/B551011'
+
+/**
+ * 서비스마다 경로가 다르고 인증키는 하나를 공유한다(공공데이터포털은 계정당 1키).
+ * 기본값은 반려동물 동반여행 — 이 서비스가 판정의 근거라 대부분의 호출이 여기로 간다.
+ */
+export const SERVICE = {
+  pet: 'KorPetTourService2',
+  camping: 'GoCamping',
+} as const
 
 /**
  * 콘텐츠 타입 — API가 제공하는 7종 전부를 받는다. 무엇을 볼지는 화면 필터가 정한다.
@@ -32,7 +41,8 @@ function serviceKey() {
  */
 export async function call<T = any>(
   op: string,
-  params: Record<string, string | number> = {}
+  params: Record<string, string | number> = {},
+  service: string = SERVICE.pet
 ): Promise<{ items: T[]; totalCount: number }> {
   const qs = new URLSearchParams({
     serviceKey: serviceKey(),
@@ -42,7 +52,7 @@ export async function call<T = any>(
     ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
   })
 
-  const res = await fetch(`${BASE}/${op}?${qs}`, { cache: 'no-store' })
+  const res = await fetch(`${BASE}/${service}/${op}?${qs}`, { cache: 'no-store' })
   const text = await res.text()
 
   // 인증 실패·한도 초과는 JSON이 아니라 XML로 온다

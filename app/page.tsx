@@ -2,22 +2,12 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { judge, isDangerousBreed, sizeOf } from '@/lib/petTour'
-import type { CardState, Detail, Judgement, Pet, Place, RulesEntry } from '@/lib/types'
+import type { CardState, Detail, Judgement, Place, RulesEntry } from '@/lib/types'
+import { PETS } from '@/lib/pets'
 import { restStatus, todayLabel } from '@/lib/openHours'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { distance } from '@/lib/geo'
 import KakaoMap from './KakaoMap'
-
-const PETS: Record<string, Pet> = {
-  ruby: {
-    key: 'ruby', name: '루비', breed: '요크셔테리어', kg: 4, emoji: '🐶', photo: '/pets/ruby.jpg',
-    size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false,
-  },
-  bori: {
-    key: 'bori', name: '보리', breed: '리트리버', kg: 28, emoji: '🦮',
-    size: 'large', sizeLabel: '대형견', hasCage: false, hasMuzzle: true, isDangerous: false,
-  },
-}
 
 const BADGE = {
   ok: {

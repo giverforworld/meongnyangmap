@@ -202,6 +202,43 @@ async function main() {
   if (dStopped) console.log('  일일 한도에 걸려 여기까지 받았어요.')
   console.log(`  이번에 ${dDone.toLocaleString()}건 · 누적 ${Object.keys(details).length.toLocaleString()}건`)
   save('details.json', { collectedAt: new Date().toISOString(), details })
+
+  // ── ④ 캠핑장 — 고캠핑 서비스(GoCamping)는 전국 3,115곳을 1콜에 준다.
+  //    반려동물 동반 여부(animalCmgCl)가 이미 필드로 들어 있어 따로 조회할 게 없다.
+  //    반려동물 동반여행 서비스의 숙박은 107곳뿐이라, 캠핑이 그 빈자리를 메운다.
+  console.log('\n캠핑장을 받는 중…')
+  const { items: camps } = await call<any>(
+    'basedList',
+    { numOfRows: 3500, pageNo: 1 },
+    'GoCamping'
+  )
+  if (camps.length === 0) throw new Error('캠핑장 목록이 비어 있어요')
+
+  // 화면이 쓰는 필드만 남긴다. 원본은 한 곳당 81필드다
+  const camping = camps.map((c) => ({
+    id: String(c.contentId ?? ''),
+    name: c.facltNm ?? '',
+    addr: c.addr1 ?? '',
+    doNm: c.doNm ?? '',
+    sigunguNm: c.sigunguNm ?? '',
+    mapx: Number(c.mapX) || 0,
+    mapy: Number(c.mapY) || 0,
+    image: c.firstImageUrl ?? '',
+    // 해변·산·숲·강 — 어떤 곳인지 한눈에 보여주는 값
+    lctCl: c.lctCl ?? '',
+    // 일반야영장·글램핑·카라반
+    induty: c.induty ?? '',
+    tel: c.tel ?? '',
+    homepage: c.homepage ?? '',
+    resveCl: c.resveCl ?? '',
+    intro: (c.intro ?? '').replace(/\s+/g, ' ').trim().slice(0, 160),
+    /** '가능' · '가능(소형견)' · '불가능' · 빈값. 판정은 화면에서 한다 */
+    animal: (c.animalCmgCl ?? '').trim(),
+  }))
+
+  const yes = camping.filter((c) => /가능/.test(c.animal) && !/불가/.test(c.animal)).length
+  console.log(`  ${camping.length.toLocaleString()}곳 · 반려동물 동반 가능 ${yes.toLocaleString()}곳`)
+  save('camping.json', { collectedAt: new Date().toISOString(), camping })
 }
 
 main().catch((e) => {
