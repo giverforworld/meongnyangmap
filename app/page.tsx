@@ -3,7 +3,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { judge, isDangerousBreed, sizeOf } from '@/lib/petTour'
 import type { CardState, Detail, Judgement, Place, RulesEntry } from '@/lib/types'
-import { PETS } from '@/lib/pets'
+import { usePets } from '@/lib/usePets'
+import PetSwitch from './PetSwitch'
 import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
 import { restStatus, todayLabel } from '@/lib/openHours'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -98,7 +99,7 @@ export default function Home() {
   const [nearBusy, setNearBusy] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
 
-  const [petKey, setPetKey] = useState('ruby')
+  const petStore = usePets()
   const [cat, setCat] = useState(ALL)
   const [sub, setSub] = useState('전체')
   const [limit, setLimit] = useState(PAGE)
@@ -130,7 +131,7 @@ export default function Home() {
   const sheetRef = useRef<HTMLDivElement>(null)
   const dragRef = useRef<{ y: number; h: number } | null>(null)
 
-  const pet = PETS[petKey]
+  const pet = petStore.pet
 
   useEffect(() => {
     fetch('/api/regions')
@@ -398,25 +399,18 @@ export default function Home() {
    * 상단 바에 두면 검색·지역과 세 줄을 이뤄 지도가 그만큼 밀린다.
    */
   const petSwitch = (compact: boolean) => (
-    <button className="hov-accent" onClick={() => { setPetKey(petKey === 'ruby' ? 'bori' : 'ruby'); setSelectedId(null) }}
-      title="다른 아이 기준으로 다시 판정"
-      style={{ display: 'flex', alignItems: 'center', gap: compact ? 8 : 10, background: compact ? 'rgba(255,255,255,.96)' : '#FFF4EF', border: '1.5px solid #F3C9BB', borderRadius: 99, padding: compact ? '6px 14px 6px 6px' : '7px 16px 7px 9px', cursor: 'pointer', fontFamily: 'inherit', fontSize: compact ? 14 : 15, color: '#2B2420', boxShadow: compact ? '0 3px 12px rgba(43,36,32,.16)' : 'none' }}>
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 30 : 34, height: compact ? 30 : 34, background: '#FFE0D3', borderRadius: '50%', fontSize: compact ? 16 : 17, overflow: 'hidden', flex: 'none' }}>
-        {pet.photo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={pet.photo} alt="" width={compact ? 30 : 34} height={compact ? 30 : 34}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            // 사진을 아직 안 넣었거나 깨졌으면 이모지로 되돌린다
-            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = pet.emoji }} />
-        ) : pet.emoji}
-      </span>
-      <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-        <span style={{ fontWeight: 700 }}>{pet.name}{compact ? '' : ` · ${pet.breed}`}</span>
-        <span style={{ fontSize: compact ? 11.5 : 12.5, color: '#A08872' }}>
-          {pet.kg}kg · {pet.sizeLabel}{compact ? ' ▾' : ' · 프로필 전환 ▾'}
-        </span>
-      </span>
-    </button>
+    <PetSwitch
+      pet={petStore.pet}
+      pets={petStore.pets}
+      list={petStore.list}
+      activeKey={petStore.activeKey}
+      onlySamples={petStore.onlySamples}
+      onSelect={(k) => { petStore.select(k); setSelectedId(null) }}
+      onAdd={(v) => { petStore.add(v); setSelectedId(null) }}
+      onUpdate={(k, v) => { petStore.update(k, v); setSelectedId(null) }}
+      onRemove={petStore.remove}
+      compact={compact}
+    />
   )
 
   /** 종류 칩 하나. 필터 바(넓은 화면)와 필터 시트(좁은 화면)가 같이 쓴다 */

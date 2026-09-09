@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { PETS, DEFAULT_PET } from '@/lib/pets'
+import { usePets } from '@/lib/usePets'
+import PetSwitch from '../PetSwitch'
 import { splitTags, type Camp, type CampJudge } from '@/lib/camping'
 import { distance } from '@/lib/geo'
 
@@ -363,7 +364,7 @@ const CAMP_SORTS: { key: 'default' | 'near'; label: string }[] = [
 ]
 
 function CampView() {
-  const [petKey, setPetKey] = useState(DEFAULT_PET)
+  const petStore = usePets()
   const [region, setRegion] = useState('')
   const [tag, setTag] = useState('')
   const [limit, setLimit] = useState(PAGE)
@@ -390,7 +391,7 @@ function CampView() {
   } | null>(null)
   const [loading, setLoading] = useState(true)
 
-  const pet = PETS[petKey]
+  const pet = petStore.pet
 
   async function pickSort(k: 'default' | 'near') {
     setGeoError(null)
@@ -455,21 +456,17 @@ function CampView() {
     <>
       {/* 우리 아이 기준 — 크기에 따라 결과가 크게 갈려서 여기서 바로 바꾸게 한다 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <button className="hov-accent"
-          onClick={() => { setPetKey(petKey === 'ruby' ? 'bori' : 'ruby'); setLimit(PAGE) }}
-          title="다른 아이 기준으로 다시 판정"
-          style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#FFF4EF', border: '1.5px solid #F3C9BB', borderRadius: 99, padding: '6px 15px 6px 7px', cursor: 'pointer', fontFamily: 'inherit', fontSize: 14, color: '#2B2420' }}>
-          <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 30, height: 30, background: '#FFE0D3', borderRadius: '50%', fontSize: 16, overflow: 'hidden', flex: 'none' }}>
-            {pet.photo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={pet.photo} alt="" width={30} height={30}
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = pet.emoji }} />
-            ) : pet.emoji}
-          </span>
-          <span style={{ fontWeight: 700 }}>{pet.name}</span>
-          <span style={{ fontSize: 12.5, color: '#A08872' }}>{pet.kg}kg · {pet.sizeLabel} ▾</span>
-        </button>
+        <PetSwitch
+          pet={petStore.pet}
+          pets={petStore.pets}
+          list={petStore.list}
+          activeKey={petStore.activeKey}
+          onlySamples={petStore.onlySamples}
+          onSelect={(k) => { petStore.select(k); setLimit(PAGE) }}
+          onAdd={(v) => { petStore.add(v); setLimit(PAGE) }}
+          onUpdate={(k, v) => { petStore.update(k, v); setLimit(PAGE) }}
+          onRemove={petStore.remove}
+        />
 
         <span style={{ marginLeft: 'auto', fontSize: 13, color: '#B3A78F' }}>
           {loading && !data ? '불러오는 중…' : `${(data?.total ?? 0).toLocaleString()}곳`}
