@@ -107,17 +107,15 @@ async function main() {
   console.log(`  ${places.length.toLocaleString()}건`)
   save('places.json', { collectedAt: new Date().toISOString(), places })
 
-  // ── ② 동반 조건 — 쇼핑(38)은 사후면세점이라 뒤로 미룬다
+  // ── ② 동반 조건 — 전 타입. 개발계정(일 1,000건) 때는 쇼핑 8,647건을 뒤로 미뤘지만,
+  //    2026-09-08 운영계정 승인으로 한도가 10만 건이 되어 그럴 이유가 없어졌다.
   const prev = readJson<any>('petRules.json', { rules: {} })
   const rules: Record<string, PetRules | null> = prev.rules ?? {}
 
-  const targets = places
-    .filter((p) => p.contenttypeid !== '38')
-    .map((p) => p.contentid)
-    .filter((id) => !(id in rules))
+  const targets = places.map((p) => p.contentid).filter((id) => !(id in rules))
 
   console.log(
-    `\n동반 조건: 대상 ${(places.length - places.filter((p) => p.contenttypeid === '38').length).toLocaleString()}건 ` +
+    `\n동반 조건: 대상 ${places.length.toLocaleString()}건 ` +
       `· 이미 받은 것 ${Object.keys(rules).length.toLocaleString()}건 · 이번에 받을 것 ${targets.length.toLocaleString()}건`
   )
 
@@ -170,12 +168,10 @@ async function main() {
 
   // ── ③ 상세 정보 — 영업시간·휴무일·전화·소개글·홈페이지·입장료·사진
   //    한 곳당 4콜(detailCommon2/Intro2/Info2/Image2)이라 조건보다 4배 무겁다.
-  //    조건과 마찬가지로 쇼핑은 뒤로 미루고, 한도에 걸리면 거기까지 저장한다.
+  //    조건과 마찬가지로 전 타입을 받는다. 한도에 걸리면 거기까지 저장한다.
   const prevD = readJson('details.json', { details: {} })
   const details: Record<string, unknown> = prevD.details ?? {}
-  const dTargets = places
-    .filter((p) => p.contenttypeid !== '38')
-    .filter((p) => !(p.contentid in details))
+  const dTargets = places.filter((p) => !(p.contentid in details))
 
   console.log(`\n상세 정보: 이번에 받을 것 ${dTargets.length.toLocaleString()}건 (한 곳당 4콜)`)
 
