@@ -291,6 +291,57 @@ async function main() {
     console.log(`  ${rows.length.toLocaleString()}행 → 시군구 ${regions.length}곳 (${from}~${to})`)
     console.log(`  1위 ${regions[0]?.name} · 2위 ${regions[1]?.name} · 3위 ${regions[2]?.name}`)
     save('visitors.json', { collectedAt: new Date().toISOString(), from, to, regions })
+
+    // ── ⑥ 관광지 집중률 — 조회일 기준 향후 30일 예측(TatsCnctrRateService).
+    //    ㈜케이티 이동통신 데이터 기반이고, 가장 붐비는 시기를 100 으로 본 **상대값**이다.
+    //    방문자 수가 아니라 "얼마나 몰리나"라서 화면 문구가 그 선을 지켜야 한다.
+    //
+    //    지역 방문자 수와 달리 **관광지 단위**다. 다만 contentid 가 아니라 이름으로만
+    //    오므로 시군구+이름으로 맞춘다. 실측 매칭률은 '갈 만한 곳' 1,043곳 중 38.6%.
+    console.log('\n관광지 집중률을 받는 중…')
+
+    const norm = (s: string) =>
+      String(s ?? '').replace(/[\s()·\-]/g, '').toLowerCase()
+    const byName = new Map<string, string>()
+    for (const p of places) {
+      if (p.contenttypeid === '38') continue
+      byName.set(`${p.regnCd}${p.signguCd}|${norm(p.title)}`, p.contentid)
+    }
+
+    const crowd: Record<string, { ymd: string; rate: number }[]> = {}
+    let scanned = 0
+    for (let i = 0; i < regions.length; i += POOL) {
+      await Promise.all(
+        regions.slice(i, i + POOL).map(async (r) => {
+          try {
+            const { items } = await call<any>(
+              'tatsCnctrRatedList',
+              { numOfRows: 3000, pageNo: 1, areaCd: r.code.slice(0, 2), signguCd: r.code },
+              'TatsCnctrRateService'
+            )
+            for (const x of items) {
+              const id = byName.get(`${r.code}|${norm(x.tAtsNm)}`)
+              if (!id) continue
+              ;(crowd[id] ??= []).push({ ymd: x.baseYmd, rate: Number(x.cnctrRate) || 0 })
+            }
+          } catch {
+            // 시군구 하나가 실패해도 나머지는 받는다
+          }
+          scanned++
+        })
+      )
+      process.stdout.write(`\r  ${scanned}/${regions.length}`)
+    }
+    process.stdout.write('\r')
+
+    // 날짜순으로 정렬해 둔다 — 화면이 "오늘부터 며칠"을 그대로 잘라 쓸 수 있게
+    for (const id of Object.keys(crowd)) {
+      crowd[id].sort((a, b) => a.ymd.localeCompare(b.ymd))
+    }
+
+    const days = Object.values(crowd)[0]?.length ?? 0
+    console.log(`  시군구 ${scanned}곳 조회 → 우리 장소 ${Object.keys(crowd).length}곳 매칭 (${days}일치)`)
+    save('crowd.json', { collectedAt: new Date().toISOString(), crowd })
   }
 }
 

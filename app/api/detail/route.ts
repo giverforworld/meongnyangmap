@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server'
 import { call } from '@/lib/kto'
 import { clean } from '@/lib/openHours'
 import type { Detail } from '@/lib/types'
+import type { CrowdDay } from '@/lib/crowd'
 import prebuilt from '../../../data/details.json'
+import crowdFile from '../../../data/crowd.json'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +24,12 @@ const cache = new Map<string, { at: number; detail: Detail }>()
  * 표에 없는 장소(쇼핑 등 배치 대상 밖)만 실시간으로 부른다.
  */
 const FILE = (prebuilt as { details?: Record<string, Detail> }).details ?? {}
+
+/**
+ * 혼잡 예보 — 향후 30일 집중률. 장소당 30개 숫자라 상세와 함께 실어 보낸다.
+ * 매칭된 곳만 있다(실측 400곳). 없는 장소는 화면이 그 블록을 안 그린다.
+ */
+const CROWD = (crowdFile as { crowd?: Record<string, CrowdDay[]> }).crowd ?? {}
 
 /** 타입마다 필드명이 다르다. 39 는 infocenterfood — service 가 붙지 않는다 */
 const TEL: Record<string, string> = {
@@ -83,12 +91,14 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'contentId 가 필요해요', detail: EMPTY }, { status: 400 })
   }
 
+  const crowd = CROWD[contentId] ?? null
+
   const fromFile = FILE[contentId]
-  if (fromFile) return NextResponse.json({ detail: fromFile, cached: true })
+  if (fromFile) return NextResponse.json({ detail: fromFile, crowd, cached: true })
 
   const hit = cache.get(contentId)
   if (hit && Date.now() - hit.at < TTL) {
-    return NextResponse.json({ detail: hit.detail, cached: true })
+    return NextResponse.json({ detail: hit.detail, crowd, cached: true })
   }
 
   // 하나가 비어도 나머지는 보여준다 — 타입에 따라 아예 없는 정보가 있기 때문이다
@@ -129,7 +139,7 @@ export async function GET(req: Request) {
     }
 
     cache.set(contentId, { at: Date.now(), detail })
-    return NextResponse.json({ detail, cached: false })
+    return NextResponse.json({ detail, crowd, cached: false })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message, detail: EMPTY }, { status: 500 })
   }

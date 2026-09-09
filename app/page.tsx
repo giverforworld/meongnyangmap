@@ -4,6 +4,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { judge, isDangerousBreed, sizeOf } from '@/lib/petTour'
 import type { CardState, Detail, Judgement, Place, RulesEntry } from '@/lib/types'
 import { PETS } from '@/lib/pets'
+import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
 import { restStatus, todayLabel } from '@/lib/openHours'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { distance } from '@/lib/geo'
@@ -83,6 +84,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
+  /** 이 장소의 향후 30일 혼잡 예측. 매칭된 곳에만 있다 */
+  const [crowd, setCrowd] = useState<CrowdDay[] | null>(null)
   const [detailLoading, setDetailLoading] = useState(false)
   /** 소개글은 길어서 접어 둔다 — 판정과 현장 규정이 먼저 보여야 한다 */
   const [overviewOpen, setOverviewOpen] = useState(false)
@@ -189,6 +192,7 @@ export default function Home() {
   // 장소를 바꾸면 앞 장소의 정보가 남지 않게 비우고 새로 받는다
   useEffect(() => {
     setDetail(null)
+    setCrowd(null)
     setOverviewOpen(false)
     // 다른 장소를 열었는데 앞 장소에서 내려둔 스크롤이 남아 있으면 제목과 판정이 가려진다
     panelBody.current?.scrollTo({ top: 0 })
@@ -200,8 +204,12 @@ export default function Home() {
     setDetailLoading(true)
     fetch(`/api/detail?contentId=${p.contentid}&contentTypeId=${p.contenttypeid}`)
       .then((r) => r.json())
-      .then((d) => { if (alive) setDetail(d.detail ?? null) })
-      .catch(() => { if (alive) setDetail(null) })
+      .then((d) => {
+        if (!alive) return
+        setDetail(d.detail ?? null)
+        setCrowd(d.crowd ?? null)
+      })
+      .catch(() => { if (alive) { setDetail(null); setCrowd(null) } })
       .finally(() => { if (alive) setDetailLoading(false) })
     return () => { alive = false }
   }, [selectedId, places])
@@ -884,6 +892,57 @@ export default function Home() {
                       {rules(sel)!.notes.map((n, i) => <div key={i}>• {n}</div>)}
                     </div>
                   )}
+
+                  {/* 언제 가면 좋을까 — 붐비는 곳은 리드줄이 엉키고 아이가 스트레스를 받는다.
+                      숫자는 그 장소가 가장 붐빌 때를 100 으로 본 상대값이라, 다른 장소와
+                      견주면 안 된다. 같은 장소의 날짜끼리만 비교할 수 있다 */}
+                  {(() => {
+                    if (!crowd) return null
+                    const hint = crowdHint(crowd)
+                    if (!hint) return null
+                    const BAR = { quiet: '#2F8F4E', normal: '#C98A12', busy: '#C0392B' } as const
+                    return (
+                      <section style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '11px 13px', display: 'flex', flexDirection: 'column', gap: 9 }}>
+                        <b style={{ fontSize: 13 }}>언제 가면 좋을까</b>
+
+                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 56 }}>
+                          {hint.days.map((d) => {
+                            const lv = crowdLevel(d.rate)
+                            const on = d.ymd === hint.best.ymd
+                            return (
+                              <div key={d.ymd} title={`${d.ymd.slice(4, 6)}.${d.ymd.slice(6)} · 집중률 ${d.rate}`}
+                                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                                <div style={{ width: '100%', height: 40, display: 'flex', alignItems: 'flex-end' }}>
+                                  <div style={{
+                                    width: '100%',
+                                    // 상한을 100 으로 고정한다. 구간 최댓값에 맞추면
+                                    // 전부 한산한 주에도 하나가 '붐빔'처럼 보인다
+                                    height: `${Math.max(6, Math.min(100, d.rate))}%`,
+                                    background: BAR[lv],
+                                    opacity: on ? 1 : 0.42,
+                                    borderRadius: 3,
+                                  }} />
+                                </div>
+                                <span style={{ fontSize: 10.5, fontWeight: on ? 700 : 500, color: on ? '#2F8F4E' : '#A08872' }}>
+                                  {dowOf(d.ymd)}
+                                </span>
+                              </div>
+                            )
+                          })}
+                        </div>
+
+                        <div style={{ fontSize: 12.5, color: '#5C5347' }}>
+                          <b style={{ color: '#2F8F4E' }}>{dowOf(hint.best.ymd)}요일</b>이 가장 한산해요
+                          <span style={{ color: '#A08872' }}> · {dowOf(hint.worst.ymd)}요일이 가장 붐벼요</span>
+                        </div>
+
+                        <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11, color: '#A08872', lineHeight: 1.5 }}>
+                          이동통신 데이터로 추정한 예측값이에요. 이 장소가 가장 붐빌 때를 100으로 본
+                          상대적인 정도라, 다른 장소와 비교하는 숫자는 아니에요 · 출처 ⓒ한국관광공사
+                        </div>
+                      </section>
+                    )
+                  })()}
 
                   {detailLoading && (
                     <div style={{ fontSize: 12.5, color: '#B3A78F' }}>장소 정보를 불러오는 중…</div>
