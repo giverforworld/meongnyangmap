@@ -288,7 +288,7 @@ function AccountBlock({
         </button>
       </div>
       <span style={{ fontSize: 11, color: '#B3A78F', lineHeight: 1.5 }}>
-        로그인 안 해도 전부 쓸 수 있어요. 위치는 로그인해도 서버로 보내지 않아요.
+        로그인을 하지 않아도 서비스 이용이 가능합니다.
       </span>
     </div>
   )
