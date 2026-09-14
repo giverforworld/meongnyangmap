@@ -1,8 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense, useEffect, useState } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
+import { usePetsContext } from '../PetsProvider'
+import PhotoPicker from '../PhotoPicker'
+import PlacePicker, { type PlaceRef } from '../PlacePicker'
 
 interface Post {
   id: number
@@ -10,6 +14,9 @@ interface Post {
   title: string
   views: number
   created_at: string
+  photos: string[]
+  place_id: string | null
+  place_title: string | null
 }
 
 /** 오늘 쓴 글은 시간만, 그 전은 날짜만 — 목록에서 눈이 덜 피곤하다 */
@@ -23,7 +30,28 @@ function when(iso: string) {
 }
 
 export default function Community() {
+  // useSearchParams 는 정적 빌드 때 Suspense 경계가 있어야 한다
+  return (
+    <Suspense fallback={null}>
+      <Board />
+    </Suspense>
+  )
+}
+
+function Board() {
   const isMobile = useIsMobile()
+  const router = useRouter()
+  const params = useSearchParams()
+  const petStore = usePetsContext()
+
+  /**
+   * 주소로 들어오는 두 가지 —
+   *   ?place=ID           그 장소 이야기만 본다 (지도·핫플레이스의 "이야기 N개 보기")
+   *   ?write=1&place=ID&title=…&addr=…   그 장소를 붙인 채 바로 쓴다 ("이곳 이야기 쓰기")
+   */
+  const placeFilter = params.get('place') ?? ''
+  const placeFilterTitle = params.get('title') ?? ''
+
   const [posts, setPosts] = useState<Post[]>([])
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(false)
@@ -35,12 +63,14 @@ export default function Community() {
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [password, setPassword] = useState('')
+  const [photos, setPhotos] = useState<string[]>([])
+  const [place, setPlace] = useState<PlaceRef | null>(null)
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
   function load(p: number) {
     setLoading(true)
-    fetch(`/api/posts?page=${p}`)
+    fetch(`/api/posts?page=${p}${placeFilter ? `&place=${encodeURIComponent(placeFilter)}` : ''}`)
       .then((r) => r.json())
       .then((d) => {
         setOffline(Boolean(d.offline))
@@ -50,7 +80,23 @@ export default function Community() {
       .finally(() => setLoading(false))
   }
 
-  useEffect(() => load(1), [])
+  useEffect(() => { setPage(1); load(1) }, [placeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // "이곳 이야기 쓰기"로 들어왔으면 장소를 붙인 채 폼을 연다
+  useEffect(() => {
+    if (params.get('write') !== '1') return
+    const id = params.get('place') ?? ''
+    const t = params.get('title') ?? ''
+    if (id && t) setPlace({ id, title: t, addr: params.get('addr') ?? '' })
+    setWriting(true)
+  }, [params])
+
+  // 로그인돼 있으면 닉네임을 미리 채운다. 지울 수는 있다
+  useEffect(() => {
+    const m = petStore.session?.user.user_metadata ?? {}
+    const nick = (m.nickname as string) || (m.name as string) || ''
+    if (nick) setNickname((v) => v || nick.slice(0, 20))
+  }, [petStore.session])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -60,7 +106,7 @@ export default function Community() {
       const r = await fetch('/api/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, title, body, password }),
+        body: JSON.stringify({ nickname, title, body, password, photos, place }),
       })
       const d = await r.json()
       if (!r.ok) {
@@ -70,9 +116,17 @@ export default function Community() {
       setTitle('')
       setBody('')
       setPassword('')
+      setPhotos([])
+      setPlace(null)
       setWriting(false)
-      setPage(1)
-      load(1)
+      // 장소를 붙여 쓴 글은 그 장소 목록으로 — 방금 쓴 글이 바로 보이게
+      if (place && placeFilter !== place.id) {
+        router.replace(`/community?place=${place.id}&title=${encodeURIComponent(place.title)}`)
+      } else {
+        if (params.get('write')) router.replace(placeFilter ? `/community?place=${placeFilter}&title=${encodeURIComponent(placeFilterTitle)}` : '/community')
+        setPage(1)
+        load(1)
+      }
     } catch {
       setError('글을 올리지 못했어요. 잠시 후 다시 시도해주세요')
     } finally {
@@ -97,15 +151,32 @@ export default function Community() {
       <div style={{ maxWidth: 820, margin: '0 auto', padding: isMobile ? '20px 14px 48px' : '28px 20px 56px', display: 'flex', flexDirection: 'column', gap: 18 }}>
         <header style={{ display: 'flex', alignItems: isMobile ? 'stretch' : 'flex-end', justifyContent: 'space-between', gap: 12, flexDirection: isMobile ? 'column' : 'row' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <h1 className="jua" style={{ margin: 0, fontSize: isMobile ? 23 : 26, color: '#2B2420' }}>커뮤니티</h1>
-            <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', wordBreak: 'keep-all' }}>
-              우리 아이랑 다녀온 곳, 좋았던 순간을 나눠요
-            </p>
+            {placeFilter ? (
+              <>
+                <Link href="/community" style={{ fontSize: 12.5, fontWeight: 700, color: '#8A7A65', textDecoration: 'none' }}>← 전체 커뮤니티</Link>
+                <h1 className="jua" style={{ margin: 0, fontSize: isMobile ? 23 : 26, color: '#2B2420' }}>📍 {placeFilterTitle || '이 장소'} 이야기</h1>
+                <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', wordBreak: 'keep-all' }}>
+                  이곳에 다녀온 이야기만 모았어요 ·{' '}
+                  <Link href={`/?focus=${placeFilter}`} style={{ color: '#E85D3D', fontWeight: 700, textDecoration: 'none' }}>지도에서 보기</Link>
+                </p>
+              </>
+            ) : (
+              <>
+                <h1 className="jua" style={{ margin: 0, fontSize: isMobile ? 23 : 26, color: '#2B2420' }}>커뮤니티</h1>
+                <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', wordBreak: 'keep-all' }}>
+                  우리 아이랑 다녀온 곳, 좋았던 순간을 나눠요
+                </p>
+              </>
+            )}
           </div>
           {!offline && (
-            <button className="btn-primary" onClick={() => setWriting((v) => !v)}
+            <button className="btn-primary"
+              onClick={() => {
+                if (!writing && placeFilter && placeFilterTitle && !place) setPlace({ id: placeFilter, title: placeFilterTitle, addr: '' })
+                setWriting((v) => !v)
+              }}
               style={{ flex: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '11px 20px', borderRadius: 12, border: 'none', background: writing ? '#8A7A65' : '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}>
-              {writing ? '접기' : '글쓰기'}
+              {writing ? '접기' : placeFilter ? '이곳 이야기 쓰기' : '글쓰기'}
             </button>
           )}
         </header>
@@ -120,6 +191,7 @@ export default function Community() {
         {writing && (
           <form onSubmit={submit}
             style={{ background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <PlacePicker value={place} onChange={setPlace} />
             <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
               <input value={nickname} onChange={(e) => setNickname(e.target.value)}
                 placeholder="닉네임" maxLength={20} required style={{ ...field, flex: '1 1 160px' }} />
@@ -130,8 +202,9 @@ export default function Community() {
             <input value={title} onChange={(e) => setTitle(e.target.value)}
               placeholder="제목" maxLength={80} required style={field} />
             <textarea value={body} onChange={(e) => setBody(e.target.value)}
-              placeholder="어디를 다녀오셨나요? 우리 아이는 어땠나요?" maxLength={4000} rows={7} required
+              placeholder={place ? `${place.title}, 우리 아이는 어땠나요?` : '어디를 다녀오셨나요? 우리 아이는 어땠나요?'} maxLength={4000} rows={7} required
               style={{ ...field, resize: 'vertical', lineHeight: 1.6 }} />
+            <PhotoPicker photos={photos} onChange={setPhotos} />
             {error && <p style={{ margin: 0, fontSize: 13, color: '#C0392B' }}>{error}</p>}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button type="submit" disabled={saving} className="btn-primary"
@@ -150,14 +223,28 @@ export default function Community() {
           )}
           {!loading && posts.length === 0 && !offline && (
             <p style={{ padding: 44, textAlign: 'center', fontSize: 13.5, color: '#A08872', lineHeight: 1.7 }}>
-              아직 글이 없어요.<br />첫 글을 남겨주세요 🐾
+              {placeFilter ? <>이곳 이야기가 아직 없어요.<br />처음으로 남겨주세요 🐾</> : <>아직 글이 없어요.<br />첫 글을 남겨주세요 🐾</>}
             </p>
           )}
           {posts.map((p, i) => (
             <Link key={p.id} href={`/community/${p.id}`} className="hov-row"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 14px', textDecoration: 'none', borderTop: i === 0 ? 'none' : '1px solid #F3EEE4' }}>
-              <span style={{ flex: 1, minWidth: 0, fontSize: 14.5, fontWeight: 600, color: '#2B2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {p.title}
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', textDecoration: 'none', borderTop: i === 0 ? 'none' : '1px solid #F3EEE4' }}>
+              {/* 사진이 있으면 첫 장을 작게 — 목록에서 사진 글이 눈에 띄게 */}
+              {p.photos?.length > 0 && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={p.photos[0]} alt="" loading="lazy"
+                  style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flex: 'none', border: '1px solid #F3EEE4' }} />
+              )}
+              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                <span style={{ fontSize: 14.5, fontWeight: 600, color: '#2B2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {p.title}
+                  {p.photos?.length > 1 && <span style={{ fontSize: 12, color: '#B3A78F', fontWeight: 500 }}> +{p.photos.length - 1}</span>}
+                </span>
+                {p.place_title && !placeFilter && (
+                  <span style={{ fontSize: 11.5, color: '#E85D3D', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    📍 {p.place_title}
+                  </span>
+                )}
               </span>
               <span style={{ flex: 'none', fontSize: 12.5, color: '#8A7A65', maxWidth: isMobile ? 70 : 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {p.nickname}

@@ -9,6 +9,7 @@ import { restStatus, todayLabel } from '@/lib/openHours'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { distance } from '@/lib/geo'
 import KakaoMap from './KakaoMap'
+import { PlaceReviews, PlaceStories } from './PlaceSocial'
 
 const BADGE = {
   ok: {
@@ -165,6 +166,30 @@ export default function Home() {
   const dragRef = useRef<{ y: number; h: number } | null>(null)
 
   const pet = petStore.pet
+  /** 로그인돼 있으면 리뷰 닉네임을 미리 채운다 */
+  const sessionNick = ((petStore.session?.user.user_metadata?.nickname as string) || (petStore.session?.user.user_metadata?.name as string) || '').slice(0, 20)
+
+  /**
+   * ?focus=contentid — 커뮤니티 글의 "지도에서 보기"로 들어올 때.
+   * 그 장소의 지역을 고르고 이름으로 검색해 목록에 올린 뒤, 목록이 도착하면 연다.
+   * 지역 목록 첫 페이지(100곳)에 없을 수 있어서 검색으로 확실히 올린다.
+   */
+  const pendingFocus = useRef<string | null>(null)
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get('focus') ?? ''
+    if (!/^\d{1,12}$/.test(id)) return
+    fetch(`/api/places?ids=${id}&limit=1`)
+      .then((r) => r.json())
+      .then((d) => {
+        const p: Place | undefined = d.places?.[0]
+        if (!p) return
+        pendingFocus.current = p.contentid
+        setRegnCd(p.regnCd)
+        setSignguCd(p.signguCd)
+        setQ(p.title)
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     fetch('/api/regions')
@@ -218,6 +243,13 @@ export default function Home() {
         setPlaces(d.places ?? [])
         setTotal(d.total ?? 0)
         setCounts(d.counts ?? { all: 0, byCat: {}, bySub: {} })
+        // 커뮤니티에서 넘어온 장소가 목록에 실렸으면 연다
+        const want = pendingFocus.current
+        if (want && (d.places ?? []).some((p: Place) => p.contentid === want)) {
+          pendingFocus.current = null
+          setSelectedId(want)
+          if (isMobile) setSheet('half')
+        }
       })
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false))
@@ -1050,6 +1082,10 @@ export default function Home() {
                       ))}
                     </div>
                   )}
+
+                  {/* 사용자 참여 — 관광공사 데이터가 아니라 우리 사용자가 남긴 것. 표제에 그렇게 적혀 있다 */}
+                  <PlaceReviews placeId={sel.contentid} placeTitle={sel.title} pet={pet} nickname={sessionNick} />
+                  <PlaceStories placeId={sel.contentid} placeTitle={sel.title} placeAddr={sel.addr1} />
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 'auto', paddingTop: 4 }}>
                     <a className="btn-primary" href={`https://map.kakao.com/link/to/${encodeURIComponent(sel.title)},${sel.mapy},${sel.mapx}`} target="_blank" rel="noreferrer"

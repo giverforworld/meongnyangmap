@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 
   try {
     const rows = await sbSelect<any>(
-      `posts?select=id,nickname,title,body,views,created_at&id=eq.${Number(id)}&deleted_at=is.null`
+      `posts?select=id,nickname,title,body,views,created_at,photos,place_id,place_title,place_addr&id=eq.${Number(id)}&deleted_at=is.null`
     )
     if (rows.length === 0) return NextResponse.json({ error: '없는 글이에요' }, { status: 404 })
 

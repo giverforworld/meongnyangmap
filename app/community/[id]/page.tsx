@@ -11,6 +11,10 @@ interface Post {
   body: string
   views: number
   created_at: string
+  photos: string[]
+  place_id: string | null
+  place_title: string | null
+  place_addr: string | null
 }
 
 export default function PostPage() {
@@ -23,6 +27,8 @@ export default function PostPage() {
   const [asking, setAsking] = useState(false)
   const [password, setPassword] = useState('')
   const [delError, setDelError] = useState('')
+  /** 크게 보는 사진의 순번. null 이면 닫힘 */
+  const [viewing, setViewing] = useState<number | null>(null)
 
   useEffect(() => {
     fetch(`/api/posts/${id}`)
@@ -69,11 +75,42 @@ export default function PostPage() {
                 <span>{new Date(post.created_at).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })}</span>
                 <span style={{ marginLeft: 'auto' }}>조회 {post.views}</span>
               </div>
+              {/* 어느 곳 이야기인지 — 누르면 지도에서 그 장소가 열린다 */}
+              {post.place_id && post.place_title && (
+                <Link href={`/?focus=${post.place_id}`} className="hov-accent"
+                  style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 13px', borderRadius: 12, border: '1.5px solid #F3C9BB', background: '#FFF4EF', textDecoration: 'none' }}>
+                  <span style={{ fontSize: 14, flex: 'none' }}>📍</span>
+                  <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
+                    <b style={{ fontSize: 13.5, color: '#2B2420' }}>{post.place_title}</b>
+                    {post.place_addr && <span style={{ fontSize: 11.5, color: '#A08872' }}>{post.place_addr}</span>}
+                  </span>
+                  <span style={{ flex: 'none', fontSize: 12, fontWeight: 700, color: '#E85D3D' }}>지도에서 보기 →</span>
+                </Link>
+              )}
+
               {/* 사용자가 쓴 글이라 그대로 보여준다. React 가 escape 하므로 HTML 은 실행되지 않는다 */}
               <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.8, color: '#3E3830', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {post.body}
               </p>
+
+              {post.photos?.length > 0 && (
+                <div style={{ display: 'grid', gridTemplateColumns: post.photos.length === 1 ? '1fr' : 'repeat(2, 1fr)', gap: 8 }}>
+                  {post.photos.map((u, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={u} src={u} alt={`사진 ${i + 1}`} onClick={() => setViewing(i)}
+                      style={{ width: '100%', aspectRatio: post.photos.length === 1 ? 'auto' : '4 / 3', maxHeight: 520, objectFit: 'cover', borderRadius: 12, border: '1px solid #F3EEE4', cursor: 'zoom-in', display: 'block' }} />
+                  ))}
+                </div>
+              )}
             </article>
+
+            {viewing !== null && post.photos[viewing] && (
+              <div onClick={() => setViewing(null)} role="dialog" aria-label="사진 크게 보기"
+                style={{ position: 'fixed', inset: 0, zIndex: 100, background: 'rgba(20,16,12,.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, cursor: 'zoom-out' }}>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={post.photos[viewing]} alt="" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: 8 }} />
+              </div>
+            )}
 
             {!asking ? (
               <button onClick={() => setAsking(true)}

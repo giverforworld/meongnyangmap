@@ -1,0 +1,91 @@
+import { NextResponse } from 'next/server'
+import { boardReady, sbInsert, sbSelect } from '@/lib/supabase'
+import { hashPassword } from '@/lib/password'
+import { cleanPhotos, isContentId } from '@/lib/board'
+
+export const dynamic = 'force-dynamic'
+
+export type Entry = 'ok' | 'cond' | 'denied'
+
+export interface Review {
+  id: number
+  place_id: string
+  nickname: string
+  rating: number
+  entry: Entry | null
+  body: string
+  photos: string[]
+  pet_size: 'small' | 'medium' | 'large' | null
+  created_at: string
+}
+
+/**
+ * 장소별 방문 리뷰.
+ *
+ * 한국관광공사 데이터가 아니라 **멍냥맵 사용자가 남긴 것**이다. 화면도 그렇게 구분해 보여준다.
+ * 별점보다 먼저 묻는 것이 '실제로 들어갔는지'(entry) — 이 서비스가 있는 이유가 그것이다.
+ */
+const MAX = 50
+
+/** 한 장소의 리뷰 — 최신순, 요약 숫자와 함께 */
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
+  const place = (searchParams.get('place') ?? '').trim()
+  if (!isContentId(place)) return NextResponse.json({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 } })
+  if (!boardReady) return NextResponse.json({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 }, offline: true })
+
+  try {
+    const reviews = await sbSelect<Review>(
+      `reviews?select=id,place_id,nickname,rating,entry,body,photos,pet_size,created_at` +
+        `&place_id=eq.${place}&deleted_at=is.null&order=created_at.desc&limit=${MAX}`
+    )
+    const count = reviews.length
+    const avg = count ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : null
+    const entry = { ok: 0, cond: 0, denied: 0 }
+    for (const r of reviews) if (r.entry) entry[r.entry]++
+    return NextResponse.json({ reviews, count, avg, entry })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message, reviews: [], count: 0, avg: null }, { status: 500 })
+  }
+}
+
+/** 리뷰 쓰기 */
+export async function POST(req: Request) {
+  if (!boardReady) return NextResponse.json({ error: '리뷰 저장소가 아직 연결되지 않았어요' }, { status: 503 })
+  try {
+    const { placeId, placeTitle, nickname, rating, entry, body, photos, petSize, password } = await req.json()
+
+    const pid = String(placeId ?? '').trim()
+    const ptitle = String(placeTitle ?? '').trim().slice(0, 100)
+    const nick = String(nickname ?? '').trim()
+    const b = String(body ?? '').trim()
+    const pw = String(password ?? '')
+    const rt = Number(rating)
+    if (!isContentId(pid) || !ptitle) return bad('어느 장소의 리뷰인지 알 수 없어요')
+    if (!nick || nick.length > 20) return bad('닉네임은 1~20자로 적어주세요')
+    if (!Number.isInteger(rt) || rt < 1 || rt > 5) return bad('별점을 골라주세요')
+    if (entry != null && !['ok', 'cond', 'denied'].includes(entry)) return bad('입장 결과 값이 올바르지 않아요')
+    if (!b || b.length > 1000) return bad('내용은 1~1000자로 적어주세요')
+    if (pw.length < 4) return bad('비밀번호는 4자 이상으로 정해주세요')
+    const ph = cleanPhotos(photos)
+    if (ph === null) return bad('사진은 우리 저장소에 올린 것만 4장까지 붙일 수 있어요')
+    const size = ['small', 'medium', 'large'].includes(petSize) ? petSize : null
+
+    const saved = await sbInsert<{ id: number }>('reviews', {
+      place_id: pid,
+      place_title: ptitle,
+      nickname: nick,
+      rating: rt,
+      entry: entry ?? null,
+      body: b,
+      photos: ph,
+      pet_size: size,
+      password_hash: hashPassword(pw),
+    })
+    return NextResponse.json({ id: saved.id })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 500 })
+  }
+}
+
+const bad = (message: string) => NextResponse.json({ error: message }, { status: 400 })

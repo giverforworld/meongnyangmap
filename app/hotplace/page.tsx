@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePetsContext } from '../PetsProvider'
 import { splitTags, type Camp, type CampJudge } from '@/lib/camping'
@@ -326,6 +327,17 @@ function HotView() {
                     {r}
                   </span>
                 ))}
+              </div>
+              {/* 지도 상세(판정·리뷰)로, 그리고 커뮤니티에 이곳 이야기 쓰기로 */}
+              <div style={{ display: 'flex', gap: 6, paddingTop: 8, borderTop: '1px solid #F3EEE4', marginTop: 4 }}>
+                <Link href={`/?focus=${p.contentid}`} className="hov-accent"
+                  style={{ flex: 1, textAlign: 'center', fontSize: 12.5, fontWeight: 700, padding: '7px 0', borderRadius: 9, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', textDecoration: 'none' }}>
+                  지도·리뷰 보기
+                </Link>
+                <Link href={`/community?write=1&place=${p.contentid}&title=${encodeURIComponent(p.title)}&addr=${encodeURIComponent(p.addr1)}`} className="hov-accent"
+                  style={{ flex: 1, textAlign: 'center', fontSize: 12.5, fontWeight: 700, padding: '7px 0', borderRadius: 9, border: '1.5px solid #F3C9BB', background: '#FFF4EF', color: '#E85D3D', textDecoration: 'none' }}>
+                  이곳 이야기 쓰기
+                </Link>
               </div>
             </div>
           </article>
