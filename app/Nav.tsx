@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
+import PetSwitch from './PetSwitch'
+import { usePetsContext } from './PetsProvider'
 
 /**
  * 대메뉴. 멍냥맵은 "이 장소, 갈 수 있나?"에 답하고
@@ -23,6 +25,7 @@ export default function Nav() {
   const path = usePathname()
   const isMobile = useIsMobile()
   const active = useRef<HTMLAnchorElement>(null)
+  const petStore = usePetsContext()
 
   // 좁은 화면에서 메뉴가 넘칠 때, 지금 보고 있는 메뉴가 화면 밖에 있으면 안 된다
   useEffect(() => {
@@ -31,40 +34,45 @@ export default function Nav() {
 
   return (
     <nav
-      className="chip-row"
       style={{
         display: 'flex',
-        alignItems: 'stretch',
-        gap: isMobile ? 0 : 6,
-        padding: isMobile ? '0 6px' : '0 24px',
+        alignItems: 'center',
+        gap: isMobile ? 6 : 12,
+        padding: isMobile ? '0 8px 0 6px' : '0 20px 0 24px',
         background: '#FFFFFF',
         borderBottom: '1px solid #EAE3D6',
         flex: 'none',
-        overflowX: 'auto',
-        whiteSpace: 'nowrap',
       }}
     >
-      {/* 좁은 화면에서는 로고가 메뉴 하나를 밀어낸다. 발자국만 남긴다 */}
-      <Link
-        href="/"
-        aria-label="멍냥맵 홈"
+      {/* 메뉴 줄만 가로로 넘친다. 프로필 버튼은 이 밖에 있어 항상 보인다 */}
+      <div
+        className="chip-row"
         style={{
           display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          marginRight: isMobile ? 4 : 22,
-          marginLeft: isMobile ? 4 : 0,
-          textDecoration: 'none',
-          flex: 'none',
+          alignItems: 'stretch',
+          gap: isMobile ? 0 : 6,
+          flex: 1,
+          minWidth: 0,
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
         }}
       >
-        {!isMobile && (
+      {/*
+       * 좁은 화면에서는 로고를 뺀다. 메뉴 셋과 프로필 버튼만으로 폭이 꽉 차고,
+       * '멍냥맵' 탭이 홈으로 가는 길이라 로고가 없어도 잃는 게 없다
+       */}
+      {!isMobile && (
+        <Link
+          href="/"
+          aria-label="멍냥맵 홈"
+          style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 22, textDecoration: 'none', flex: 'none' }}
+        >
           <span className="jua" style={{ fontSize: 31, color: '#E85D3D', lineHeight: 1 }}>
             멍냥맵
           </span>
-        )}
-        <span style={{ fontSize: isMobile ? 20 : 22 }}>🐾</span>
-      </Link>
+          <span style={{ fontSize: 22 }}>🐾</span>
+        </Link>
+      )}
 
       {MENUS.map((m) => {
         const on = m.href === '/' ? path === '/' : path.startsWith(m.href)
@@ -81,7 +89,7 @@ export default function Nav() {
               gap: 7,
               flex: 'none',
               margin: isMobile ? '7px 0' : '8px 0',
-              padding: isMobile ? '10px 11px' : '10px 17px',
+              padding: isMobile ? '10px 9px' : '10px 17px',
               borderRadius: 99,
               fontSize: isMobile ? 15.5 : 18,
               fontWeight: on ? 700 : 500,
@@ -96,6 +104,27 @@ export default function Nav() {
           </Link>
         )
       })}
+      </div>
+
+      {/*
+       * 프로필 — 모든 화면이 같은 아이 기준으로 판정하므로 화면마다가 아니라 여기 한 번.
+       * 등록 전에는 이 서비스가 하는 일 자체가 이 버튼 뒤에 있어서, 메뉴보다 눈에 띄게 둔다.
+       */}
+      <PetSwitch
+        pet={petStore.pet}
+        pets={petStore.pets}
+        list={petStore.list}
+        activeKey={petStore.activeKey}
+        onSelect={petStore.select}
+        onAdd={petStore.add}
+        onUpdate={petStore.update}
+        onRemove={petStore.remove}
+        session={petStore.session}
+        syncing={petStore.syncing}
+        onSignIn={petStore.signIn}
+        onSignOut={petStore.signOut}
+        compact={isMobile}
+      />
     </nav>
   )
 }

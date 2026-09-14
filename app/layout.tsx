@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import Nav from './Nav'
+import { PetsProvider } from './PetsProvider'
 
 export const metadata: Metadata = {
   title: '멍냥맵 — 반려동물과 갈 곳을 찾는 가장 확실한 방법',
@@ -26,8 +27,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body style={{ display: 'flex', flexDirection: 'column', height: '100dvh', overflow: 'hidden' }}>
-        <Nav />
-        <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{children}</div>
+        {/* 프로필 버튼은 Nav 에, 판정은 각 화면에 — 같은 상태를 봐야 하므로 여기서 묶는다 */}
+        <PetsProvider>
+          <Nav />
+          <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>{children}</div>
+        </PetsProvider>
       </body>
     </html>
   )

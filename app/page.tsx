@@ -3,8 +3,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { judge, isDangerousBreed, sizeOf } from '@/lib/petTour'
 import type { CardState, Detail, Judgement, PetRules, Place, RulesEntry } from '@/lib/types'
-import { usePets } from '@/lib/usePets'
-import PetSwitch from './PetSwitch'
+import { usePetsContext } from './PetsProvider'
 import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
 import { restStatus, todayLabel } from '@/lib/openHours'
 import { useIsMobile } from '@/lib/useIsMobile'
@@ -133,7 +132,7 @@ export default function Home() {
   const [nearBusy, setNearBusy] = useState(false)
   const [geoError, setGeoError] = useState<string | null>(null)
 
-  const petStore = usePets()
+  const petStore = usePetsContext()
   const [cat, setCat] = useState(ALL)
   const [sub, setSub] = useState('전체')
   const [limit, setLimit] = useState(PAGE)
@@ -430,27 +429,10 @@ export default function Home() {
   const region = regions.find((r) => r.code === regnCd)
 
   /**
-   * 프로필 전환 버튼.
-   * 넓은 화면에서는 상단 바 오른쪽 끝에, 좁은 화면에서는 지도 오른쪽 위에 올린다 —
-   * 상단 바에 두면 검색·지역과 세 줄을 이뤄 지도가 그만큼 밀린다.
+   * 프로필 버튼은 상단 메뉴(Nav)에 있다. 아이가 바뀌면 판정이 전부 달라지므로
+   * 보고 있던 상세는 닫는다 — 이전 아이 기준 판정이 그대로 떠 있으면 안 된다.
    */
-  const petSwitch = (compact: boolean) => (
-    <PetSwitch
-      pet={petStore.pet}
-      pets={petStore.pets}
-      list={petStore.list}
-      activeKey={petStore.activeKey}
-      onSelect={(k) => { petStore.select(k); setSelectedId(null) }}
-      onAdd={(v) => { petStore.add(v); setSelectedId(null) }}
-      onUpdate={(k, v) => { petStore.update(k, v); setSelectedId(null) }}
-      onRemove={petStore.remove}
-      session={petStore.session}
-      syncing={petStore.syncing}
-      onSignIn={petStore.signIn}
-      onSignOut={petStore.signOut}
-      compact={compact}
-    />
-  )
+  useEffect(() => setSelectedId(null), [pet])
 
   /** 종류 칩 하나. 필터 바(넓은 화면)와 필터 시트(좁은 화면)가 같이 쓴다 */
   const catChip = (label: string, count: number) => {
@@ -470,7 +452,7 @@ export default function Home() {
       onClick={() => (nearIds ? setNearIds(null) : findNearby())}
       title={nearIds ? '지역으로 돌아가기' : '현재 위치 20km 안에서 찾기 — 위치는 이 기기 밖으로 나가지 않아요'}
       style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 12.5, fontWeight: nearIds ? 700 : 500, padding: '7px 12px', borderRadius: 99, border: `1.5px solid ${nearIds ? '#E85D3D' : '#EAE3D6'}`, background: 'rgba(255,255,255,.96)', color: nearIds ? '#E85D3D' : '#6E5F4D', cursor: nearBusy ? 'default' : 'pointer', boxShadow: '0 3px 12px rgba(43,36,32,.16)', whiteSpace: 'nowrap' }}>
-      🧭 {nearBusy ? '확인 중…' : nearIds ? '해제' : '내 주변'}
+      <LocateIcon size={15} /> {nearBusy ? '확인 중…' : nearIds ? '해제' : '내 주변 탐색'}
     </button>
   )
 
@@ -498,7 +480,7 @@ export default function Home() {
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#C98A12' }} />조건부 {condCount}</span>
           </>
         ) : (
-          <span style={{ color: '#E85D3D', fontWeight: 700 }}>🐾 프로필 등록하면 우리 아이 기준으로 걸러요</span>
+          <span style={{ color: '#E85D3D', fontWeight: 700 }}>🐶 프로필을 등록하면 동반 가능 여부를 필터링해요</span>
         )}
         {hiddenCount > 0 && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#B3A78F' }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#D8D0C0' }} />불가 {hiddenCount} 숨김</span>
@@ -621,16 +603,13 @@ export default function Home() {
         <button className="hov-accent" disabled={nearBusy}
           onClick={() => (nearIds ? setNearIds(null) : findNearby())}
           title={nearIds ? '지역으로 돌아가기' : '현재 위치 20km 안에서 찾기 — 위치는 이 기기 밖으로 나가지 않아요'}
-          style={{ fontFamily: 'inherit', fontSize: 15, fontWeight: nearIds ? 700 : 500, padding: '10px 16px', borderRadius: 13, border: `1.5px solid ${nearIds ? '#E85D3D' : '#EAE3D6'}`, background: nearIds ? '#FFF4EF' : '#F6F1E7', color: nearIds ? '#E85D3D' : '#6E5F4D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
-          🧭 {nearBusy ? '위치 확인 중…' : nearIds ? '내 주변 해제' : '내 주변'}
+          style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit', fontSize: 15, fontWeight: nearIds ? 700 : 500, padding: '10px 16px', borderRadius: 13, border: `1.5px solid ${nearIds ? '#E85D3D' : '#EAE3D6'}`, background: nearIds ? '#FFF4EF' : '#F6F1E7', color: nearIds ? '#E85D3D' : '#6E5F4D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+          <LocateIcon size={17} /> {nearBusy ? '위치 확인 중…' : nearIds ? '내 주변 해제' : '내 주변 탐색'}
         </button>
 
         {geoError && (
           <span style={{ fontSize: 12, color: '#C0392B', maxWidth: 220, lineHeight: 1.35 }}>{geoError}</span>
         )}
-
-        <div style={{ flex: 1 }} />
-        {petSwitch(false)}
       </header>
       )}
 
@@ -810,7 +789,7 @@ export default function Home() {
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#8A7A65' }} />동반 조건 있음 {visible.filter((p) => p.state === 'info').length}</div>
-                <div style={{ color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>🐾 프로필 등록하면 판정해요</div>
+                <div style={{ color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>🐶 프로필을 등록하면 판정해요</div>
               </>
             )}
             {visible.some((p) => p.state === 'loading') && (
@@ -823,14 +802,13 @@ export default function Home() {
           <div style={{ position: 'absolute', left: 16, top: 14, background: 'rgba(255,255,255,.94)', border: '1px solid #EAE3D6', borderRadius: 99, padding: '6px 14px', fontSize: 12.5, color: '#6E5F4D' }}>
             {pet
               ? <>{pet.emoji} <b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사</>
-              : <>🐾 <b>프로필을 등록</b>하면 우리 아이 기준으로 걸러 보여줘요 · 출처 ⓒ한국관광공사</>}
+              : <>🐶 <b>프로필을 등록</b>하면 등록한 아이 기준으로 동반 가능 여부를 필터링해요 · 출처 ⓒ한국관광공사</>}
           </div>
           )}
 
-          {/* 좁은 화면 — 프로필은 지도 오른쪽 위로. 상단 바를 한 줄 덜 쓰게 된다 */}
+          {/* 좁은 화면 — 내 주변 버튼은 지도 오른쪽 위. 프로필은 상단 메뉴에 있다 */}
           {isMobile && (
-            <div style={{ position: 'absolute', right: 10, top: 10, zIndex: 10, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 7 }}>
-              {petSwitch(true)}
+            <div style={{ position: 'absolute', right: 10, top: 10, zIndex: 10 }}>
               {nearbyButton}
             </div>
           )}
@@ -944,7 +922,7 @@ export default function Home() {
                           </div>
                         ))}
                         <div style={{ fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>
-                          🐾 프로필을 등록하면 우리 아이가 갈 수 있는지 바로 판정해요
+                          🐶 프로필을 등록하면 우리 아이가 갈 수 있는지 바로 판정해요
                         </div>
                       </>
                     ) : (
@@ -1118,5 +1096,20 @@ export default function Home() {
         </div>
       </div>
     </div>
+  )
+}
+
+/**
+ * 내 주변 탐색 — 지도앱들이 현위치 버튼에 쓰는 과녁 모양.
+ * 나침반(🧭)은 '방향'이지 '내 위치'가 아니라 바꿨다. currentColor 라 켜지면 주황이 된다.
+ */
+function LocateIcon({ size }: { size: number }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" style={{ flex: 'none', display: 'block' }}>
+      <circle cx="12" cy="12" r="6.5" />
+      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
+      <path d="M12 2.5v3.2M12 18.3v3.2M2.5 12h3.2M18.3 12h3.2" />
+    </svg>
   )
 }

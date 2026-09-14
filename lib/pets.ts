@@ -55,8 +55,25 @@ export function toPet(p: PetInput): Pet {
   }
 }
 
-/** 화면이 고를 수 있게 몇 개만 준다. 아이 사진을 아직 안 넣은 사람을 위한 것 */
-export const EMOJIS = ['🐶', '🦮', '🐕', '🐩', '🐾', '🐱', '🐰']
+/**
+ * 고를 수 있는 아이콘. 저장은 이모지 한 글자만 하고(pets 표 emoji 컬럼, 4자 제한),
+ * 배경색은 여기서 다시 찾는다 — 그래서 색을 바꿔도 저장된 데이터는 손댈 게 없다.
+ * ZWJ 로 이어 붙인 이모지(🐕‍🦺)는 기기에 따라 두 글자로 갈라져 보여서 뺐다.
+ */
+export const AVATARS: { emoji: string; label: string; bg: string }[] = [
+  { emoji: '🐶', label: '강아지', bg: '#FFE0D3' },
+  { emoji: '🐕', label: '개', bg: '#FCE9C8' },
+  { emoji: '🐩', label: '푸들', bg: '#EFE3F7' },
+  { emoji: '🦮', label: '안내견', bg: '#DDEFE3' },
+  { emoji: '🐱', label: '고양이', bg: '#FFF1C2' },
+  { emoji: '🐈', label: '고양이 옆모습', bg: '#E3ECF7' },
+  { emoji: '🐰', label: '토끼', bg: '#FADDE6' },
+  { emoji: '🐾', label: '발자국', bg: '#EDE7DD' },
+]
+
+/** 목록에 없는 이모지(예전 저장값)도 기본 색으로는 그려진다 */
+export const avatarBg = (emoji: string) =>
+  AVATARS.find((a) => a.emoji === emoji)?.bg ?? AVATARS[0].bg
 
 // ── 저장 ──────────────────────────────────────────────
 

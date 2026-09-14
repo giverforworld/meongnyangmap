@@ -1,8 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { usePets } from '@/lib/usePets'
-import PetSwitch from '../PetSwitch'
+import { usePetsContext } from '../PetsProvider'
 import { splitTags, type Camp, type CampJudge } from '@/lib/camping'
 import { distance } from '@/lib/geo'
 
@@ -364,7 +363,7 @@ const CAMP_SORTS: { key: 'default' | 'near'; label: string }[] = [
 ]
 
 function CampView() {
-  const petStore = usePets()
+  const petStore = usePetsContext()
   const [region, setRegion] = useState('')
   const [tag, setTag] = useState('')
   const [limit, setLimit] = useState(PAGE)
@@ -392,6 +391,9 @@ function CampView() {
   const [loading, setLoading] = useState(true)
 
   const pet = petStore.pet
+
+  // 아이가 바뀌면 판정이 달라져 목록이 통째로 바뀐다 — 첫 페이지부터 다시
+  useEffect(() => setLimit(PAGE), [pet])
 
   async function pickSort(k: 'default' | 'near') {
     setGeoError(null)
@@ -454,22 +456,13 @@ function CampView() {
 
   return (
     <>
-      {/* 우리 아이 기준 — 크기에 따라 결과가 크게 갈려서 여기서 바로 바꾸게 한다 */}
+      {/* 프로필 버튼은 상단 메뉴에 있다. 여기는 지금 기준과 개수만 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <PetSwitch
-          pet={petStore.pet}
-          pets={petStore.pets}
-          list={petStore.list}
-          activeKey={petStore.activeKey}
-          onSelect={(k) => { petStore.select(k); setLimit(PAGE) }}
-          onAdd={(v) => { petStore.add(v); setLimit(PAGE) }}
-          onUpdate={(k, v) => { petStore.update(k, v); setLimit(PAGE) }}
-          onRemove={petStore.remove}
-          session={petStore.session}
-          syncing={petStore.syncing}
-          onSignIn={petStore.signIn}
-          onSignOut={petStore.signOut}
-        />
+        <span style={{ fontSize: 13.5, color: '#6E5F4D' }}>
+          {pet
+            ? <>{pet.emoji} <b>{pet.name}</b> ({pet.sizeLabel}) 기준으로 보는 중</>
+            : <>🐶 프로필을 등록하면 크기 조건까지 우리 아이 기준으로 걸러요</>}
+        </span>
 
         <span style={{ marginLeft: 'auto', fontSize: 13, color: '#B3A78F' }}>
           {loading && !data ? '불러오는 중…' : `${(data?.total ?? 0).toLocaleString()}곳`}

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Pet } from '@/lib/types'
-import { EMOJIS, type PetInput } from '@/lib/pets'
+import { AVATARS, avatarBg, type PetInput } from '@/lib/pets'
 import { isDangerousBreed, sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
@@ -41,7 +41,7 @@ interface Props {
   onAdd: (input: Omit<PetInput, 'key'>) => void
   onUpdate: (key: string, input: Omit<PetInput, 'key'>) => void
   onRemove: (key: string) => void
-  /** 지도 위에 얹을 때는 작게 */
+  /** 좁은 화면의 상단 메뉴에 들어갈 때는 한 줄로 */
   compact?: boolean
   /** 로그인 — 선택이다. 없어도 브라우저 저장으로 전부 된다 */
   session?: Session | null
@@ -64,32 +64,43 @@ export default function PetSwitch({
       <button
         className="hov-accent"
         onClick={() => setOpen(true)}
-        title="우리 아이 기준으로 판정해요 — 눌러서 등록하거나 바꾸기"
-        style={{ display: 'flex', alignItems: 'center', gap: compact ? 8 : 10, background: compact ? 'rgba(255,255,255,.96)' : '#FFF4EF', border: '1.5px solid #F3C9BB', borderRadius: 99, padding: compact ? '6px 14px 6px 6px' : '7px 16px 7px 9px', cursor: 'pointer', fontFamily: 'inherit', fontSize: compact ? 14 : 15, color: '#2B2420', boxShadow: compact ? '0 3px 12px rgba(43,36,32,.16)' : 'none' }}
+        title={pet ? '눌러서 아이를 바꾸거나 프로필 고치기' : '프로필을 등록하면 등록한 아이 기준으로 동반 가능 여부를 알려드려요'}
+        style={{
+          display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
+          fontFamily: 'inherit', fontSize: compact ? 13 : 16, cursor: 'pointer', borderRadius: 99,
+          // 등록 전에는 이 서비스의 첫 단계라 주황으로 꽉 채운다. 등록 뒤에는 연하게 물러난다
+          ...(pet
+            ? { background: '#FFF4EF', border: '1.5px solid #F3C9BB', color: '#2B2420', padding: compact ? '3px 11px 3px 3px' : '6px 18px 6px 7px' }
+            : { background: '#E85D3D', border: '1.5px solid #E85D3D', color: '#FFFFFF', padding: compact ? '3px 11px 3px 3px' : '6px 20px 6px 7px', boxShadow: '0 4px 14px rgba(232,93,61,.32)' }),
+        }}
       >
         {!pet ? (
           // 등록 전 — 아직 누구 기준으로도 거르지 않는다. 칩은 등록을 권하는 자리다
           <>
-            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 30 : 34, height: compact ? 30 : 34, background: '#E85D3D', borderRadius: '50%', fontSize: compact ? 16 : 18, flex: 'none' }}>
-              🐾
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, background: '#FFFFFF', borderRadius: '50%', fontSize: compact ? 16 : 23, lineHeight: 1, flex: 'none' }}>
+              🐶
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
               <span style={{ fontWeight: 700 }}>프로필 등록</span>
-              <span style={{ fontSize: compact ? 11.5 : 12.5, color: '#A08872' }}>
-                {compact ? '우리 아이 기준으로 보기 ▾' : '등록하면 우리 아이 기준으로 걸러요 ▾'}
-              </span>
+              {!compact && (
+                <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,.88)', marginTop: 2 }}>
+                  등록한 아이 기준으로 동반 가능 여부 필터링
+                </span>
+              )}
             </span>
           </>
         ) : (
           <>
-            <Avatar pet={pet} size={compact ? 30 : 34} />
+            <Avatar pet={pet} size={compact ? 28 : 40} />
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
               <span style={{ fontWeight: 700 }}>
                 {pet.name}{compact ? '' : pet.breed ? ` · ${pet.breed}` : ''}
               </span>
-              <span style={{ fontSize: compact ? 11.5 : 12.5, color: '#A08872' }}>
-                {pet.kg}kg · {pet.sizeLabel} ▾
-              </span>
+              {!compact && (
+                <span style={{ fontSize: 12.5, color: '#A08872', marginTop: 2 }}>
+                  {pet.kg}kg · {pet.sizeLabel} 기준으로 보는 중 ▾
+                </span>
+              )}
             </span>
           </>
         )}
@@ -273,7 +284,7 @@ function AccountBlock({
 
 function Avatar({ pet, size }: { pet: Pet; size: number }) {
   return (
-    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, background: '#FFE0D3', borderRadius: '50%', fontSize: size * 0.52, overflow: 'hidden', flex: 'none' }}>
+    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, background: avatarBg(pet.emoji), borderRadius: '50%', fontSize: size * 0.52, overflow: 'hidden', flex: 'none' }}>
       {pet.photo ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -331,9 +342,8 @@ function PetForm({
       </label>
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>견종 <span style={{ fontWeight: 500, color: '#B3A78F' }}>· 몰라도 괜찮아요</span></span>
-        <input value={breed} onChange={(e) => setBreed(e.target.value)} maxLength={30}
-          placeholder="예: 요크셔테리어, 믹스" style={field} />
+        <span style={{ fontSize: 13, fontWeight: 700 }}>견종</span>
+        <input value={breed} onChange={(e) => setBreed(e.target.value)} maxLength={30} style={field} />
         {dangerous && (
           <span style={{ fontSize: 12, color: '#C0392B', lineHeight: 1.5 }}>
             법정 맹견으로 읽혔어요. 맹견 동반을 막는 곳은 불가로 판정하고,
@@ -376,16 +386,22 @@ function PetForm({
         ))}
       </fieldset>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>아이콘</span>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-          {EMOJIS.map((e) => (
-            <button key={e} type="button" onClick={() => setEmoji(e)}
-              aria-label={`아이콘 ${e}`}
-              style={{ width: 40, height: 40, fontSize: 19, borderRadius: 12, cursor: 'pointer', background: emoji === e ? '#FFF4EF' : '#FFFFFF', border: `1.5px solid ${emoji === e ? '#E85D3D' : '#EFE8DA'}` }}>
-              {e}
-            </button>
-          ))}
+        {/* 칩에 뜰 모양 그대로 고른다 — 동그란 파스텔 배경에 이모지. 고른 것만 테두리 */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {AVATARS.map((a) => {
+            const on = emoji === a.emoji
+            return (
+              <button key={a.emoji} type="button" onClick={() => setEmoji(a.emoji)}
+                aria-label={a.label} aria-pressed={on}
+                style={{ width: 50, height: 50, padding: 3, borderRadius: '50%', cursor: 'pointer', background: '#FFFFFF', border: `2px solid ${on ? '#E85D3D' : 'transparent'}`, transition: 'border-color .12s' }}>
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', borderRadius: '50%', background: a.bg, fontSize: 22, lineHeight: 1, boxShadow: on ? 'none' : 'inset 0 0 0 1px #EFE8DA' }}>
+                  {a.emoji}
+                </span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
