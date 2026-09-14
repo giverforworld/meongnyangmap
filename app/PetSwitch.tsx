@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import type { Pet } from '@/lib/types'
 import { EMOJIS, isSample, type PetInput } from '@/lib/pets'
 import { isDangerousBreed, sizeOf } from '@/lib/petTour'
+import type { Session } from '@supabase/supabase-js'
+import { authReady } from '@/lib/supabaseBrowser'
 
 /**
  * 프로필 칩과 등록 화면.
@@ -41,11 +43,17 @@ interface Props {
   onRemove: (key: string) => void
   /** 지도 위에 얹을 때는 작게 */
   compact?: boolean
+  /** 로그인 — 선택이다. 없어도 브라우저 저장으로 전부 된다 */
+  session?: Session | null
+  syncing?: boolean
+  onSignIn?: (provider: 'kakao' | 'google') => void
+  onSignOut?: () => void
 }
 
 export default function PetSwitch({
   pet, pets, list, activeKey, onlySamples,
   onSelect, onAdd, onUpdate, onRemove, compact = false,
+  session = null, syncing = false, onSignIn, onSignOut,
 }: Props) {
   const [open, setOpen] = useState(false)
   /** 편집 중인 아이의 key. 'new' 면 새로 등록 */
@@ -172,9 +180,14 @@ export default function PetSwitch({
                     + 우리 아이 등록
                   </button>
 
-                  <p style={{ margin: '12px 2px 0', fontSize: 11.5, lineHeight: 1.6, color: '#B3A78F' }}>
-                    프로필은 이 기기에만 저장돼요. 서버로 보내지 않아요.
-                  </p>
+                  {/* 계정 — 로그인은 선택이다. 여기 오는 사람 대부분은 안 하고도 다 쓴다 */}
+                  <AccountBlock
+                    session={session}
+                    syncing={syncing}
+                    onSignIn={onSignIn}
+                    onSignOut={onSignOut}
+                    hasOwnPets={!onlySamples}
+                  />
                 </>
               )}
             </div>
@@ -182,6 +195,74 @@ export default function PetSwitch({
         </div>
       )}
     </>
+  )
+}
+
+/**
+ * 계정 블록. 세 상태다 —
+ *   로그인 기능 없음(환경변수 미설정) → 기기 저장 안내만
+ *   비로그인 → "다른 기기에서도 보려면" + 카카오·구글 버튼
+ *   로그인 → 누구로 들어왔는지 + 로그아웃
+ */
+function AccountBlock({
+  session, syncing, onSignIn, onSignOut, hasOwnPets,
+}: {
+  session: Session | null
+  syncing: boolean
+  onSignIn?: (p: 'kakao' | 'google') => void
+  onSignOut?: () => void
+  hasOwnPets: boolean
+}) {
+  if (!authReady || !onSignIn) {
+    return (
+      <p style={{ margin: '12px 2px 0', fontSize: 11.5, lineHeight: 1.6, color: '#B3A78F' }}>
+        프로필은 이 기기에만 저장돼요. 서버로 보내지 않아요.
+      </p>
+    )
+  }
+
+  if (session) {
+    const u = session.user
+    const who = (u.user_metadata?.name as string) || (u.user_metadata?.full_name as string) || u.email || '로그인됨'
+    const via = u.app_metadata?.provider === 'kakao' ? '카카오' : u.app_metadata?.provider === 'google' ? '구글' : ''
+    return (
+      <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1EBE0', display: 'flex', alignItems: 'center', gap: 10 }}>
+        <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: '#6E5F4D', lineHeight: 1.5 }}>
+          <b style={{ color: '#2B2420' }}>{who}</b>{via && ` · ${via}`}
+          <br />
+          <span style={{ color: '#B3A78F' }}>
+            {syncing ? '계정과 맞추는 중…' : '프로필이 계정에 저장돼요. 다른 기기에서도 같아요'}
+          </span>
+        </span>
+        <button onClick={onSignOut}
+          style={{ flex: 'none', fontFamily: 'inherit', fontSize: 12.5, color: '#8A7A65', background: 'none', border: '1.5px solid #E3DCCE', borderRadius: 99, padding: '5px 12px', cursor: 'pointer' }}>
+          로그아웃
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1EBE0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <span style={{ fontSize: 12.5, color: '#6E5F4D', lineHeight: 1.5 }}>
+        {hasOwnPets
+          ? '다른 기기에서도 이 아이로 판정하려면'
+          : '프로필은 이 기기에만 저장돼요. 다른 기기에서도 쓰려면'}
+      </span>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button onClick={() => onSignIn('kakao')}
+          style={{ flex: 1, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
+          카카오로 로그인
+        </button>
+        <button onClick={() => onSignIn('google')}
+          style={{ flex: 1, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
+          구글로 로그인
+        </button>
+      </div>
+      <span style={{ fontSize: 11, color: '#B3A78F', lineHeight: 1.5 }}>
+        로그인 안 해도 전부 쓸 수 있어요. 위치는 로그인해도 서버로 보내지 않아요.
+      </span>
+    </div>
   )
 }
 

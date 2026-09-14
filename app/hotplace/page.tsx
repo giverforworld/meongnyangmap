@@ -466,6 +466,10 @@ function CampView() {
           onAdd={(v) => { petStore.add(v); setLimit(PAGE) }}
           onUpdate={(k, v) => { petStore.update(k, v); setLimit(PAGE) }}
           onRemove={petStore.remove}
+          session={petStore.session}
+          syncing={petStore.syncing}
+          onSignIn={petStore.signIn}
+          onSignOut={petStore.signOut}
         />
 
         <span style={{ marginLeft: 'auto', fontSize: 13, color: '#B3A78F' }}>

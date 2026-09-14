@@ -409,6 +409,10 @@ export default function Home() {
       onAdd={(v) => { petStore.add(v); setSelectedId(null) }}
       onUpdate={(k, v) => { petStore.update(k, v); setSelectedId(null) }}
       onRemove={petStore.remove}
+      session={petStore.session}
+      syncing={petStore.syncing}
+      onSignIn={petStore.signIn}
+      onSignOut={petStore.signOut}
       compact={compact}
     />
   )
