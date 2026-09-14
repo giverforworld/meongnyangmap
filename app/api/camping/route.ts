@@ -24,7 +24,7 @@ const PAGE = 60
 function petFrom(size: PetSize, name: string): Pet {
   const label = size === 'small' ? '소형견' : size === 'medium' ? '중형견' : '대형견'
   return {
-    key: 'q', name, breed: '', kg: 0, emoji: '🐶',
+    key: 'q', name, kg: 0, emoji: '🐶',
     size, sizeLabel: label,
     hasCage: false, hasMuzzle: false, isDangerous: false,
   }

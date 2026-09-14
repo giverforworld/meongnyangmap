@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { Pet } from '@/lib/types'
 import { AVATARS, avatarBg, type PetInput } from '@/lib/pets'
-import { isDangerousBreed, sizeOf } from '@/lib/petTour'
+import { sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
 
@@ -93,9 +93,7 @@ export default function PetSwitch({
           <>
             <Avatar pet={pet} size={compact ? 28 : 40} />
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-              <span style={{ fontWeight: 700 }}>
-                {pet.name}{compact ? '' : pet.breed ? ` · ${pet.breed}` : ''}
-              </span>
+              <span style={{ fontWeight: 700 }}>{pet.name}</span>
               {!compact && (
                 <span style={{ fontSize: 12.5, color: '#A08872', marginTop: 2 }}>
                   {pet.kg}kg · {pet.sizeLabel} 기준으로 보는 중 ▾
@@ -176,7 +174,6 @@ export default function PetSwitch({
                               <span style={{ fontSize: 15, fontWeight: 700, color: '#2B2420' }}>{p.name}</span>
                               <span style={{ fontSize: 12.5, color: '#A08872', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {p.kg}kg · {p.sizeLabel}
-                                {p.breed && ` · ${p.breed}`}
                                 {p.isDangerous && <b style={{ color: '#C0392B' }}> · 맹견</b>}
                               </span>
                             </span>
@@ -310,7 +307,7 @@ function Avatar({ pet, size }: { pet: Pet; size: number }) {
   )
 }
 
-/** 등록·수정 폼. 크기와 맹견 여부는 입력받지 않고 보여주기만 한다 */
+/** 등록·수정 폼. 크기는 입력받지 않고 무게에서 계산해 보여주기만 한다 */
 function PetForm({
   initial, onSave, onCancel, canCancel = true,
 }: {
@@ -321,18 +318,17 @@ function PetForm({
   canCancel?: boolean
 }) {
   const [name, setName] = useState(initial?.name ?? '')
-  const [breed, setBreed] = useState(initial?.breed ?? '')
   const [kg, setKg] = useState(initial ? String(initial.kg) : '')
   const [emoji, setEmoji] = useState(initial?.emoji ?? '🐶')
   const [hasCage, setHasCage] = useState(initial?.hasCage ?? false)
   const [hasMuzzle, setHasMuzzle] = useState(initial?.hasMuzzle ?? false)
+  const [dangerous, setDangerous] = useState(initial?.dangerous ?? false)
   const [error, setError] = useState('')
 
   // 무게를 고치면 크기가 바로 따라 움직이는 것을 보여준다
   const weight = Number(kg)
   const valid = name.trim().length > 0 && Number.isFinite(weight) && weight > 0 && weight <= 120
   const size = valid ? sizeOf(weight) : null
-  const dangerous = isDangerousBreed(breed)
 
   useEffect(() => setError(''), [name, kg])
 
@@ -343,7 +339,7 @@ function PetForm({
         if (!name.trim()) return setError('이름을 적어주세요')
         if (!Number.isFinite(weight) || weight <= 0) return setError('몸무게를 숫자로 적어주세요')
         if (weight > 120) return setError('몸무게를 다시 확인해주세요')
-        onSave({ name, breed, kg: weight, emoji, hasCage, hasMuzzle })
+        onSave({ name, kg: weight, emoji, hasCage, hasMuzzle, dangerous })
       }}
       style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
     >
@@ -351,17 +347,6 @@ function PetForm({
         <span style={{ fontSize: 13, fontWeight: 700 }}>이름</span>
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} autoFocus
           placeholder="우리 아이 이름" style={field} />
-      </label>
-
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>견종 <span style={{ fontWeight: 500, color: '#B3A78F' }}>(선택)</span></span>
-        <input value={breed} onChange={(e) => setBreed(e.target.value)} maxLength={30} style={field} />
-        {dangerous && (
-          <span style={{ fontSize: 12, color: '#C0392B', lineHeight: 1.5 }}>
-            법정 맹견으로 읽혔어요. 맹견 동반을 막는 곳은 불가로 판정하고,
-            입마개가 필요한 곳은 그렇게 알려드려요.
-          </span>
-        )}
       </label>
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -397,6 +382,20 @@ function PetForm({
           </label>
         ))}
       </fieldset>
+
+      {/* 견종을 묻지 않으니 맹견 여부만 직접 받는다. 고양이·토끼 주인은 그냥 지나가면 된다 */}
+      <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', border: `1.5px solid ${dangerous ? '#E0A9A0' : '#EFE8DA'}`, background: dangerous ? '#FBEDEA' : '#FFFFFF', borderRadius: 12, padding: '10px 13px' }}>
+        <input type="checkbox" checked={dangerous} onChange={(e) => setDangerous(e.target.checked)}
+          style={{ marginTop: 3, width: 17, height: 17, accentColor: '#C0392B', flex: 'none' }} />
+        <span style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: 14 }}>법정 맹견이에요</span>
+          <span style={{ fontSize: 11.5, color: dangerous ? '#C0392B' : '#B3A78F', lineHeight: 1.5 }}>
+            {dangerous
+              ? '맹견 동반을 막는 곳은 불가로 판정하고, 입마개가 필요한 곳은 그렇게 알려드려요'
+              : '도사견 · 핏불테리어 · 스태퍼드셔 테리어 · 로트와일러와 그 잡종'}
+          </span>
+        </span>
+      </label>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>아이콘</span>

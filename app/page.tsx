@@ -1,7 +1,7 @@
 'use client'
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
-import { judge, isDangerousBreed, sizeOf } from '@/lib/petTour'
+import { judge, sizeOf } from '@/lib/petTour'
 import type { CardState, Detail, Judgement, PetRules, Place, RulesEntry } from '@/lib/types'
 import { usePetsContext } from './PetsProvider'
 import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'

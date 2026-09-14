@@ -20,21 +20,27 @@ const SIZE_LABEL: Record<PetSize, string> = {
   large: '대형견',
 }
 
-/** 사람이 채우는 것만 받는다. 크기·맹견 여부는 무게와 견종에서 나온다 */
+/**
+ * 사람이 채우는 것만 받는다. 크기는 무게에서 나온다.
+ *
+ * 견종은 묻지 않는다 — 개일 수도 고양이일 수도 있고, 견종에서 얻던 것은 맹견 여부
+ * 하나뿐이었다. 그건 체크 하나로 직접 받는다(dangerous).
+ */
 export interface PetInput {
   key: string
   name: string
-  breed: string
   kg: number
   emoji: string
   photo?: string
   hasCage: boolean
   hasMuzzle: boolean
+  /** 동물보호법 맹견 5종(과 그 잡종)인지. 맹견을 막는 곳은 불가로 판정한다 */
+  dangerous: boolean
 }
 
 /**
  * 입력을 판정에 쓰는 프로필로 바꾼다.
- * 크기는 무게로, 맹견 여부는 견종으로 정한다 — 사람에게 묻지 않는다.
+ * 크기는 무게로 정한다 — 사람에게 묻지 않는다.
  * "우리 애가 중형견인가?"는 헷갈리는 질문이고, 틀리면 판정이 통째로 어긋난다.
  */
 export function toPet(p: PetInput): Pet {
@@ -43,7 +49,6 @@ export function toPet(p: PetInput): Pet {
   return {
     key: p.key,
     name: p.name.trim() || '우리 아이',
-    breed: p.breed.trim(),
     kg,
     emoji: p.emoji || '🐶',
     photo: p.photo,
@@ -51,7 +56,7 @@ export function toPet(p: PetInput): Pet {
     sizeLabel: SIZE_LABEL[size],
     hasCage: p.hasCage,
     hasMuzzle: p.hasMuzzle,
-    isDangerous: isDangerousBreed(p.breed),
+    isDangerous: Boolean(p.dangerous),
   }
 }
 
@@ -64,7 +69,8 @@ export const AVATARS: { emoji: string; label: string; bg: string }[] = [
   { emoji: '🐶', label: '강아지', bg: '#FFE0D3' },
   { emoji: '🐱', label: '고양이', bg: '#FFF1C2' },
   { emoji: '🐰', label: '토끼', bg: '#FADDE6' },
-  { emoji: '🐾', label: '발자국', bg: '#EDE7DD' },
+  { emoji: '🐹', label: '햄스터', bg: '#FCE9C8' },
+  { emoji: '🐻', label: '곰', bg: '#E3ECF7' },
 ]
 
 /** 목록에 없는 이모지(예전 저장값)도 기본 색으로는 그려진다 */
@@ -91,6 +97,11 @@ export function loadPets(): Stored | null {
     if (!raw) return null
     const v = JSON.parse(raw) as Stored
     if (!Array.isArray(v.pets)) return null
+    // 견종을 받던 때 저장본에는 dangerous 가 없다. 그때 견종으로 판단하던 것을 한 번 옮긴다
+    v.pets = v.pets.map((p) => {
+      const legacy = (p as PetInput & { breed?: string }).breed ?? ''
+      return { ...p, dangerous: Boolean(p.dangerous) || isDangerousBreed(legacy) }
+    })
     return v
   } catch {
     return null

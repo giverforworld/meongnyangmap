@@ -17,38 +17,38 @@ import type { PetInput } from './pets'
 interface Row {
   key: string
   name: string
-  breed: string
   kg: number | string
   emoji: string
   has_cage: boolean
   has_muzzle: boolean
+  is_dangerous: boolean
 }
 
 const toInput = (r: Row): PetInput => ({
   key: r.key,
   name: r.name,
-  breed: r.breed ?? '',
   kg: Number(r.kg),
   emoji: r.emoji || '🐶',
   hasCage: Boolean(r.has_cage),
   hasMuzzle: Boolean(r.has_muzzle),
+  dangerous: Boolean(r.is_dangerous),
 })
 
 const toRow = (userId: string, p: PetInput) => ({
   user_id: userId,
   key: p.key,
   name: p.name,
-  breed: p.breed,
   kg: p.kg,
   emoji: p.emoji,
   has_cage: p.hasCage,
   has_muzzle: p.hasMuzzle,
+  is_dangerous: p.dangerous,
 })
 
 export async function fetchRemotePets(sb: SupabaseClient): Promise<PetInput[] | null> {
   const { data, error } = await sb
     .from('pets')
-    .select('key,name,breed,kg,emoji,has_cage,has_muzzle')
+    .select('key,name,kg,emoji,has_cage,has_muzzle,is_dangerous')
     .order('created_at')
   if (error) return null
   return (data as Row[]).map(toInput)

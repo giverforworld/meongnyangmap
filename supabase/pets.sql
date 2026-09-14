@@ -15,17 +15,18 @@ create table if not exists public.pets (
   -- 브라우저가 쓰는 식별자(pet1, pet2 …). 기기에서 올린 것과 대조하는 데 쓴다
   key         text        not null,
   name        text        not null check (char_length(name) between 1 and 20),
-  breed       text        not null default '' check (char_length(breed) <= 30),
   kg          numeric(5,1) not null check (kg > 0 and kg <= 120),
   emoji       text        not null default '🐶' check (char_length(emoji) <= 4),
   has_cage    boolean     not null default false,
   has_muzzle  boolean     not null default false,
+  -- 동물보호법 맹견 5종(과 그 잡종). 견종을 받지 않으므로 직접 체크한다
+  is_dangerous boolean    not null default false,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   unique (user_id, key)
 );
 
-comment on table public.pets is '로그인한 사용자의 반려동물 프로필. 크기·맹견 여부는 저장하지 않는다 — 무게·견종에서 계산한다';
+comment on table public.pets is '로그인한 사용자의 반려동물 프로필. 크기는 저장하지 않는다 — 무게에서 계산한다';
 
 alter table public.pets enable row level security;
 

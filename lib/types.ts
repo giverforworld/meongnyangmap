@@ -3,7 +3,6 @@ export type PetSize = 'small' | 'medium' | 'large'
 export interface Pet {
   key: string
   name: string
-  breed: string
   kg: number
   emoji: string
   /** 프로필 사진. 파일이 없거나 못 읽으면 emoji 로 되돌아간다 */
