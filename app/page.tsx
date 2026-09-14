@@ -574,8 +574,8 @@ export default function Home() {
           )}
         </div>
       ) : (
-      <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
-        <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 14px' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '10px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
+        <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '6px 14px' }}>
           <span style={{ fontSize: 16 }}>📍</span>
           <select value={regnCd} onChange={(e) => { setRegnCd(e.target.value); setSignguCd('') }}
             style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 15.5, color: '#2B2420', cursor: 'pointer', outline: 'none' }}>
@@ -589,7 +589,7 @@ export default function Home() {
         </div>
 
         {/* 검색 — 전국 목록 위에서 이름·주소로 찾는다 */}
-        <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 14px', minWidth: 230 }}>
+        <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '6px 14px', minWidth: 230 }}>
           <span style={{ fontSize: 16 }}>🔎</span>
           <input value={q} placeholder="장소 이름으로 찾기"
             onChange={(e) => { setQ(e.target.value); setNearIds(null) }}
@@ -603,7 +603,7 @@ export default function Home() {
         <button className="hov-accent" disabled={nearBusy}
           onClick={() => (nearIds ? setNearIds(null) : findNearby())}
           title={nearIds ? '지역으로 돌아가기' : '현재 위치 20km 안에서 찾기 — 위치는 이 기기 밖으로 나가지 않아요'}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit', fontSize: 15, fontWeight: nearIds ? 700 : 500, padding: '10px 16px', borderRadius: 13, border: `1.5px solid ${nearIds ? '#E85D3D' : '#EAE3D6'}`, background: nearIds ? '#FFF4EF' : '#F6F1E7', color: nearIds ? '#E85D3D' : '#6E5F4D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit', fontSize: 15, fontWeight: nearIds ? 700 : 500, padding: '7px 16px', borderRadius: 13, border: `1.5px solid ${nearIds ? '#E85D3D' : '#EAE3D6'}`, background: nearIds ? '#FFF4EF' : '#F6F1E7', color: nearIds ? '#E85D3D' : '#6E5F4D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
           <LocateIcon size={17} /> {nearBusy ? '위치 확인 중…' : nearIds ? '내 주변 해제' : '내 주변 탐색'}
         </button>
 
