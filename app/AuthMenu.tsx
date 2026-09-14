@@ -61,7 +61,7 @@ export default function AuthMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={u ? `${who} · 로그아웃` : '로그인 — 안 해도 전부 쓸 수 있어요'}
+        title={u ? `${who} · 로그아웃` : '소셜 로그인 — 안 해도 전부 쓸 수 있어요'}
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
           fontFamily: 'inherit', fontSize: compact ? 13 : 14.5, fontWeight: 700,
@@ -83,7 +83,7 @@ export default function AuthMenu({
         ) : (
           <>
             <PersonIcon />
-            {!compact && '로그인'}
+            {!compact && '소셜 로그인'}
           </>
         )}
       </button>
