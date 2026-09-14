@@ -216,3 +216,10 @@ a:hover {
     height: 7px;
   }
 }
+
+/* 자리표시자는 값처럼 보이면 안 된다 — 몸무게 칸의 '4'가 이미 적힌 것으로 읽혔다 */
+input::placeholder,
+textarea::placeholder {
+  color: #C9BFAE;
+  opacity: 1;
+}

@@ -274,23 +274,45 @@ function AccountBlock({
     <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1EBE0', display: 'flex', flexDirection: 'column', gap: 8 }}>
       <span style={{ fontSize: 12.5, color: '#6E5F4D', lineHeight: 1.5 }}>
         {hasOwnPets
-          ? '다른 기기에서도 이 아이로 판정하려면'
+          ? '로그인을 하면 우리 아이 정보가 저장돼요.'
           : '이미 등록한 적 있어요? 로그인하면 계정에 저장된 아이를 불러와요'}
       </span>
       <div style={{ display: 'flex', gap: 8 }}>
+        {/* 카카오 — 노랑 바탕에 검정 말풍선, 구글 — 흰 바탕에 G. 각 사의 로그인 버튼 규격을 따른다 */}
         <button onClick={() => onSignIn('kakao')}
-          style={{ flex: 1, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
-          카카오로 로그인
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
+          <KakaoIcon /> 카카오 로그인
         </button>
         <button onClick={() => onSignIn('google')}
-          style={{ flex: 1, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
-          구글로 로그인
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
+          <GoogleIcon /> 구글 로그인
         </button>
       </div>
       <span style={{ fontSize: 11, color: '#B3A78F', lineHeight: 1.5 }}>
         로그인을 하지 않아도 서비스 이용이 가능합니다.
       </span>
     </div>
+  )
+}
+
+/** 카카오 심볼 — 말풍선. 노랑(#FEE500) 위에 검정 */
+export function KakaoIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width={17} height={17} aria-hidden="true" style={{ flex: 'none' }}>
+      <path fill="#191919" d="M12 3C6.48 3 2 6.58 2 11c0 2.83 1.86 5.32 4.66 6.74l-.95 3.53c-.08.3.26.55.52.38l4.2-2.78c.51.06 1.03.1 1.57.1 5.52 0 10-3.58 10-8S17.52 3 12 3Z" />
+    </svg>
+  )
+}
+
+/** 구글 G — 4색 그대로. 흰 바탕에서만 쓴다 */
+export function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 48 48" width={16} height={16} aria-hidden="true" style={{ flex: 'none' }}>
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
+    </svg>
   )
 }
 

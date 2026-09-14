@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
 import PetSwitch from './PetSwitch'
+import AuthMenu from './AuthMenu'
 import { usePetsContext } from './PetsProvider'
 
 /**
@@ -89,9 +90,9 @@ export default function Nav() {
               gap: 7,
               flex: 'none',
               margin: isMobile ? '7px 0' : '8px 0',
-              padding: isMobile ? '10px 9px' : '10px 17px',
+              padding: isMobile ? '10px 7px' : '10px 17px',
               borderRadius: 99,
-              fontSize: isMobile ? 15.5 : 18,
+              fontSize: isMobile ? 15 : 18,
               fontWeight: on ? 700 : 500,
               background: on ? '#E85D3D' : 'transparent',
               color: on ? '#FFFFFF' : '#8A7A65',
@@ -119,6 +120,15 @@ export default function Nav() {
         onAdd={petStore.add}
         onUpdate={petStore.update}
         onRemove={petStore.remove}
+        session={petStore.session}
+        syncing={petStore.syncing}
+        onSignIn={petStore.signIn}
+        onSignOut={petStore.signOut}
+        compact={isMobile}
+      />
+
+      {/* 로그인 — 선택이라 프로필 버튼보다 조용하게, 그 오른쪽에 */}
+      <AuthMenu
         session={petStore.session}
         syncing={petStore.syncing}
         onSignIn={petStore.signIn}
