@@ -67,15 +67,33 @@ export default function PetSwitch({
         title="우리 아이 기준으로 판정해요 — 눌러서 등록하거나 바꾸기"
         style={{ display: 'flex', alignItems: 'center', gap: compact ? 8 : 10, background: compact ? 'rgba(255,255,255,.96)' : '#FFF4EF', border: '1.5px solid #F3C9BB', borderRadius: 99, padding: compact ? '6px 14px 6px 6px' : '7px 16px 7px 9px', cursor: 'pointer', fontFamily: 'inherit', fontSize: compact ? 14 : 15, color: '#2B2420', boxShadow: compact ? '0 3px 12px rgba(43,36,32,.16)' : 'none' }}
       >
-        <Avatar pet={pet} size={compact ? 30 : 34} />
-        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-          <span style={{ fontWeight: 700 }}>
-            {pet.name}{compact ? '' : pet.breed ? ` · ${pet.breed}` : ''}
-          </span>
-          <span style={{ fontSize: compact ? 11.5 : 12.5, color: '#A08872' }}>
-            {pet.kg}kg · {pet.sizeLabel}{compact ? ' ▾' : ' · 우리 아이 등록 ▾'}
-          </span>
-        </span>
+        {onlySamples ? (
+          // 아직 등록 전 — 예시 아이 이름을 내 아이인 것처럼 내걸지 않는다.
+          // 판정은 뒤에서 예시(소형견 4kg)로 돌지만, 칩은 등록을 권하는 자리다
+          <>
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 30 : 34, height: compact ? 30 : 34, background: '#E85D3D', borderRadius: '50%', fontSize: compact ? 16 : 18, flex: 'none' }}>
+              🐾
+            </span>
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+              <span style={{ fontWeight: 700 }}>우리 아이 등록</span>
+              <span style={{ fontSize: compact ? 11.5 : 12.5, color: '#A08872' }}>
+                {compact ? '예시로 판정 중 ▾' : '지금은 예시 프로필로 판정 중 ▾'}
+              </span>
+            </span>
+          </>
+        ) : (
+          <>
+            <Avatar pet={pet} size={compact ? 30 : 34} />
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
+              <span style={{ fontWeight: 700 }}>
+                {pet.name}{compact ? '' : pet.breed ? ` · ${pet.breed}` : ''}
+              </span>
+              <span style={{ fontSize: compact ? 11.5 : 12.5, color: '#A08872' }}>
+                {pet.kg}kg · {pet.sizeLabel} ▾
+              </span>
+            </span>
+          </>
+        )}
       </button>
 
       {open && (

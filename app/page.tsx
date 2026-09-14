@@ -771,7 +771,9 @@ export default function Home() {
 
           {!isMobile && (
           <div style={{ position: 'absolute', left: 16, top: 14, background: 'rgba(255,255,255,.94)', border: '1px solid #EAE3D6', borderRadius: 99, padding: '6px 14px', fontSize: 12.5, color: '#6E5F4D' }}>
-            {pet.emoji} <b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사
+            {petStore.onlySamples
+              ? <>🐾 <b>예시 프로필</b>(소형견 4kg) 기준이에요 — 우리 아이를 등록하면 다시 판정해요 · 출처 ⓒ한국관광공사</>
+              : <>{pet.emoji} <b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사</>}
           </div>
           )}
 
