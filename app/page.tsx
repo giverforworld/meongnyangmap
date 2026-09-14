@@ -23,9 +23,9 @@ const BADGE = {
   failed: {
     text: '! 조건 확인 실패', border: '#E0A9A0', color: '#C0392B', bg: '#FBEDEA', checkBg: '#FDF5F3',
   },
-  /** 프로필 등록 전 — 조건은 있지만 누구 기준으로도 재지 않았다 */
+  /** 프로필 등록 전 — 조건은 있지만 누구 기준으로도 재지 않았다. 핀과 같은 초록 */
   info: {
-    text: '동반 조건 있음', border: '#C9BFAE', color: '#6E5F4D', bg: '#F6F1E7', checkBg: '#FAF8F3',
+    text: '✓ 동반 조건 있음', border: '#2F8F4E', color: '#2F8F4E', bg: '#EAF6EA', checkBg: '#F2FAF2',
   },
 } as const
 
@@ -788,7 +788,7 @@ export default function Home() {
               </>
             ) : (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#8A7A65' }} />동반 조건 있음 {visible.filter((p) => p.state === 'info').length}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#2F8F4E' }} />동반 조건 있음 {visible.filter((p) => p.state === 'info').length}</div>
                 <div style={{ color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>🐶 프로필을 등록하면 판정해요</div>
               </>
             )}

@@ -62,11 +62,7 @@ export function toPet(p: PetInput): Pet {
  */
 export const AVATARS: { emoji: string; label: string; bg: string }[] = [
   { emoji: '🐶', label: '강아지', bg: '#FFE0D3' },
-  { emoji: '🐕', label: '개', bg: '#FCE9C8' },
-  { emoji: '🐩', label: '푸들', bg: '#EFE3F7' },
-  { emoji: '🦮', label: '안내견', bg: '#DDEFE3' },
   { emoji: '🐱', label: '고양이', bg: '#FFF1C2' },
-  { emoji: '🐈', label: '고양이 옆모습', bg: '#E3ECF7' },
   { emoji: '🐰', label: '토끼', bg: '#FADDE6' },
   { emoji: '🐾', label: '발자국', bg: '#EDE7DD' },
 ]

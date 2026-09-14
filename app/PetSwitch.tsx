@@ -132,18 +132,30 @@ export default function PetSwitch({
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 20px' }}>
               {editing || pets.length === 0 ? (
-                // 등록된 아이가 없으면 목록을 건너뛰고 바로 폼이다 — 빈 목록을 보여줄 이유가 없다
-                <PetForm
-                  initial={editing && editing !== 'new' ? list.find((p) => p.key === editing) ?? null : null}
-                  canCancel={pets.length > 0}
-                  onCancel={() => setEditing(null)}
-                  onSave={(input) => {
-                    if (!editing || editing === 'new') onAdd(input)
-                    else onUpdate(editing, input)
-                    setEditing(null)
-                    setOpen(false)
-                  }}
-                />
+                <>
+                  {/* 등록된 아이가 없으면 목록을 건너뛰고 바로 폼이다 — 빈 목록을 보여줄 이유가 없다 */}
+                  <PetForm
+                    initial={editing && editing !== 'new' ? list.find((p) => p.key === editing) ?? null : null}
+                    canCancel={pets.length > 0}
+                    onCancel={() => setEditing(null)}
+                    onSave={(input) => {
+                      if (!editing || editing === 'new') onAdd(input)
+                      else onUpdate(editing, input)
+                      setEditing(null)
+                      setOpen(false)
+                    }}
+                  />
+                  {/* 처음 온 사람에게도 로그인 길을 연다 — 다른 기기에서 등록해 둔 아이를 불러오는 경우 */}
+                  {pets.length === 0 && (
+                    <AccountBlock
+                      session={session}
+                      syncing={syncing}
+                      onSignIn={onSignIn}
+                      onSignOut={onSignOut}
+                      hasOwnPets={false}
+                    />
+                  )}
+                </>
               ) : (
                 <>
 
@@ -263,7 +275,7 @@ function AccountBlock({
       <span style={{ fontSize: 12.5, color: '#6E5F4D', lineHeight: 1.5 }}>
         {hasOwnPets
           ? '다른 기기에서도 이 아이로 판정하려면'
-          : '프로필은 이 기기에만 저장돼요. 다른 기기에서도 쓰려면'}
+          : '이미 등록한 적 있어요? 로그인하면 계정에 저장된 아이를 불러와요'}
       </span>
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={() => onSignIn('kakao')}
@@ -342,7 +354,7 @@ function PetForm({
       </label>
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>견종</span>
+        <span style={{ fontSize: 13, fontWeight: 700 }}>견종 <span style={{ fontWeight: 500, color: '#B3A78F' }}>(선택)</span></span>
         <input value={breed} onChange={(e) => setBreed(e.target.value)} maxLength={30} style={field} />
         {dangerous && (
           <span style={{ fontSize: 12, color: '#C0392B', lineHeight: 1.5 }}>
