@@ -364,8 +364,10 @@ function PetForm({
             </span>
           )}
         </div>
-        <span style={{ fontSize: 11.5, color: '#B3A78F' }}>
-          몸무게로 크기를 정해요 — 10kg 미만 소형견 · 25kg 미만 중형견 · 그 이상 대형견
+        <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.6 }}>
+          몸무게로 크기를 정해요
+          <br />
+          10kg 미만 소형견 · 10~25kg 중형견 · 25kg 이상 대형견
         </span>
       </label>
 
