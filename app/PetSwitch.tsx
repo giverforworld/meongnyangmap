@@ -64,7 +64,7 @@ export default function PetSwitch({
       <button
         className="hov-accent"
         onClick={() => setOpen(true)}
-        title={pet ? '눌러서 아이를 바꾸거나 프로필 고치기' : '프로필을 등록하면 등록한 아이 기준으로 동반 가능 여부를 알려드려요'}
+        title={pet ? '눌러서 아이를 바꾸거나 프로필 수정' : '프로필을 등록하면 등록한 아이 기준으로 동반 가능 여부를 알려드려요'}
         style={{
           display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, cursor: 'pointer', borderRadius: 99,
@@ -117,7 +117,7 @@ export default function PetSwitch({
           >
             <header style={{ flex: 'none', padding: '18px 20px 12px', borderBottom: '1px solid #F1EBE0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
               <span className="jua" style={{ fontSize: 20 }}>
-                {editing ? (editing === 'new' ? '우리 아이 등록' : '프로필 고치기') : pets.length ? '누구랑 갈까요?' : '우리 아이 등록'}
+                {editing ? (editing === 'new' ? '우리 아이 등록' : '프로필 수정') : pets.length ? '누구랑 갈까요?' : '우리 아이 등록'}
               </span>
               <button
                 onClick={() => (editing && pets.length ? setEditing(null) : (setEditing(null), setOpen(false)))}
@@ -183,7 +183,7 @@ export default function PetSwitch({
                             onClick={() => setEditing(p.key)}
                             style={{ flex: 'none', fontFamily: 'inherit', fontSize: 12.5, color: '#6E5F4D', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
                           >
-                            고치기
+                            수정
                           </button>
                           <button
                             onClick={() => onRemove(p.key)}
@@ -252,14 +252,13 @@ function AccountBlock({
     const m = u.user_metadata ?? {}
     const who = (m.nickname as string) || (m.name as string) || (m.full_name as string) || (m.preferred_username as string) || u.email || '로그인됨'
     const p = u.app_metadata?.provider as string | undefined
-    const via = p === 'kakao' || p === 'custom:kakao' ? '카카오' : p === 'google' ? '구글' : ''
     return (
       <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1EBE0', display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: '#6E5F4D', lineHeight: 1.5 }}>
-          <b style={{ color: '#2B2420' }}>{who}</b>{via && ` · ${via}`}
+          <b style={{ color: '#2B2420' }}>{who}</b> <ProviderMark provider={p} />
           <br />
           <span style={{ color: '#B3A78F' }}>
-            {syncing ? '계정과 맞추는 중…' : '프로필이 계정에 저장돼요. 다른 기기에서도 같아요'}
+            {syncing ? '계정과 맞추는 중…' : '우리 아이 정보는 로그인 계정에 저장됩니다.'}
           </span>
         </span>
         <button onClick={onSignOut}
@@ -295,19 +294,41 @@ function AccountBlock({
   )
 }
 
+/**
+ * 어느 계정으로 들어왔는지 — '카카오'라고 쓰지 않고 그 회사 마크를 단다.
+ * 이름 옆에 붙는 자리라 작고(16px), 카카오는 노랑 원 안에 말풍선으로 그려야 알아본다.
+ */
+export function ProviderMark({ provider }: { provider?: string }) {
+  if (provider === 'kakao' || provider === 'custom:kakao') {
+    return (
+      <span title="카카오 계정" aria-label="카카오 계정" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#FEE500', verticalAlign: '-3px' }}>
+        <KakaoIcon size={11} />
+      </span>
+    )
+  }
+  if (provider === 'google') {
+    return (
+      <span title="구글 계정" aria-label="구글 계정" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 16, height: 16, borderRadius: '50%', background: '#FFFFFF', boxShadow: 'inset 0 0 0 1px #E3DCCE', verticalAlign: '-3px' }}>
+        <GoogleIcon size={10} />
+      </span>
+    )
+  }
+  return null
+}
+
 /** 카카오 심볼 — 말풍선. 노랑(#FEE500) 위에 검정 */
-export function KakaoIcon() {
+export function KakaoIcon({ size = 17 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={17} height={17} aria-hidden="true" style={{ flex: 'none' }}>
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" style={{ flex: 'none' }}>
       <path fill="#191919" d="M12 3C6.48 3 2 6.58 2 11c0 2.83 1.86 5.32 4.66 6.74l-.95 3.53c-.08.3.26.55.52.38l4.2-2.78c.51.06 1.03.1 1.57.1 5.52 0 10-3.58 10-8S17.52 3 12 3Z" />
     </svg>
   )
 }
 
 /** 구글 G — 4색 그대로. 흰 바탕에서만 쓴다 */
-export function GoogleIcon() {
+export function GoogleIcon({ size = 16 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 48 48" width={16} height={16} aria-hidden="true" style={{ flex: 'none' }}>
+    <svg viewBox="0 0 48 48" width={size} height={size} aria-hidden="true" style={{ flex: 'none' }}>
       <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z" />
       <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z" />
       <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />

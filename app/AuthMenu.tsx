@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
-import { GoogleIcon, KakaoIcon } from './PetSwitch'
+import { GoogleIcon, KakaoIcon, ProviderMark } from './PetSwitch'
 
 /**
  * 상단 메뉴의 로그인 버튼. 프로필 등록 버튼 오른쪽에 붙는다.
@@ -52,7 +52,6 @@ export default function AuthMenu({
   const who = (m.nickname as string) || (m.name as string) || (m.full_name as string) || u?.email || '로그인됨'
   const picture = (m.picture as string) || (m.avatar_url as string) || ''
   const p = u?.app_metadata?.provider as string | undefined
-  const via = p === 'kakao' || p === 'custom:kakao' ? '카카오' : p === 'google' ? '구글' : ''
 
   return (
     <div ref={root} style={{ position: 'relative', flex: 'none' }}>
@@ -96,10 +95,10 @@ export default function AuthMenu({
           {u ? (
             <>
               <div style={{ fontSize: 13, color: '#6E5F4D', lineHeight: 1.5, padding: '2px 4px' }}>
-                <b style={{ color: '#2B2420' }}>{who}</b>{via && ` · ${via}`}
+                <b style={{ color: '#2B2420' }}>{who}</b> <ProviderMark provider={p} />
                 <br />
                 <span style={{ color: '#B3A78F' }}>
-                  {syncing ? '계정과 맞추는 중…' : '우리 아이 정보가 계정에 저장돼요'}
+                  {syncing ? '계정과 맞추는 중…' : '우리 아이 정보는 로그인 계정에 저장됩니다.'}
                 </span>
               </div>
               <button onClick={() => { setOpen(false); onSignOut() }}
