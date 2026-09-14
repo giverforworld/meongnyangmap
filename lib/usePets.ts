@@ -132,7 +132,14 @@ export function usePets() {
     if (!sb) return
     const next = window.location.pathname + window.location.search
     sb.auth.signInWithOAuth({
-      provider,
+      /**
+       * 카카오는 Supabase 내장 provider 를 쓰지 않는다. 내장은 이메일(account_email)을
+       * 반드시 요청하는데, 카카오는 비즈 앱(사업자 심사)이 아니면 이메일 동의항목을
+       * 못 켠다 → KOE205. 그래서 Supabase 에 'custom:kakao' 라는 OIDC provider 를
+       * 따로 만들어 이메일 없이(profile_nickname · profile_image 만) 받는다.
+       * 만드는 법은 supabase/kakao-oidc.md.
+       */
+      provider: provider === 'kakao' ? 'custom:kakao' : provider,
       options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
     })
   }, [])

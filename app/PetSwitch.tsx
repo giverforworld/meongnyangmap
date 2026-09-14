@@ -248,8 +248,11 @@ function AccountBlock({
 
   if (session) {
     const u = session.user
-    const who = (u.user_metadata?.name as string) || (u.user_metadata?.full_name as string) || u.email || '로그인됨'
-    const via = u.app_metadata?.provider === 'kakao' ? '카카오' : u.app_metadata?.provider === 'google' ? '구글' : ''
+    // 카카오(custom:kakao)는 이메일 없이 들어온다 — 닉네임이 전부다
+    const m = u.user_metadata ?? {}
+    const who = (m.nickname as string) || (m.name as string) || (m.full_name as string) || (m.preferred_username as string) || u.email || '로그인됨'
+    const p = u.app_metadata?.provider as string | undefined
+    const via = p === 'kakao' || p === 'custom:kakao' ? '카카오' : p === 'google' ? '구글' : ''
     return (
       <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid #F1EBE0', display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: '#6E5F4D', lineHeight: 1.5 }}>
