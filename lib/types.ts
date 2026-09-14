@@ -114,5 +114,8 @@ export type RulesEntry =
   | { state: 'failed' }
   | { state: 'done'; rules: PetRules | null }
 
-/** 카드·핀에 표시할 상태. 판정 2종 + 조건을 아직 못 받은 2종 */
-export type CardState = 'ok' | 'cond' | 'loading' | 'failed'
+/**
+ * 카드·핀에 표시할 상태. 판정 2종 + 조건을 아직 못 받은 2종 + 판정하지 않은 1종.
+ * 'info' 는 프로필을 등록하기 전이다 — 조건은 받았지만 누구 기준으로도 재지 않은 상태.
+ */
+export type CardState = 'ok' | 'cond' | 'loading' | 'failed' | 'info'

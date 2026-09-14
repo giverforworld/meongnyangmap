@@ -2,7 +2,7 @@
 
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { judge, isDangerousBreed, sizeOf } from '@/lib/petTour'
-import type { CardState, Detail, Judgement, Place, RulesEntry } from '@/lib/types'
+import type { CardState, Detail, Judgement, PetRules, Place, RulesEntry } from '@/lib/types'
 import { usePets } from '@/lib/usePets'
 import PetSwitch from './PetSwitch'
 import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
@@ -23,6 +23,10 @@ const BADGE = {
   },
   failed: {
     text: '! 조건 확인 실패', border: '#E0A9A0', color: '#C0392B', bg: '#FBEDEA', checkBg: '#FDF5F3',
+  },
+  /** 프로필 등록 전 — 조건은 있지만 누구 기준으로도 재지 않았다 */
+  info: {
+    text: '동반 조건 있음', border: '#C9BFAE', color: '#6E5F4D', bg: '#F6F1E7', checkBg: '#FAF8F3',
   },
 } as const
 
@@ -68,6 +72,36 @@ function splitTel(raw: string) {
 }
 
 type Judged = Place & { j: Judgement | null; state: CardState }
+
+/**
+ * 등록 전 카드 한 줄 — 판정 대신 동반구분만. 누구 기준으로도 재지 않은 상태라
+ * "가능"이나 "불가" 같은 결론을 내지 않는다.
+ */
+function describeRules(r: PetRules | null): string {
+  if (!r) return '동반 조건 정보가 등록되지 않은 장소예요'
+  if (r.noPets) return '반려동물 동반 불가로 등록돼 있어요'
+  if (r.zone === 'all') return '전 구역 동반 가능'
+  if (r.zone === 'partial') return r.zoneHint ?? '일부 구역만 동반 가능'
+  return '동반 조건이 등록돼 있어요'
+}
+
+/** 등록 전 상세 패널 — 원문 조건을 줄로 늘어놓는다 */
+function ruleLines(r: PetRules | null): string[] {
+  if (!r) return ['동반 조건 정보가 등록되지 않은 장소예요']
+  const out: string[] = []
+  if (r.noPets) out.push('반려동물 동반 불가')
+  else if (r.serviceDogOnly) out.push('안내견만 동반 가능')
+  else {
+    if (r.zone === 'all') out.push('전 구역 동반 가능')
+    else if (r.zone === 'partial') out.push(r.zoneHint ?? '일부 구역만 동반 가능')
+    if (r.allowedSizes) out.push(`${r.allowedSizes.map((x) => ({ small: '소형견', medium: '중형견', large: '대형견' })[x]).join('·')}만 가능`)
+    if (r.maxKg !== null) out.push(`${r.maxKg}kg ${r.maxKgInclusive === false ? '미만' : '이하'}`)
+    if (r.excludeDangerous) out.push('맹견 동반 불가')
+    if (r.needs.length) out.push(`준비물: ${r.needs.join(', ')}`)
+  }
+  if (out.length === 0) out.push('등록된 조건이 적어요 — 방문 전 확인을 권해요')
+  return out
+}
 
 export default function Home() {
   const [regions, setRegions] = useState<Region[]>([])
@@ -340,6 +374,8 @@ export default function Home() {
         const e = rulesById[p.contentid]
         if (!e || e.state === 'loading') return { ...p, j: null, state: 'loading' as const }
         if (e.state === 'failed') return { ...p, j: null, state: 'failed' as const }
+        // 등록 전에는 거르지 않는다. 조건이 등록된 곳이라는 사실만 표시한다
+        if (!pet) return { ...p, j: null, state: 'info' as const }
         const j = judge(e.rules, pet)
         return { ...p, j, state: j.status }
       }),
@@ -404,7 +440,6 @@ export default function Home() {
       pets={petStore.pets}
       list={petStore.list}
       activeKey={petStore.activeKey}
-      onlySamples={petStore.onlySamples}
       onSelect={(k) => { petStore.select(k); setSelectedId(null) }}
       onAdd={(v) => { petStore.add(v); setSelectedId(null) }}
       onUpdate={(k, v) => { petStore.update(k, v); setSelectedId(null) }}
@@ -447,7 +482,7 @@ export default function Home() {
     <>
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: isMobile ? '0 16px 6px' : '14px 16px 8px' }}>
       <span style={{ fontSize: 14, fontWeight: 700 }}>
-        {pet.name}가 갈 수 있는 곳 <span style={{ color: '#E85D3D' }}>{visible.length}</span>
+        {pet ? `${pet.name}가 갈 수 있는 곳` : '반려동물 동반 가능 장소'} <span style={{ color: '#E85D3D' }}>{visible.length}</span>
       </span>
       <span style={{ fontSize: 12, color: '#B3A78F' }}>
         {isMobile ? `${total.toLocaleString()}곳 중` : '이름 순'}
@@ -457,8 +492,14 @@ export default function Home() {
     {/* 좁은 화면에서는 지도 위에 범례를 놓을 자리가 없다 — 목록 머리에 붙인다 */}
     {isMobile && (
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 11, padding: '0 16px 8px', fontSize: 11.5, color: '#6E5F4D' }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#2F8F4E' }} />입장 가능 {okCount}</span>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#C98A12' }} />조건부 {condCount}</span>
+        {pet ? (
+          <>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#2F8F4E' }} />입장 가능 {okCount}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#C98A12' }} />조건부 {condCount}</span>
+          </>
+        ) : (
+          <span style={{ color: '#E85D3D', fontWeight: 700 }}>🐾 프로필 등록하면 우리 아이 기준으로 걸러요</span>
+        )}
         {hiddenCount > 0 && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#B3A78F' }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#D8D0C0' }} />불가 {hiddenCount} 숨김</span>
         )}
@@ -505,7 +546,7 @@ export default function Home() {
               )}
             </div>
             <div style={{ fontSize: 12.5, color: p.j ? (condCheck ? '#8A6208' : '#2F8F4E') : '#A08872' }}>
-              {p.j ? (condCheck ? condCheck.text : p.j.checks[0]?.text) : b.text}
+              {p.j ? (condCheck ? condCheck.text : p.j.checks[0]?.text) : p.state === 'info' ? describeRules(rules(p)) : b.text}
             </div>
           </div>
         )
@@ -760,9 +801,18 @@ export default function Home() {
           {/* 범례 — 좁은 화면에서는 시트가 아래를 덮으므로 목록 머리에 옮겨 두었다 */}
           {!isMobile && (
           <div style={{ position: 'absolute', right: 16, bottom: 16, background: 'rgba(255,255,255,.94)', border: '1px solid #EAE3D6', borderRadius: 12, padding: '10px 14px', fontSize: 12.5, display: 'flex', flexDirection: 'column', gap: 5, boxShadow: '0 4px 14px rgba(43,36,32,.08)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#2F8F4E' }} />입장 가능 {okCount}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#C98A12' }} />조건부 가능 {condCount}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#B3A78F' }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#D8D0C0' }} />불가 {hiddenCount} (숨김)</div>
+            {pet ? (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#2F8F4E' }} />입장 가능 {okCount}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#C98A12' }} />조건부 가능 {condCount}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#B3A78F' }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#D8D0C0' }} />불가 {hiddenCount} (숨김)</div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#8A7A65' }} />동반 조건 있음 {visible.filter((p) => p.state === 'info').length}</div>
+                <div style={{ color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>🐾 프로필 등록하면 판정해요</div>
+              </>
+            )}
             {visible.some((p) => p.state === 'loading') && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#A08872' }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#B3A78F' }} />조건 확인 중 {visible.filter((p) => p.state === 'loading').length}</div>
             )}
@@ -771,9 +821,9 @@ export default function Home() {
 
           {!isMobile && (
           <div style={{ position: 'absolute', left: 16, top: 14, background: 'rgba(255,255,255,.94)', border: '1px solid #EAE3D6', borderRadius: 99, padding: '6px 14px', fontSize: 12.5, color: '#6E5F4D' }}>
-            {petStore.onlySamples
-              ? <>🐾 <b>예시 프로필</b>(소형견 4kg) 기준이에요 — 우리 아이를 등록하면 다시 판정해요 · 출처 ⓒ한국관광공사</>
-              : <>{pet.emoji} <b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사</>}
+            {pet
+              ? <>{pet.emoji} <b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사</>
+              : <>🐾 <b>프로필을 등록</b>하면 우리 아이 기준으로 걸러 보여줘요 · 출처 ⓒ한국관광공사</>}
           </div>
           )}
 
@@ -874,13 +924,35 @@ export default function Home() {
                   })()}
 
                   <div style={{ border: `1.5px solid ${b.border}`, background: b.checkBg, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 700 }}>입장 조건 체크리스트 — {pet.name} 기준</span>
-                    {(sel.j?.checks ?? [{ icon: '!' as const, color: '#A08872', text: b.text }]).map((ck, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
-                        <span style={{ fontWeight: 700, color: ck.color }}>{ck.icon}</span>
-                        <span>{ck.text}</span>
+                    <span style={{ fontSize: 13.5, fontWeight: 700 }}>
+                      {pet ? `입장 조건 체크리스트 — ${pet.name} 기준` : '동반 조건'}
+                    </span>
+                    {sel.j ? (
+                      sel.j.checks.map((ck, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
+                          <span style={{ fontWeight: 700, color: ck.color }}>{ck.icon}</span>
+                          <span>{ck.text}</span>
+                        </div>
+                      ))
+                    ) : sel.state === 'info' ? (
+                      // 등록 전 — 판정 없이 원문 조건을 그대로 늘어놓는다. ✓/! 를 찍지 않는다
+                      <>
+                        {ruleLines(rules(sel)).map((line, i) => (
+                          <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
+                            <span style={{ color: '#B3A78F' }}>•</span>
+                            <span>{line}</span>
+                          </div>
+                        ))}
+                        <div style={{ fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>
+                          🐾 프로필을 등록하면 우리 아이가 갈 수 있는지 바로 판정해요
+                        </div>
+                      </>
+                    ) : (
+                      <div style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
+                        <span style={{ fontWeight: 700, color: '#A08872' }}>!</span>
+                        <span>{b.text}</span>
                       </div>
-                    ))}
+                    )}
                     <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11.5, color: '#A08872' }}>
                       조건 정보 충실도 {rules(sel)?.completeness ?? '—'}등급 · 출처 ⓒ한국관광공사
                     </div>

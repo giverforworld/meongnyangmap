@@ -37,11 +37,14 @@ export async function GET(req: Request) {
   const tag = (searchParams.get('tag') ?? '').trim()
   const ids = (searchParams.get('ids') ?? '').split(',').map((s) => s.trim()).filter(Boolean)
   const raw = searchParams.get('size')
-  const size: PetSize = raw === 'medium' || raw === 'large' ? raw : 'small'
+  // 프로필 등록 전이면 size 가 안 온다. 그때는 크기 조건을 걸지 않는다 —
+  // '가능(소형견)' 도 '가능' 도 똑같이 동반 가능한 곳으로 보여준다
+  const size: PetSize | null =
+    raw === 'small' || raw === 'medium' || raw === 'large' ? raw : null
   const petName = (searchParams.get('petName') ?? '우리 아이').slice(0, 20)
   const limit = Math.min(Number(searchParams.get('limit')) || PAGE, 200)
 
-  const pet = petFrom(size, petName)
+  const pet = size ? petFrom(size, petName) : null
 
   // 지역·검색·유형으로 먼저 좁힌 뒤 판정한다
   let list = CAMPS

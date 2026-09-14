@@ -48,7 +48,7 @@ export interface CampJudge {
  * '불가'를 먼저 본다 — '가능'과 '불가능' 둘 다 '가능'을 포함하기 때문에
  * 순서를 뒤집으면 '불가능'이 초록불이 된다.
  */
-export function judgeCamp(animal: string, pet: Pet): CampJudge {
+export function judgeCamp(animal: string, pet: Pet | null): CampJudge {
   const a = (animal ?? '').trim()
 
   if (!a) {
@@ -62,8 +62,10 @@ export function judgeCamp(animal: string, pet: Pet): CampJudge {
     return { state: 'no', why: '반려동물 동반 불가' }
   }
 
-  // '가능(소형견)' — 크기 조건이 원문에 이미 들어 있다
+  // '가능(소형견)' — 크기 조건이 원문에 이미 들어 있다.
+  // 프로필이 없으면 누구 기준으로도 재지 않고 조건만 알린다
   if (/소형견/.test(a)) {
+    if (!pet) return { state: 'ok', why: '소형견만 동반 가능' }
     return pet.size === 'small'
       ? { state: 'ok', why: `소형견만 가능 → ${pet.sizeLabel} 충족` }
       : { state: 'no', why: `소형견만 가능 (${pet.name} ${pet.sizeLabel})` }

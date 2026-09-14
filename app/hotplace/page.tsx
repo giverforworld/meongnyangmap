@@ -436,8 +436,8 @@ function CampView() {
   useEffect(() => {
     setLoading(true)
     const qs = new URLSearchParams({
-      size: pet.size,
-      petName: pet.name,
+      // 등록 전에는 크기를 보내지 않는다 — 서버가 크기 조건을 걸지 않고 전부 준다
+      ...(pet ? { size: pet.size, petName: pet.name } : {}),
       limit: String(limit),
       ...(region ? { do: region } : {}),
       ...(tag ? { tag } : {}),
@@ -448,7 +448,7 @@ function CampView() {
       .then(setData)
       .catch(() => setData(null))
       .finally(() => setLoading(false))
-  }, [pet.size, pet.name, region, tag, limit, sort, nearIds])
+  }, [pet?.size, pet?.name, region, tag, limit, sort, nearIds])
 
   const camps = data?.camps ?? []
 
@@ -461,7 +461,6 @@ function CampView() {
           pets={petStore.pets}
           list={petStore.list}
           activeKey={petStore.activeKey}
-          onlySamples={petStore.onlySamples}
           onSelect={(k) => { petStore.select(k); setLimit(PAGE) }}
           onAdd={(v) => { petStore.add(v); setLimit(PAGE) }}
           onUpdate={(k, v) => { petStore.update(k, v); setLimit(PAGE) }}
@@ -530,7 +529,7 @@ function CampView() {
 
       {!loading && camps.length === 0 && (
         <p style={{ padding: 40, textAlign: 'center', color: '#A08872', fontSize: 14, lineHeight: 1.7 }}>
-          {pet.name}가 묵을 수 있는 캠핑장이<br />이 조건에는 없어요
+          {pet ? `${pet.name}가 묵을 수 있는 캠핑장이` : '반려동물 동반 가능한 캠핑장이'}<br />이 조건에는 없어요
         </p>
       )}
 

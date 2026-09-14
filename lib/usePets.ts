@@ -3,41 +3,39 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import type { Pet } from './types'
-import {
-  DEFAULT_PET, SAMPLE_PETS, isSample, loadPets, nextKey, savePets, toPet,
-  type PetInput,
-} from './pets'
+import { clearPets, loadPets, nextKey, savePets, toPet, type PetInput } from './pets'
 import { supabaseBrowser } from './supabaseBrowser'
 import { deleteRemotePet, fetchRemotePets, upsertRemotePets } from './petsRemote'
 
 /**
  * 등록한 아이들과 지금 기준이 되는 아이.
  *
- * 서버 렌더 때는 저장소를 읽을 수 없으므로 예시로 시작하고, 마운트 후 실제 값으로
- * 정정한다(useIsMobile 과 같은 방식). 그 사이 화면이 깜빡이지 않도록 예시도
- * 정상적인 프로필이라 판정이 곧바로 돈다.
+ * **등록 전에는 아이가 없다(pet = null).** 그때는 판정을 하지 않고 조건만 보여준다.
+ * 예시 아이를 깔아 두지 않는 이유 — 처음 온 사람에게 남의 개 이름이 떠 있으면
+ * 그게 내 개인 것처럼 읽히고, "왜 루비 기준이지?"에서 신뢰가 깎인다.
+ *
+ * 서버 렌더 때는 저장소를 읽을 수 없으므로 빈 채로 시작하고, 마운트 후 실제 값으로
+ * 정정한다(useIsMobile 과 같은 방식). 등록 전 화면과 같은 모양이라 깜빡임이 없다.
  *
  * 로그인은 선택이다. 안 하면 브라우저 저장만 쓴다. 하면 계정에 올린 것을 읽고,
- * 고칠 때마다 양쪽에 쓴다. 브라우저 저장은 로그인해도 계속 유지한다 —
- * 네트워크가 끊겨도 마지막 상태로 판정할 수 있어야 한다.
+ * 고칠 때마다 양쪽에 쓴다.
  */
 export function usePets() {
-  const [list, setList] = useState<PetInput[]>(SAMPLE_PETS)
-  const [activeKey, setActiveKey] = useState(DEFAULT_PET)
-  /** 저장소를 읽기 전인지. 등록 안내를 성급히 띄우지 않으려고 본다 */
+  const [list, setList] = useState<PetInput[]>([])
+  const [activeKey, setActiveKey] = useState<string | null>(null)
+  /** 저장소를 읽기 전인지 */
   const [ready, setReady] = useState(false)
   const [session, setSession] = useState<Session | null>(null)
-  /** 계정에서 프로필을 내려받는 중 — 그동안 화면은 브라우저 저장본으로 돈다 */
+  /** 계정에서 프로필을 내려받는 중 */
   const [syncing, setSyncing] = useState(false)
 
-  // 콜백 안에서 최신 목록을 보려고 ref 로도 든다
   const listRef = useRef(list)
   listRef.current = list
 
   // ── 브라우저 저장소
   useEffect(() => {
     const v = loadPets()
-    if (v) {
+    if (v && v.pets.length > 0) {
       setList(v.pets)
       setActiveKey(v.pets.some((p) => p.key === v.activeKey) ? v.activeKey : v.pets[0].key)
     }
@@ -62,13 +60,12 @@ export function usePets() {
     ;(async () => {
       const remote = await fetchRemotePets(sb)
       if (!alive || remote === null) return
-      const mine = listRef.current.filter((p) => !isSample(p.key))
+      const mine = listRef.current
 
       if (remote.length > 0) {
-        // 계정에 있는 것이 기준이다. 이 기기 것은 덮어쓴다 —
-        // 다른 기기에서 고친 게 있으면 그게 최신이기 때문이다
+        // 계정에 있는 것이 기준이다 — 다른 기기에서 고친 게 있으면 그게 최신이다
         setList(remote)
-        setActiveKey((k) => (remote.some((p) => p.key === k) ? k : remote[0].key))
+        setActiveKey((k) => (k && remote.some((p) => p.key === k) ? k : remote[0].key))
         savePets({ pets: remote, activeKey: remote[0].key })
       } else if (mine.length > 0) {
         // 첫 로그인 — 이 기기에서 등록해 둔 아이를 계정으로 올린다
@@ -80,11 +77,15 @@ export function usePets() {
 
   /** 브라우저에 저장하고, 로그인돼 있으면 계정에도 쓴다 */
   const persist = useCallback(
-    (pets: PetInput[], key: string, remoteWrite?: (sb: NonNullable<ReturnType<typeof supabaseBrowser>>) => Promise<void>) => {
+    (
+      pets: PetInput[],
+      key: string | null,
+      remoteWrite?: (sb: NonNullable<ReturnType<typeof supabaseBrowser>>) => Promise<void>
+    ) => {
       setList(pets)
       setActiveKey(key)
-      // 예시만 있는 상태는 굳히지 않는다
-      if (pets.some((p) => !isSample(p.key))) savePets({ pets, activeKey: key })
+      if (pets.length > 0 && key) savePets({ pets, activeKey: key })
+      else clearPets()
       const sb = supabaseBrowser()
       if (sb && session && remoteWrite) remoteWrite(sb).catch(() => {})
     },
@@ -93,11 +94,9 @@ export function usePets() {
 
   const add = useCallback(
     (input: Omit<PetInput, 'key'>) => {
-      // 첫 등록이면 예시를 걷어낸다. 남겨 두면 내 아이와 남의 아이가 섞인다
-      const base = list.filter((p) => !isSample(p.key))
-      const key = nextKey(base)
+      const key = nextKey(list)
       const pet = { ...input, key }
-      persist([...base, pet], key, (sb) => upsertRemotePets(sb, session!.user.id, [pet]))
+      persist([...list, pet], key, (sb) => upsertRemotePets(sb, session!.user.id, [pet]))
       return key
     },
     [list, persist, session]
@@ -118,16 +117,9 @@ export function usePets() {
   const remove = useCallback(
     (key: string) => {
       const rest = list.filter((p) => p.key !== key)
-      // 마지막 하나를 지우면 예시로 되돌린다. 빈 목록은 판정할 기준이 없다
-      if (rest.length === 0) {
-        setList(SAMPLE_PETS)
-        setActiveKey(DEFAULT_PET)
-        savePets({ pets: SAMPLE_PETS, activeKey: DEFAULT_PET })
-        const sb = supabaseBrowser()
-        if (sb && session) deleteRemotePet(sb, key).catch(() => {})
-        return
-      }
-      persist(rest, key === activeKey ? rest[0].key : activeKey, (sb) => deleteRemotePet(sb, key))
+      // 마지막 하나를 지우면 등록 전 상태로 돌아간다 — 판정 없이 조건만 보는 화면
+      const nextKeySel = rest.length === 0 ? null : key === activeKey ? rest[0].key : activeKey
+      persist(rest, nextKeySel, (sb) => deleteRemotePet(sb, key))
     },
     [list, activeKey, persist, session]
   )
@@ -138,7 +130,6 @@ export function usePets() {
   const signIn = useCallback((provider: 'kakao' | 'google') => {
     const sb = supabaseBrowser()
     if (!sb) return
-    // 로그인 끝나면 지금 보던 화면으로 돌아온다
     const next = window.location.pathname + window.location.search
     sb.auth.signInWithOAuth({
       provider,
@@ -151,23 +142,21 @@ export function usePets() {
     if (!sb) return
     await sb.auth.signOut()
     // 계정 것을 이 기기에 남기지 않는다 — 공용 기기일 수 있다
-    setList(SAMPLE_PETS)
-    setActiveKey(DEFAULT_PET)
-    savePets({ pets: SAMPLE_PETS, activeKey: DEFAULT_PET })
+    setList([])
+    setActiveKey(null)
+    clearPets()
   }, [])
 
   /** 판정에 쓰는 모양. 크기·맹견 여부는 여기서 계산된다 */
   const pets = useMemo(() => list.map(toPet), [list])
-  const pet: Pet = useMemo(
-    () => pets.find((p) => p.key === activeKey) ?? pets[0],
+  /** 등록 전이면 null — 화면은 이걸 보고 판정을 건너뛴다 */
+  const pet: Pet | null = useMemo(
+    () => (activeKey ? pets.find((p) => p.key === activeKey) ?? pets[0] ?? null : null),
     [pets, activeKey]
   )
 
-  /** 예시만 있는지 — "내 아이를 등록해 보세요"를 띄울지 판단한다 */
-  const onlySamples = useMemo(() => list.every((p) => isSample(p.key)), [list])
-
   return {
-    list, pets, pet, activeKey, ready, onlySamples,
+    list, pets, pet, activeKey, ready,
     add, update, remove, select,
     session, syncing, signIn, signOut,
   }

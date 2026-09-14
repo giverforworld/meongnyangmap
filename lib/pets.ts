@@ -7,9 +7,11 @@ import { isDangerousBreed, sizeOf } from './petTour'
  * 지도(app/page.tsx)와 캠핑·핫플레이스(app/hotplace)가 같은 기준으로 판정해야 하므로
  * 여기 둔다. 화면마다 따로 들고 있으면 한쪽만 고쳐져 같은 장소가 다르게 뜬다.
  *
- * **프로필은 이 기기 안에만 둔다.** 서버로 보내지 않는다 — 위치와 같은 원칙이다.
- * 로그인 없이 바로 쓸 수 있어야 하고(공모전 제출 시 '로그인 불필요'), 아이 정보를
- * 남의 서버에 맡길 이유도 없다. 기기를 옮기면 다시 등록해야 하는 것이 이 선택의 대가다.
+ * **등록 전에는 프로필이 없다.** 예시 아이를 깔아 두지 않는다 — 처음 온 사람에게
+ * "루비 · 요크셔테리어" 가 떠 있으면 남의 개가 내 개인 것처럼 읽힌다. 프로필이 없으면
+ * 판정을 하지 않고 조건만 보여준다. 등록하는 순간부터 그 아이 기준으로 거른다.
+ *
+ * 프로필은 브라우저에 저장한다. 로그인하면 계정에도 올라가 다른 기기에서 같이 쓴다.
  */
 
 const SIZE_LABEL: Record<PetSize, string> = {
@@ -53,23 +55,6 @@ export function toPet(p: PetInput): Pet {
   }
 }
 
-/**
- * 처음 온 사람에게 보여줄 예시.
- *
- * 빈 화면으로 시작하면 이 서비스가 무엇을 해주는지 알 수 없다. 크기가 크게 다른
- * 둘을 두어, 전환해 보면 판정이 달라진다는 것 자체가 드러나게 한다.
- * 자기 아이를 등록하면 예시는 목록에서 사라진다.
- */
-export const SAMPLE_PETS: PetInput[] = [
-  { key: 'ruby', name: '루비', breed: '요크셔테리어', kg: 4, emoji: '🐶', photo: '/pets/ruby.jpg', hasCage: true, hasMuzzle: false },
-  { key: 'bori', name: '보리', breed: '리트리버', kg: 28, emoji: '🦮', hasCage: false, hasMuzzle: true },
-]
-
-export const DEFAULT_PET = 'ruby'
-
-/** 예시로 깔아둔 아이인지 — 내 아이를 등록하면 이들은 목록에서 빠진다 */
-export const isSample = (key: string) => SAMPLE_PETS.some((s) => s.key === key)
-
 /** 화면이 고를 수 있게 몇 개만 준다. 아이 사진을 아직 안 넣은 사람을 위한 것 */
 export const EMOJIS = ['🐶', '🦮', '🐕', '🐩', '🐾', '🐱', '🐰']
 
@@ -92,11 +77,18 @@ export function loadPets(): Stored | null {
     const raw = window.localStorage.getItem(KEY)
     if (!raw) return null
     const v = JSON.parse(raw) as Stored
-    if (!Array.isArray(v.pets) || v.pets.length === 0) return null
+    if (!Array.isArray(v.pets)) return null
     return v
   } catch {
     return null
   }
+}
+
+export function clearPets() {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.removeItem(KEY)
+  } catch {}
 }
 
 /** 저장에 실패해도 알리지 않는다 — 이번 세션에서는 계속 쓸 수 있기 때문이다 */

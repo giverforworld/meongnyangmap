@@ -11,6 +11,8 @@ const PIN = {
   cond: { bg: '#C98A12', border: '#9C6B0C', icon: '✓' },
   loading: { bg: '#B3A78F', border: '#8E836E', icon: '…' },
   failed: { bg: '#C0392B', border: '#96271B', icon: '!' },
+  /** 프로필 등록 전 — 초록도 노랑도 아니다. 판정한 적이 없기 때문이다 */
+  info: { bg: '#8A7A65', border: '#6E5F4D', icon: '•' },
 } as const
 
 declare global {

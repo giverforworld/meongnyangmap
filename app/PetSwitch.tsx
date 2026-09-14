@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import type { Pet } from '@/lib/types'
-import { EMOJIS, isSample, type PetInput } from '@/lib/pets'
+import { EMOJIS, type PetInput } from '@/lib/pets'
 import { isDangerousBreed, sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
@@ -32,11 +32,11 @@ const field: React.CSSProperties = {
 }
 
 interface Props {
-  pet: Pet
+  /** 등록 전이면 null */
+  pet: Pet | null
   pets: Pet[]
   list: PetInput[]
-  activeKey: string
-  onlySamples: boolean
+  activeKey: string | null
   onSelect: (key: string) => void
   onAdd: (input: Omit<PetInput, 'key'>) => void
   onUpdate: (key: string, input: Omit<PetInput, 'key'>) => void
@@ -51,7 +51,7 @@ interface Props {
 }
 
 export default function PetSwitch({
-  pet, pets, list, activeKey, onlySamples,
+  pet, pets, list, activeKey,
   onSelect, onAdd, onUpdate, onRemove, compact = false,
   session = null, syncing = false, onSignIn, onSignOut,
 }: Props) {
@@ -67,17 +67,16 @@ export default function PetSwitch({
         title="우리 아이 기준으로 판정해요 — 눌러서 등록하거나 바꾸기"
         style={{ display: 'flex', alignItems: 'center', gap: compact ? 8 : 10, background: compact ? 'rgba(255,255,255,.96)' : '#FFF4EF', border: '1.5px solid #F3C9BB', borderRadius: 99, padding: compact ? '6px 14px 6px 6px' : '7px 16px 7px 9px', cursor: 'pointer', fontFamily: 'inherit', fontSize: compact ? 14 : 15, color: '#2B2420', boxShadow: compact ? '0 3px 12px rgba(43,36,32,.16)' : 'none' }}
       >
-        {onlySamples ? (
-          // 아직 등록 전 — 예시 아이 이름을 내 아이인 것처럼 내걸지 않는다.
-          // 판정은 뒤에서 예시(소형견 4kg)로 돌지만, 칩은 등록을 권하는 자리다
+        {!pet ? (
+          // 등록 전 — 아직 누구 기준으로도 거르지 않는다. 칩은 등록을 권하는 자리다
           <>
             <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 30 : 34, height: compact ? 30 : 34, background: '#E85D3D', borderRadius: '50%', fontSize: compact ? 16 : 18, flex: 'none' }}>
               🐾
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-              <span style={{ fontWeight: 700 }}>우리 아이 등록</span>
+              <span style={{ fontWeight: 700 }}>프로필 등록</span>
               <span style={{ fontSize: compact ? 11.5 : 12.5, color: '#A08872' }}>
-                {compact ? '예시로 판정 중 ▾' : '지금은 예시 프로필로 판정 중 ▾'}
+                {compact ? '우리 아이 기준으로 보기 ▾' : '등록하면 우리 아이 기준으로 걸러요 ▾'}
               </span>
             </span>
           </>
@@ -109,36 +108,33 @@ export default function PetSwitch({
           >
             <header style={{ flex: 'none', padding: '18px 20px 12px', borderBottom: '1px solid #F1EBE0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
               <span className="jua" style={{ fontSize: 20 }}>
-                {editing ? (editing === 'new' ? '우리 아이 등록' : '프로필 고치기') : '누구랑 갈까요?'}
+                {editing ? (editing === 'new' ? '우리 아이 등록' : '프로필 고치기') : pets.length ? '누구랑 갈까요?' : '우리 아이 등록'}
               </span>
               <button
-                onClick={() => (editing ? setEditing(null) : setOpen(false))}
-                aria-label={editing ? '뒤로' : '닫기'}
+                onClick={() => (editing && pets.length ? setEditing(null) : (setEditing(null), setOpen(false)))}
+                aria-label={editing && pets.length ? '뒤로' : '닫기'}
                 style={{ border: 'none', background: 'none', fontSize: 15, color: '#A08872', cursor: 'pointer', padding: 4 }}
               >
-                {editing ? '← 뒤로' : '✕'}
+                {editing && pets.length ? '← 뒤로' : '✕'}
               </button>
             </header>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px 20px' }}>
-              {editing ? (
+              {editing || pets.length === 0 ? (
+                // 등록된 아이가 없으면 목록을 건너뛰고 바로 폼이다 — 빈 목록을 보여줄 이유가 없다
                 <PetForm
-                  initial={editing === 'new' ? null : list.find((p) => p.key === editing) ?? null}
+                  initial={editing && editing !== 'new' ? list.find((p) => p.key === editing) ?? null : null}
+                  canCancel={pets.length > 0}
                   onCancel={() => setEditing(null)}
                   onSave={(input) => {
-                    if (editing === 'new') onAdd(input)
+                    if (!editing || editing === 'new') onAdd(input)
                     else onUpdate(editing, input)
                     setEditing(null)
+                    setOpen(false)
                   }}
                 />
               ) : (
                 <>
-                  {onlySamples && (
-                    <p style={{ margin: '0 0 12px', fontSize: 13, lineHeight: 1.6, color: '#8A6208', background: '#FBF3DD', border: '1.5px solid #F0D9A0', borderRadius: 12, padding: '10px 13px' }}>
-                      지금은 <b>예시 프로필</b>로 판정하고 있어요.
-                      우리 아이를 등록하면 그 아이 기준으로 다시 판정해요.
-                    </p>
-                  )}
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {pets.map((p) => {
@@ -154,12 +150,7 @@ export default function PetSwitch({
                           >
                             <Avatar pet={p} size={38} />
                             <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-                              <span style={{ fontSize: 15, fontWeight: 700, color: '#2B2420' }}>
-                                {p.name}
-                                {isSample(p.key) && (
-                                  <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 600, color: '#A08872' }}>예시</span>
-                                )}
-                              </span>
+                              <span style={{ fontSize: 15, fontWeight: 700, color: '#2B2420' }}>{p.name}</span>
                               <span style={{ fontSize: 12.5, color: '#A08872', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                                 {p.kg}kg · {p.sizeLabel}
                                 {p.breed && ` · ${p.breed}`}
@@ -168,23 +159,19 @@ export default function PetSwitch({
                             </span>
                           </button>
 
-                          {!isSample(p.key) && (
-                            <>
-                              <button
-                                onClick={() => setEditing(p.key)}
-                                style={{ flex: 'none', fontFamily: 'inherit', fontSize: 12.5, color: '#6E5F4D', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                              >
-                                고치기
-                              </button>
-                              <button
-                                onClick={() => onRemove(p.key)}
-                                aria-label={`${p.name} 지우기`}
-                                style={{ flex: 'none', fontFamily: 'inherit', fontSize: 13, color: '#C4B8A4', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
-                              >
-                                ✕
-                              </button>
-                            </>
-                          )}
+                          <button
+                            onClick={() => setEditing(p.key)}
+                            style={{ flex: 'none', fontFamily: 'inherit', fontSize: 12.5, color: '#6E5F4D', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                          >
+                            고치기
+                          </button>
+                          <button
+                            onClick={() => onRemove(p.key)}
+                            aria-label={`${p.name} 지우기`}
+                            style={{ flex: 'none', fontFamily: 'inherit', fontSize: 13, color: '#C4B8A4', background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}
+                          >
+                            ✕
+                          </button>
                         </div>
                       )
                     })}
@@ -195,7 +182,7 @@ export default function PetSwitch({
                     onClick={() => setEditing('new')}
                     style={{ width: '100%', marginTop: 12, fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, padding: '12px 0', borderRadius: 14, border: 'none', background: '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}
                   >
-                    + 우리 아이 등록
+                    + 한 마리 더 등록
                   </button>
 
                   {/* 계정 — 로그인은 선택이다. 여기 오는 사람 대부분은 안 하고도 다 쓴다 */}
@@ -204,7 +191,7 @@ export default function PetSwitch({
                     syncing={syncing}
                     onSignIn={onSignIn}
                     onSignOut={onSignOut}
-                    hasOwnPets={!onlySamples}
+                    hasOwnPets={pets.length > 0}
                   />
                 </>
               )}
@@ -302,11 +289,13 @@ function Avatar({ pet, size }: { pet: Pet; size: number }) {
 
 /** 등록·수정 폼. 크기와 맹견 여부는 입력받지 않고 보여주기만 한다 */
 function PetForm({
-  initial, onSave, onCancel,
+  initial, onSave, onCancel, canCancel = true,
 }: {
   initial: PetInput | null
   onSave: (input: Omit<PetInput, 'key'>) => void
   onCancel: () => void
+  /** 등록된 아이가 하나도 없을 때는 돌아갈 목록이 없다 */
+  canCancel?: boolean
 }) {
   const [name, setName] = useState(initial?.name ?? '')
   const [breed, setBreed] = useState(initial?.breed ?? '')
@@ -403,10 +392,12 @@ function PetForm({
       {error && <p style={{ margin: 0, fontSize: 13, color: '#C0392B' }}>{error}</p>}
 
       <div style={{ display: 'flex', gap: 8, paddingTop: 2 }}>
-        <button type="button" onClick={onCancel}
-          style={{ flex: 'none', fontFamily: 'inherit', fontSize: 14, padding: '12px 18px', borderRadius: 14, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', cursor: 'pointer' }}>
-          취소
-        </button>
+        {canCancel && (
+          <button type="button" onClick={onCancel}
+            style={{ flex: 'none', fontFamily: 'inherit', fontSize: 14, padding: '12px 18px', borderRadius: 14, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', cursor: 'pointer' }}>
+            취소
+          </button>
+        )}
         <button type="submit" className="btn-primary" disabled={!valid}
           style={{ flex: 1, fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, padding: '12px 0', borderRadius: 14, border: 'none', background: valid ? '#E85D3D' : '#E3DCCE', color: '#FFFFFF', cursor: valid ? 'pointer' : 'default' }}>
           {initial ? '저장' : '등록하고 이 아이 기준으로 보기'}
