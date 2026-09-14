@@ -34,25 +34,32 @@ function Exchange() {
     next: params.get('next') ?? '/',
     code: params.get('code'),
     errorDescription: params.get('error_description'),
+    keys: Array.from(params.keys()),
   })
 
   useEffect(() => {
-    const { next: raw, code, errorDescription } = first.current
+    const { next: raw, code, errorDescription, keys } = first.current
     // 돌아갈 곳은 우리 사이트 안이어야 한다. 밖으로 보내는 값은 무시한다
     const next = raw.startsWith('/') && !raw.startsWith('//') ? raw : '/'
 
     if (errorDescription) return setError(errorDescription)
     const sb = supabaseBrowser()
     if (!sb) return setError('로그인 기능이 꺼져 있어요')
-    if (!code) return setError('로그인 정보를 받지 못했어요')
 
     let alive = true
-    // getSession 은 클라이언트 초기화(= 주소의 code 교환)가 끝나기를 기다렸다가 답한다
-    sb.auth.getSession().then(({ data }) => {
+    ;(async () => {
+      // initialize 는 클라이언트가 주소의 code 를 세션으로 바꾸는 일을 끝낼 때까지 기다렸다가,
+      // 그 과정의 오류를 그대로 돌려준다. 세션이 있으면 그걸로 끝 — 오류가 있었더라도.
+      const init = await sb.auth.initialize()
+      const { data } = await sb.auth.getSession()
       if (!alive) return
-      if (data.session) router.replace(next)
-      else setError('로그인 정보를 받지 못했어요')
-    })
+      if (data.session) return router.replace(next)
+      // 왜 안 됐는지 그대로 적는다. 뭉뚱그리면 다음에 또 못 찾는다
+      setError(
+        init.error?.message ??
+          (code ? '세션이 만들어지지 않았어요' : `주소에 code 가 없어요 (받은 값: ${keys.join(', ') || '없음'})`)
+      )
+    })()
     return () => { alive = false }
   }, [router])
 

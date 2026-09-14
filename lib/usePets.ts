@@ -140,7 +140,12 @@ export function usePets() {
        * 만드는 법은 supabase/kakao-oidc.md.
        */
       provider: provider === 'kakao' ? 'custom:kakao' : provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+      options: {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
+        // 카카오는 브라우저에 카카오 세션이 남아 있으면 묻지 않고 바로 통과시킨다.
+        // 로그아웃했다가 다시 누른 사람은 다시 물어봐 주기를 기대하므로 매번 로그인 화면을 띄운다
+        ...(provider === 'kakao' ? { queryParams: { prompt: 'login' } } : {}),
+      },
     })
   }, [])
 
