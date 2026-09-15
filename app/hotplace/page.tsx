@@ -555,7 +555,7 @@ function CampView() {
               <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                   <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#2B2420', wordBreak: 'keep-all' }}>{c.name}</h2>
-                  <span style={{ flex: 'none', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap', border: `1.5px solid ${ok ? '#2F8F4E' : '#E8B400'}`, color: ok ? '#2F8F4E' : '#9A7300', background: ok ? '#EAF6EA' : '#FFF7D6' }}>
+                  <span style={{ flex: 'none', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap', border: `1.5px solid ${ok ? '#2F8F4E' : '#C98A12'}`, color: ok ? '#2F8F4E' : '#8A6208', background: ok ? '#EAF6EA' : '#FBF3DD' }}>
                     {ok ? '○ 동반 가능' : '✓ 확인 필요'}
                   </span>
                 </div>
@@ -568,7 +568,7 @@ function CampView() {
                   )}
                 </p>
 
-                <p style={{ margin: 0, fontSize: 12.5, color: ok ? '#2F8F4E' : '#9A7300', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: ok ? '#2F8F4E' : '#8A6208', lineHeight: 1.5 }}>
                   {c.j.why}
                 </p>
 

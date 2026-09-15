@@ -21,7 +21,7 @@ const RULES: Record<string, { raw: PetTourRaw } | null> = JSON.parse(
 
 // data/petRules.json 958건 중 6건(127713, 2605236, 2616104, 2702470, 2710820 등)이 rules:null 로 저장돼 있다. '조회했는데 미등록'을 'ok'로 흘리면 헛걸음이 되므로 cond 로 남아야 한다. 현재 코드는 통과.
 test('rules 가 null 이면 조건부(미등록) 안내로 떨어진다', () => {
-  assert.deepEqual(judge(null, { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '!', color: '#D4A000', text: '동반 조건 정보가 등록되지 않은 장소예요' }] })
+  assert.deepEqual(judge(null, { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '!', color: '#C98A12', text: '동반 조건 정보가 등록되지 않은 장소예요' }] })
 })
 
 // contentid 3049858 실데이터. cpam='불가' 3건. noPets 차단 분기의 정상 경로 회귀 기준선. 현재 코드 통과.
@@ -116,7 +116,7 @@ test('원문이 맹견 입마개를 요구하는데 입마개 없는 맹견이 �
 
 // contentid 125720 실데이터('입마개 착용,목줄 착용' 27건). 준비물 미보유 → cond 정상 경로와 체크 순서(zone → needs 순)를 고정. 현재 코드 통과.
 test('needs 에 입마개가 있고 미보유면 조건부 + 미보유 문구', () => {
-  assert.deepEqual(judge(parseRules({ contentid: '125720', acmpyTypeCd: '전구역 동반가능', acmpyPsblCpam: '전 견종 동반 가능', acmpyNeedMtr: '입마개 착용,목줄 착용', etcAcmpyInfo: '해수욕장 개장 외 기간에만 반려견 동반 가능\n반려견 인식표 필수\n 배변봉투 지참 및 배변처리 필수\n맹견의 경우, 입마개 착용 필수' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '✓', color: '#2F8F4E', text: '전 구역 동반 가능' }, { icon: '!', color: '#D4A000', text: '입마개 착용 필요 — 미보유' }, { icon: '✓', color: '#2F8F4E', text: '목줄 착용' }] })
+  assert.deepEqual(judge(parseRules({ contentid: '125720', acmpyTypeCd: '전구역 동반가능', acmpyPsblCpam: '전 견종 동반 가능', acmpyNeedMtr: '입마개 착용,목줄 착용', etcAcmpyInfo: '해수욕장 개장 외 기간에만 반려견 동반 가능\n반려견 인식표 필수\n 배변봉투 지참 및 배변처리 필수\n맹견의 경우, 입마개 착용 필수' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '✓', color: '#2F8F4E', text: '전 구역 동반 가능' }, { icon: '!', color: '#C98A12', text: '입마개 착용 필요 — 미보유' }, { icon: '✓', color: '#2F8F4E', text: '목줄 착용' }] })
 })
 
 // contentid 126701 실데이터('이동장(켄넬)사용' 단독 24건). /케이지|이동장|가방/ 매칭이 실제 API 표기 '이동장(켄넬)사용' 을 잡는지 확인. 현재 코드 통과. (다만 28kg 대형견이 켄넬에 들어갈 리 없다는 원문 취지는 여전히 판정에 반영되지 않는다.)
@@ -126,12 +126,12 @@ test('needs 에 이동장(켄넬)이 있고 미보유면 조건부', () => {
 
 // 같은 contentid 126701, hasCage:true 인 초코. 준비물은 충족했지만 zone 'partial' 단독으로 cond 가 유지되는지(그리고 zoneHint 가 null 이면 기본 문구가 쓰이는지) 고정. 현재 코드 통과.
 test('이동장 보유 시 초록 체크로 남고, 일부구역 때문만으로 조건부가 된다', () => {
-  assert.deepEqual(judge(parseRules({ contentid: '126701', acmpyTypeCd: '일부구역 동반가능', acmpyPsblCpam: '이동장(켄넬)에 들어가는 전 견종 동반 가능', acmpyNeedMtr: '이동장(켄넬)사용', etcAcmpyInfo: '이동장(켄넬) 안에 반려동물 몸 전체가 모두 들어가야 동반 가능' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '!', color: '#D4A000', text: '일부 구역만 동반 가능 — 공개된 구역 정보가 없어요' }, { icon: '✓', color: '#2F8F4E', text: '이동장(켄넬)사용 → 보유 중' }] })
+  assert.deepEqual(judge(parseRules({ contentid: '126701', acmpyTypeCd: '일부구역 동반가능', acmpyPsblCpam: '이동장(켄넬)에 들어가는 전 견종 동반 가능', acmpyNeedMtr: '이동장(켄넬)사용', etcAcmpyInfo: '이동장(켄넬) 안에 반려동물 몸 전체가 모두 들어가야 동반 가능' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '!', color: '#C98A12', text: '일부 구역만 동반 가능 — 공개된 구역 정보가 없어요' }, { icon: '✓', color: '#2F8F4E', text: '이동장(켄넬)사용 → 보유 중' }] })
 })
 
 // contentid 125804 실데이터. etcAcmpyInfo 가 개행 없이 '- ' 로만 이어지는 실제 포맷이라, notes 분리와 zoneHint 선택이 함께 검증된다. 현재 코드 통과.
 test('zone \'partial\' 이고 zoneHint 가 있으면 그 문장을 경고로 쓴다', () => {
-  assert.deepEqual(judge(parseRules({ contentid: '125804', acmpyTypeCd: '일부구역 동반가능', acmpyPsblCpam: '전 견종 동반 가능', acmpyNeedMtr: '목줄 착용', etcAcmpyInfo: '- 실내 시설은 동반 불가- 맹견의 경우, 입마개 착용 필수- 배변봉투 지참 및 배변처리 필수' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }).checks[0], { icon: '!', color: '#D4A000', text: '실내 시설은 동반 불가' })
+  assert.deepEqual(judge(parseRules({ contentid: '125804', acmpyTypeCd: '일부구역 동반가능', acmpyPsblCpam: '전 견종 동반 가능', acmpyNeedMtr: '목줄 착용', etcAcmpyInfo: '- 실내 시설은 동반 불가- 맹견의 경우, 입마개 착용 필수- 배변봉투 지참 및 배변처리 필수' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }).checks[0], { icon: '!', color: '#C98A12', text: '실내 시설은 동반 불가' })
 })
 
 // 코드 버그 의심. contentid 125555 실데이터. zoneHint 정규식이 /구역|시설|.../ 라 '쓰레기 처리 시설이 없으므로...' 문장의 '시설' 두 글자에 걸린다. 그 결과 partial 경고 자리에 배변 안내가 들어가고, '일부 구역만 동반 가능' 이라는 핵심 정보가 화면에서 통째로 사라진다(현재 결과
@@ -141,7 +141,7 @@ test('partial 인데 zoneHint 오탐으로 \'일부구역\' 경고가 배변 안
 
 // contentid 1845517 실데이터. 동반구분 하나뿐이면 zone 이 'all' 이어도 초록불이 되면 안 된다(정보 부족 → 조건부). completeness 'C' 는 코퍼스 958건 중 75건. 현재 코드 통과.
 test('completeness \'C\' 면 조건부 + 전화 확인 권유', () => {
-  assert.deepEqual(judge(parseRules({ contentid: '1845517', acmpyTypeCd: '전구역 동반가능', acmpyPsblCpam: '', acmpyNeedMtr: '', etcAcmpyInfo: '' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '✓', color: '#2F8F4E', text: '전 구역 동반 가능' }, { icon: '!', color: '#D4A000', text: '등록된 조건 정보가 적어요 — 방문 전 전화 확인을 권해요' }] })
+  assert.deepEqual(judge(parseRules({ contentid: '1845517', acmpyTypeCd: '전구역 동반가능', acmpyPsblCpam: '', acmpyNeedMtr: '', etcAcmpyInfo: '' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '✓', color: '#2F8F4E', text: '전 구역 동반 가능' }, { icon: '!', color: '#C98A12', text: '등록된 조건 정보가 적어요 — 방문 전 전화 확인을 권해요' }] })
 })
 
 // 코드 버그 의심. contentid 3443614 실데이터. 실제 정보는 바로 위 1845517 과 똑같이 동반구분 하나뿐인데, acmpyNeedMtr 값이 '기타' 라서 completeness 가 'C' 가 아닌 'B' 로 올라가고 C 분기를 건너뛴다. needs 는 '기타'를 걸러 빈 배열이라 체크에 아무 근거도 없이
