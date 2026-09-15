@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePetsContext } from '../PetsProvider'
+import PetFace from '../PetFace'
 import { splitTags, type Camp, type CampJudge } from '@/lib/camping'
 import { distance } from '@/lib/geo'
 
@@ -472,7 +473,7 @@ function CampView() {
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 }}>
         <span style={{ fontSize: 13.5, color: '#6E5F4D' }}>
           {pet
-            ? <>{pet.emoji} <b>{pet.name}</b> ({pet.sizeLabel}) 기준으로 보는 중</>
+            ? <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 3 }}><PetFace emoji={pet.emoji} size={17} /></span><b>{pet.name}</b> ({pet.sizeLabel}) 기준으로 보는 중</>
             : <>🐶 프로필을 등록하면 크기 조건까지 우리 아이 기준으로 걸러요</>}
         </span>
 

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { Pet } from '@/lib/types'
 import { AVATARS, avatarBg, type PetInput } from '@/lib/pets'
+import PetFace from './PetFace'
 import { sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
@@ -77,8 +78,8 @@ export default function PetSwitch({
         {!pet ? (
           // 등록 전 — 아직 누구 기준으로도 거르지 않는다. 칩은 등록을 권하는 자리다
           <>
-            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, background: '#FFFFFF', borderRadius: '50%', fontSize: compact ? 16 : 23, lineHeight: 1, flex: 'none' }}>
-              🐶
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, background: '#FFFFFF', borderRadius: '50%', flex: 'none' }}>
+              <PetFace emoji="🐶" size={compact ? 24 : 34} />
             </span>
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
               <span style={{ fontWeight: 700 }}>프로필 등록</span>
@@ -96,7 +97,7 @@ export default function PetSwitch({
               <span style={{ fontWeight: 700 }}>{pet.name}</span>
               {!compact && (
                 <span style={{ fontSize: 12.5, color: '#A08872', marginTop: 2 }}>
-                  {pet.kg}kg · {pet.sizeLabel} 기준으로 보는 중 ▾
+                  {pet.kg}kg · {pet.sizeLabel} ▾
                 </span>
               )}
             </span>
@@ -202,7 +203,7 @@ export default function PetSwitch({
                     onClick={() => setEditing('new')}
                     style={{ width: '100%', marginTop: 12, fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, padding: '12px 0', borderRadius: 14, border: 'none', background: '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}
                   >
-                    + 한 마리 더 등록
+                    + 우리 아이 추가 등록
                   </button>
 
                   {/* 계정 — 로그인은 선택이다. 여기 오는 사람 대부분은 안 하고도 다 쓴다 */}
@@ -348,7 +349,7 @@ function Avatar({ pet, size }: { pet: Pet; size: number }) {
           // 사진이 없거나 깨졌으면 이모지로 되돌린다
           onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.parentElement!.textContent = pet.emoji }}
         />
-      ) : pet.emoji}
+      ) : <PetFace emoji={pet.emoji} size={size * 0.86} />}
     </span>
   )
 }
@@ -455,8 +456,8 @@ function PetForm({
               <button key={a.emoji} type="button" onClick={() => setEmoji(a.emoji)}
                 aria-label={a.label} aria-pressed={on}
                 style={{ width: 50, height: 50, padding: 3, borderRadius: '50%', cursor: 'pointer', background: '#FFFFFF', border: `2px solid ${on ? '#E85D3D' : 'transparent'}`, transition: 'border-color .12s' }}>
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', borderRadius: '50%', background: a.bg, fontSize: 22, lineHeight: 1, boxShadow: on ? 'none' : 'inset 0 0 0 1px #EFE8DA' }}>
-                  {a.emoji}
+                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100%', borderRadius: '50%', background: a.bg, boxShadow: on ? 'none' : 'inset 0 0 0 1px #EFE8DA' }}>
+                  <PetFace emoji={a.emoji} size={36} />
                 </span>
               </button>
             )

@@ -63,14 +63,14 @@ export function toPet(p: PetInput): Pet {
 /**
  * 고를 수 있는 아이콘. 저장은 이모지 한 글자만 하고(pets 표 emoji 컬럼, 4자 제한),
  * 배경색은 여기서 다시 찾는다 — 그래서 색을 바꿔도 저장된 데이터는 손댈 게 없다.
- * ZWJ 로 이어 붙인 이모지(🐕‍🦺)는 기기에 따라 두 글자로 갈라져 보여서 뺐다.
+ * 화면에는 이모지 글자가 아니라 직접 그린 얼굴(app/PetFace.tsx)이 뜬다.
  */
 export const AVATARS: { emoji: string; label: string; bg: string }[] = [
   { emoji: '🐶', label: '강아지', bg: '#FFE0D3' },
   { emoji: '🐱', label: '고양이', bg: '#FFF1C2' },
   { emoji: '🐰', label: '토끼', bg: '#FADDE6' },
   { emoji: '🐹', label: '햄스터', bg: '#FCE9C8' },
-  { emoji: '🐻', label: '곰', bg: '#E3ECF7' },
+  { emoji: '🐼', label: '판다', bg: '#E3ECF7' },
 ]
 
 /** 목록에 없는 이모지(예전 저장값)도 기본 색으로는 그려진다 */

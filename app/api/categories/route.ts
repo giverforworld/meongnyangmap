@@ -13,6 +13,13 @@ export const dynamic = 'force-dynamic'
 const TTL = 24 * 60 * 60 * 1000
 let cache: { at: number; names: Record<string, string> } | null = null
 
+/**
+ * 화면에 쓰는 이름을 바꾸는 것. 코드는 그대로 두고 이름표만 덮는다.
+ * SH04 '면세점'은 실제로는 사후면세점(택스리펀 가맹 일반 상점)이 대부분이라
+ * 공항 면세점을 떠올리게 하는 이름이 오해를 부른다.
+ */
+const DISPLAY: Record<string, string> = { SH04: '스토어' }
+
 export async function GET() {
   if (cache && Date.now() - cache.at < TTL) {
     return NextResponse.json({ names: cache.names, cached: true })
@@ -30,6 +37,7 @@ export async function GET() {
       )
     )
     depth2.flatMap((r) => r.items).forEach((d) => (names[d.code] = d.name))
+    Object.assign(names, DISPLAY)
 
     cache = { at: Date.now(), names }
     return NextResponse.json({ names, cached: false })
