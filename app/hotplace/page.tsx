@@ -56,7 +56,7 @@ const TABS: { key: Tab; label: string; title: string; lede: React.ReactNode }[] 
   },
   {
     key: 'camp',
-    label: '캠핑',
+    label: '캠핑장',
     title: '우리 아이랑 하룻밤',
     lede: (
       <>
