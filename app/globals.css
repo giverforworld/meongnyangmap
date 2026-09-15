@@ -223,3 +223,13 @@ textarea::placeholder {
   color: #C9BFAE;
   opacity: 1;
 }
+
+/* 커뮤니티 카드 — 올라오는 느낌만 살짝 */
+.hov-card {
+  transition: transform .14s ease, box-shadow .14s ease, border-color .14s ease;
+}
+.hov-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(43, 36, 32, .09);
+  border-color: #E3DCCE;
+}

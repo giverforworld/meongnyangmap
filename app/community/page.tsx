@@ -12,11 +12,21 @@ interface Post {
   id: number
   nickname: string
   title: string
+  /** 본문 첫 100자 — 목록 맛보기 */
+  excerpt: string
   views: number
   created_at: string
   photos: string[]
   place_id: string | null
   place_title: string | null
+}
+
+/** 닉네임마다 같은 색 — 아바타 대신. 따뜻한 계열에서만 고른다 */
+const AVATAR_BG = ['#FFE0D3', '#FFF1C2', '#FADDE6', '#FCE9C8', '#E3ECF7', '#DDEFE3', '#EFE3F7']
+function avatarBg(nick: string) {
+  let h = 0
+  for (const ch of nick) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return AVATAR_BG[h % AVATAR_BG.length]
 }
 
 /** 오늘 쓴 글은 시간만, 그 전은 날짜만 — 목록에서 눈이 덜 피곤하다 */
@@ -223,50 +233,60 @@ function Board() {
           </form>
         )}
 
-        {/* 목록 */}
-        <div style={{ background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, overflow: 'hidden' }}>
-          {loading && posts.length === 0 && (
-            <p style={{ padding: 40, textAlign: 'center', fontSize: 13.5, color: '#A08872' }}>불러오는 중…</p>
-          )}
-          {!loading && posts.length === 0 && !offline && (
-            <p style={{ padding: 44, textAlign: 'center', fontSize: 13.5, color: '#A08872', lineHeight: 1.7 }}>
-              {placeFilter ? <>이곳 이야기가 아직 없어요.<br />처음으로 남겨주세요 🐾</> : <>아직 글이 없어요.<br />첫 글을 남겨주세요 🐾</>}
-            </p>
-          )}
-          {posts.map((p, i) => (
-            <Link key={p.id} href={`/community/${p.id}`} className="hov-row"
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', textDecoration: 'none', borderTop: i === 0 ? 'none' : '1px solid #F3EEE4' }}>
-              {/* 사진이 있으면 첫 장을 작게 — 목록에서 사진 글이 눈에 띄게 */}
-              {p.photos?.length > 0 && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={p.photos[0]} alt="" loading="lazy"
-                  style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover', flex: 'none', border: '1px solid #F3EEE4' }} />
-              )}
-              <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
-                <span style={{ fontSize: 14.5, fontWeight: 600, color: '#2B2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {p.title}
-                  {p.photos?.length > 1 && <span style={{ fontSize: 12, color: '#B3A78F', fontWeight: 500 }}> +{p.photos.length - 1}</span>}
-                </span>
-                {p.place_title && !placeFilter && (
-                  <span style={{ fontSize: 11.5, color: '#E85D3D', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    📍 {p.place_title}
+        {/* 목록 — 카드. 사진이 있으면 왼쪽에, 없으면 장소·발자국으로 자리를 채운다 */}
+        {loading && posts.length === 0 && (
+          <p style={{ padding: 40, textAlign: 'center', fontSize: 13.5, color: '#A08872' }}>불러오는 중…</p>
+        )}
+        {!loading && posts.length === 0 && !offline && (
+          <div style={{ background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, padding: 44, textAlign: 'center', fontSize: 13.5, color: '#A08872', lineHeight: 1.7 }}>
+            {placeFilter ? <>이곳 이야기가 아직 없어요.<br />처음으로 남겨주세요 🐾</> : <>아직 글이 없어요.<br />첫 글을 남겨주세요 🐾</>}
+          </div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {posts.map((p) => {
+            const thumb = p.photos?.[0]
+            return (
+              <Link key={p.id} href={`/community/${p.id}`} className="hov-card"
+                style={{ display: 'flex', gap: 14, padding: 14, background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, textDecoration: 'none' }}>
+                <div style={{ width: isMobile ? 72 : 96, height: isMobile ? 72 : 96, borderRadius: 12, flex: 'none', overflow: 'hidden', background: thumb ? '#F3EEE4' : 'linear-gradient(135deg,#FFE0D3,#FFF4EF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: isMobile ? 26 : 32, position: 'relative' }}>
+                  {thumb
+                    // eslint-disable-next-line @next/next/no-img-element
+                    ? <img src={thumb} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    : <span aria-hidden="true">{p.place_title ? '📍' : '🐾'}</span>}
+                  {p.photos?.length > 1 && (
+                    <span style={{ position: 'absolute', right: 5, bottom: 5, fontSize: 10.5, fontWeight: 700, color: '#FFFFFF', background: 'rgba(43,36,32,.62)', borderRadius: 99, padding: '2px 6px' }}>
+                      +{p.photos.length - 1}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  {p.place_title && !placeFilter && (
+                    <span style={{ alignSelf: 'flex-start', fontSize: 11.5, fontWeight: 700, color: '#E85D3D', background: '#FFF4EF', borderRadius: 99, padding: '2px 9px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      📍 {p.place_title}
+                    </span>
+                  )}
+                  <span style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: '#2B2420', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.title}
                   </span>
-                )}
-              </span>
-              <span style={{ flex: 'none', fontSize: 12.5, color: '#8A7A65', maxWidth: isMobile ? 70 : 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {p.nickname}
-              </span>
-              <span style={{ flex: 'none', fontSize: 12, color: '#B3A78F', width: 42, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                {when(p.created_at)}
-              </span>
-              {/* 좁은 화면에서는 조회수를 뺀다 — 제목이 잘리는 쪽이 손해가 크다 */}
-              {!isMobile && (
-                <span style={{ flex: 'none', fontSize: 12, color: '#C4B8A4', width: 34, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                  {p.views}
-                </span>
-              )}
-            </Link>
-          ))}
+                  {p.excerpt && (
+                    <span style={{ fontSize: 13, color: '#8A7A65', lineHeight: 1.55, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
+                      {p.excerpt}
+                    </span>
+                  )}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 2, fontSize: 12, color: '#B3A78F' }}>
+                    <span aria-hidden="true" style={{ width: 20, height: 20, borderRadius: '50%', background: avatarBg(p.nickname), color: '#6E5F4D', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
+                      {p.nickname.slice(0, 1)}
+                    </span>
+                    <span style={{ color: '#8A7A65', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{p.nickname}</span>
+                    <span>·</span>
+                    <span style={{ fontVariantNumeric: 'tabular-nums' }}>{when(p.created_at)}</span>
+                    <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>👁 {p.views}</span>
+                  </div>
+                </div>
+              </Link>
+            )
+          })}
         </div>
 
         {posts.some((p) => p.place_title) && !placeFilter && (

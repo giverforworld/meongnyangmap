@@ -38,11 +38,16 @@ export async function GET(req: Request) {
   try {
     // 하나 더 받아 '다음이 있는지'를 안다 — 딱 limit 개일 때 '더 있음'으로 잘못 읽지 않게
     const rows = await sbSelect<Post>(
-      `posts?select=id,nickname,title,views,created_at,photos,place_id,place_title&deleted_at=is.null` +
+      `posts?select=id,nickname,title,body,views,created_at,photos,place_id,place_title&deleted_at=is.null` +
         (place ? `&place_id=eq.${place}` : '') +
         `&order=created_at.desc&offset=${from}&limit=${limit + 1}`
     )
-    return NextResponse.json({ posts: rows.slice(0, limit), page, hasMore: rows.length > limit })
+    // 목록엔 본문 대신 첫 줄 맛보기만 — 4,000자를 스무 편씩 내려보낼 이유가 없다
+    const posts = rows.slice(0, limit).map(({ body, ...r }) => ({
+      ...r,
+      excerpt: body.replace(/\s+/g, ' ').trim().slice(0, 100),
+    }))
+    return NextResponse.json({ posts, page, hasMore: rows.length > limit })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message, posts: [] }, { status: 500 })
   }

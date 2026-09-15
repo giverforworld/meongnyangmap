@@ -61,28 +61,43 @@ export default function AuthMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         title={u ? `${who} · 로그아웃` : '소셜 로그인 — 안 해도 전부 쓸 수 있어요'}
+        // 옆의 프로필 칩과 같은 키(아바타 40 · 두 줄)로 맞춘다 — 둘이 높이가 다르면 나란히 서지 않는다
         style={{
-          display: 'flex', alignItems: 'center', gap: 7,
-          fontFamily: 'inherit', fontSize: compact ? 13 : 14.5, fontWeight: 700,
-          padding: compact ? 5 : u ? '5px 14px 5px 5px' : '11px 16px',
+          display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
+          fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
+          padding: compact ? '3px 3px' : u ? '6px 18px 6px 7px' : '6px 18px 6px 7px',
           borderRadius: 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
           background: '#FFFFFF', color: '#2B2420', cursor: 'pointer',
         }}
       >
         {u ? (
           <>
-            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 34, height: compact ? 28 : 34, borderRadius: '50%', background: '#F6F1E7', overflow: 'hidden', fontSize: 16, flex: 'none' }}>
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, borderRadius: '50%', background: '#EAF0F7', overflow: 'hidden', flex: 'none', color: '#6E7E99' }}>
               {picture
                 // eslint-disable-next-line @next/next/no-img-element
-                ? <img src={picture} alt="" width={34} height={34} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                : <PersonIcon />}
+                ? <img src={picture} alt="" width={40} height={40} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                : <PersonIcon size={compact ? 16 : 22} />}
             </span>
-            {!compact && <span style={{ maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{who}</span>}
+            {!compact && (
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span style={{ maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{who}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2 }}>
+                  <ProviderMark provider={p} /> 계정 ▾
+                </span>
+              </span>
+            )}
           </>
         ) : (
           <>
-            <PersonIcon />
-            {!compact && '소셜 로그인'}
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, borderRadius: '50%', background: '#F6F1E7', flex: 'none', color: '#8A7A65' }}>
+              <PersonIcon size={compact ? 16 : 22} />
+            </span>
+            {!compact && (
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span>소셜 로그인</span>
+                <span style={{ fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2 }}>카카오 · 구글 ▾</span>
+              </span>
+            )}
           </>
         )}
       </button>
@@ -128,9 +143,9 @@ export default function AuthMenu({
 }
 
 /** 사람 실루엣 — 로그인 전에는 이것만, 로그인 뒤에는 사진이 없을 때 */
-function PersonIcon() {
+function PersonIcon({ size = 18 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" width={18} height={18} aria-hidden="true" fill="none" stroke="currentColor"
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor"
       strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none', display: 'block' }}>
       <circle cx="12" cy="8" r="4" />
       <path d="M4.5 20.5c.8-3.6 3.9-5.5 7.5-5.5s6.7 1.9 7.5 5.5" />
