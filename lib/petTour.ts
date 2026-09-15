@@ -2,7 +2,7 @@ import type { Check, Judgement, Pet, PetRules, PetSize, PetTourRaw } from './typ
 import { lookupCpam } from './cpamMap'
 
 const OK = '#2F8F4E'
-const WARN = '#C98A12'
+const WARN = '#D4A000'
 const NO = '#C0392B'
 
 const has = (s?: string) => !!s && s.trim().length > 0
