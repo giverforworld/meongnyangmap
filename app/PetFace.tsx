@@ -53,35 +53,35 @@ function Mouth({ y, color = '#4A3A32', w = 1.5, spread = 4.5 }: { y: number; col
 }
 
 function Dog() {
-  // 요크셔테리어 — 황금빛 얼굴과 늘어진 긴 털, 정수리는 은청색에 리본
+  // 요크셔테리어 강아지 — 검은 머리·귀에 황금빛 주둥이와 눈썹, 쫑긋한 귀
   return (
     <>
-      {/* 양옆으로 늘어진 긴 황금빛 털 */}
-      <ellipse cx="12" cy="43" rx="7.5" ry="14" fill="#D6A25E" transform="rotate(7 12 43)" />
-      <ellipse cx="52" cy="43" rx="7.5" ry="14" fill="#D6A25E" transform="rotate(-7 52 43)" />
-      {/* 쫑긋한 귀 — 뒤는 은청색, 안은 살구빛 */}
-      <path d="M11 28 L16.5 8.5 L28.5 19.5 Z" fill="#8E96AB" />
-      <path d="M53 28 L47.5 8.5 L35.5 19.5 Z" fill="#8E96AB" />
-      <path d="M15.5 25 L18 14 L25.5 20.5 Z" fill="#F2C9A8" />
-      <path d="M48.5 25 L46 14 L38.5 20.5 Z" fill="#F2C9A8" />
-      {/* 얼굴 */}
-      <circle cx="32" cy="37" r="22" fill="#E8BC7C" />
-      {/* 정수리 은청색 털 — 가운데 가르마, 앞머리가 양쪽으로 갈라진다 */}
-      <path d="M11 32 Q13 15 32 14 Q51 15 53 32 Q47 26.5 40 27.5 Q35 28 32 25.5 Q29 28 24 27.5 Q17 26.5 11 32 Z" fill="#A3AABF" />
-      <path d="M32 15.5 v10" stroke="#C6CBD9" strokeWidth="1.5" strokeLinecap="round" />
-      {/* 리본 */}
-      <ellipse cx="25.5" cy="12" rx="6" ry="4.3" fill="#F27E90" transform="rotate(-18 25.5 12)" />
-      <ellipse cx="38.5" cy="12" rx="6" ry="4.3" fill="#F27E90" transform="rotate(18 38.5 12)" />
-      <ellipse cx="25.5" cy="12" rx="2.4" ry="1.6" fill="#F9A9B5" transform="rotate(-18 25.5 12)" />
-      <ellipse cx="38.5" cy="12" rx="2.4" ry="1.6" fill="#F9A9B5" transform="rotate(18 38.5 12)" />
-      <circle cx="32" cy="12.4" r="2.9" fill="#E75F7C" />
-      {/* 주둥이 */}
-      <ellipse cx="32" cy="45" rx="8.5" ry="5.6" fill="#F6D9A8" />
-      <Eyes y={37} dx={7.8} r={3.2} />
-      <ellipse cx="32" cy="42.6" rx="3.3" ry="2.5" fill="#3B2A22" />
-      <circle cx="30.9" cy="41.9" r=".8" fill="#FFFFFF" opacity=".8" />
-      <Mouth y={44.6} spread={4.2} />
-      <Blush y={45} dx={14.5} color="#F4A3A1" />
+      {/* 양옆 덥수룩한 털 — 위는 검정, 아래 끝은 황금빛 */}
+      <ellipse cx="12.5" cy="40" rx="7" ry="13" fill="#3D3841" transform="rotate(8 12.5 40)" />
+      <ellipse cx="51.5" cy="40" rx="7" ry="13" fill="#3D3841" transform="rotate(-8 51.5 40)" />
+      <ellipse cx="12" cy="48" rx="5.5" ry="6" fill="#D99B5A" transform="rotate(8 12 48)" />
+      <ellipse cx="52" cy="48" rx="5.5" ry="6" fill="#D99B5A" transform="rotate(-8 52 48)" />
+      {/* 쫑긋한 귀 — 검정에 황금빛 안쪽 */}
+      <path d="M10.5 28 L15.5 6.5 L29 18.5 Z" fill="#3D3841" />
+      <path d="M53.5 28 L48.5 6.5 L35 18.5 Z" fill="#3D3841" />
+      <path d="M15 24.5 L17.5 12.5 L25.5 19.5 Z" fill="#D99B5A" />
+      <path d="M49 24.5 L46.5 12.5 L38.5 19.5 Z" fill="#D99B5A" />
+      {/* 머리 — 검정 */}
+      <circle cx="32" cy="36" r="22.5" fill="#3D3841" />
+      {/* 정수리 털 결 */}
+      <path d="M24 17.5 q3 -4 5 -1 M33 15.5 q3 -3.5 5.5 -.5" fill="none" stroke="#585260" strokeWidth="1.6" strokeLinecap="round" />
+      {/* 황금빛 얼굴 — 주둥이와 볼 */}
+      <ellipse cx="32" cy="42" rx="16.5" ry="13.5" fill="#D99B5A" />
+      {/* 눈썹 점 */}
+      <ellipse cx="23.5" cy="28.5" rx="3.6" ry="2.2" fill="#D99B5A" />
+      <ellipse cx="40.5" cy="28.5" rx="3.6" ry="2.2" fill="#D99B5A" />
+      {/* 주둥이 — 더 밝게 */}
+      <ellipse cx="32" cy="46" rx="9" ry="6" fill="#EBB777" />
+      <Eyes y={36} dx={7.8} r={3.2} />
+      <ellipse cx="32" cy="43" rx="3.4" ry="2.6" fill="#2B2420" />
+      <circle cx="30.9" cy="42.3" r=".8" fill="#FFFFFF" opacity=".8" />
+      <Mouth y={45.1} spread={4.2} />
+      <Blush y={45.5} dx={14} color="#F2A29B" />
     </>
   )
 }
