@@ -175,10 +175,15 @@ export default function KakaoMap({ places, selectedId, onSelect, bottomInset = 0
 
   return (
     <>
+      {/*
+        onLoad 가 아니라 onReady — onLoad 는 스크립트가 처음 내려올 때 한 번만 불린다.
+        핫플레이스에 갔다가 돌아오면 SDK 는 이미 있고 이 컴포넌트만 새로 마운트되는데,
+        그때 onLoad 는 다시 안 불려서 지도가 영영 안 떴다. onReady 는 마운트마다 불린다.
+      */}
       <Script
         src={`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KEY}&autoload=false`}
         strategy="afterInteractive"
-        onLoad={load}
+        onReady={load}
         onError={() => setFailed(true)}
       />
       {/* zIndex 0 — 핀들의 z-index를 지도 안에 가둬 범례·상세 패널이 항상 위에 오게 한다 */}
