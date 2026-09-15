@@ -47,11 +47,10 @@ const TABS: { key: Tab; label: string; title: string; lede: React.ReactNode }[] 
   {
     key: 'hot',
     label: '핫플레이스',
-    title: '우리 아이랑 가기 좋은 곳',
+    title: '우리 아이와 함께 가기 좋은 핫플레이스',
     lede: (
       <>
-        <b style={{ color: '#2B2420' }}>문 앞에서 눈치 볼 일 없는 곳</b>만 모았어요.
-        구역 제한 없이 함께 들어갈 수 있고, 동반 조건이 빠짐없이 확인된 곳들이에요.
+        <b style={{ color: '#2B2420' }}>문 앞에서 눈치 볼 일 없이</b>, 함께 입장이 가능한 핫플레이스만을 모아놨어요.
       </>
     ),
   },
