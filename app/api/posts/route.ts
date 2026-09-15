@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { boardReady, sbInsert, sbSelect } from '@/lib/supabase'
 import { hashPassword } from '@/lib/password'
-import { MAX_PHOTOS, cleanPhotos, cleanPlace, isContentId } from '@/lib/board'
+import { MAX_PHOTOS, cleanPhotos, resolvePlace, isContentId } from '@/lib/board'
 
 export const dynamic = 'force-dynamic'
 
@@ -36,12 +36,13 @@ export async function GET(req: Request) {
   const from = (page - 1) * limit
 
   try {
-    const posts = await sbSelect<Post>(
+    // 하나 더 받아 '다음이 있는지'를 안다 — 딱 limit 개일 때 '더 있음'으로 잘못 읽지 않게
+    const rows = await sbSelect<Post>(
       `posts?select=id,nickname,title,views,created_at,photos,place_id,place_title&deleted_at=is.null` +
-        (place ? `&place_id=eq.${encodeURIComponent(place)}` : '') +
-        `&order=created_at.desc&offset=${from}&limit=${limit}`
+        (place ? `&place_id=eq.${place}` : '') +
+        `&order=created_at.desc&offset=${from}&limit=${limit + 1}`
     )
-    return NextResponse.json({ posts, page, hasMore: posts.length === limit })
+    return NextResponse.json({ posts: rows.slice(0, limit), page, hasMore: rows.length > limit })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message, posts: [] }, { status: 500 })
   }
@@ -67,8 +68,8 @@ export async function POST(req: Request) {
 
     const ph = cleanPhotos(photos)
     if (ph === null) return bad(`사진은 우리 저장소에 올린 것만 ${MAX_PHOTOS}장까지 붙일 수 있어요`)
-    const pl = cleanPlace(place)
-    if (pl === null) return bad('장소 정보가 올바르지 않아요')
+    const pl = await resolvePlace(place)
+    if (pl === null) return bad('연결하려는 장소를 찾지 못했어요')
 
     const saved = await sbInsert<{ id: number }>('posts', {
       nickname: nick,

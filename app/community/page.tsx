@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { usePetsContext } from '../PetsProvider'
 import PhotoPicker from '../PhotoPicker'
@@ -68,19 +68,25 @@ function Board() {
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
 
+  // 필터를 바꾸면 앞 목록의 늦은 응답이 새 목록을 덮지 않게 마지막 요청만 쓴다
+  const seq = useRef(0)
   function load(p: number) {
+    const my = ++seq.current
     setLoading(true)
     fetch(`/api/posts?page=${p}${placeFilter ? `&place=${encodeURIComponent(placeFilter)}` : ''}`)
       .then((r) => r.json())
       .then((d) => {
+        if (my !== seq.current) return
         setOffline(Boolean(d.offline))
         setPosts((prev) => (p === 1 ? d.posts ?? [] : [...prev, ...(d.posts ?? [])]))
         setHasMore(Boolean(d.hasMore))
       })
-      .finally(() => setLoading(false))
+      .catch(() => { if (my === seq.current) setError('목록을 불러오지 못했어요') })
+      .finally(() => { if (my === seq.current) setLoading(false) })
   }
 
-  useEffect(() => { setPage(1); load(1) }, [placeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
+  // 필터가 바뀌면 앞 목록을 비우고 새로 받는다 — 다른 장소의 글이 잠깐이라도 섞여 보이지 않게
+  useEffect(() => { setPosts([]); setPage(1); load(1) }, [placeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // "이곳 이야기 쓰기"로 들어왔으면 장소를 붙인 채 폼을 연다
   useEffect(() => {
@@ -158,6 +164,7 @@ function Board() {
                 <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', wordBreak: 'keep-all' }}>
                   이곳에 다녀온 이야기만 모았어요 ·{' '}
                   <Link href={`/?focus=${placeFilter}`} style={{ color: '#E85D3D', fontWeight: 700, textDecoration: 'none' }}>지도에서 보기</Link>
+                  <span style={{ fontSize: 11.5, color: '#B3A78F' }}> · 장소 정보 출처 ⓒ한국관광공사</span>
                 </p>
               </>
             ) : (
@@ -261,6 +268,10 @@ function Board() {
             </Link>
           ))}
         </div>
+
+        {posts.some((p) => p.place_title) && !placeFilter && (
+          <span style={{ fontSize: 11, color: '#B3A78F', textAlign: 'right' }}>📍 장소 정보 출처 ⓒ한국관광공사</span>
+        )}
 
         {hasMore && (
           <button className="hov-accent" onClick={() => { const n = page + 1; setPage(n); load(n) }}

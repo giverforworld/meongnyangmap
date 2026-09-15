@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { uploadPhoto } from '@/lib/photo'
 
 /**
@@ -17,20 +17,24 @@ export default function PhotoPicker({
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(0)
   const [error, setError] = useState('')
+  // 올리는 중에 사용자가 다른 장을 빼거나 더할 수 있다. 그 사이 값을 덮어쓰지 않게 항상 최신을 본다
+  const latest = useRef(photos)
+  useEffect(() => { latest.current = photos }, [photos])
 
   async function pick(files: FileList | null) {
     if (!files || files.length === 0) return
     setError('')
-    const room = max - photos.length
-    const list = Array.from(files).slice(0, room)
+    const room = max - latest.current.length
+    const list = Array.from(files).slice(0, Math.max(0, room))
     if (list.length < files.length) setError(`사진은 ${max}장까지 붙일 수 있어요`)
     setBusy((n) => n + list.length)
     // 순서대로 올린다 — 고른 순서가 보이는 순서다
-    let next = photos
     for (const f of list) {
       try {
         const url = await uploadPhoto(f)
-        next = [...next, url]
+        if (latest.current.length >= max) break
+        const next = [...latest.current, url]
+        latest.current = next
         onChange(next)
       } catch (e) {
         setError((e as Error).message)

@@ -23,6 +23,7 @@ export default function PlacePicker({
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const seq = useRef(0)
 
   // 글자마다 부르지 않는다 — 300ms 멈추면 그때 한 번
   useEffect(() => {
@@ -30,12 +31,13 @@ export default function PlacePicker({
     const k = q.trim()
     if (k.length < 2) { setHits([]); return }
     timer.current = setTimeout(() => {
+      const my = ++seq.current
       setBusy(true)
       fetch(`/api/places?q=${encodeURIComponent(k)}&limit=8`)
         .then((r) => r.json())
-        .then((d) => setHits((d.places ?? []).map((p: { contentid: string; title: string; addr1: string }) => ({ id: p.contentid, title: p.title, addr: p.addr1 }))))
-        .catch(() => setHits([]))
-        .finally(() => setBusy(false))
+        .then((d) => { if (my === seq.current) setHits((d.places ?? []).map((p: { contentid: string; title: string; addr1: string }) => ({ id: p.contentid, title: p.title, addr: p.addr1 }))) })
+        .catch(() => { if (my === seq.current) setHits([]) })
+        .finally(() => { if (my === seq.current) setBusy(false) })
     }, 300)
     return () => { if (timer.current) clearTimeout(timer.current) }
   }, [q])
@@ -67,7 +69,7 @@ export default function PlacePicker({
         {busy && <span style={{ fontSize: 11.5, color: '#B3A78F', flex: 'none' }}>찾는 중…</span>}
       </div>
       {open && hits.length > 0 && (
-        <ul role="listbox" style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 4px)', zIndex: 20, margin: 0, padding: 6, listStyle: 'none', background: '#FFFFFF', border: '1px solid #EAE3D6', borderRadius: 12, boxShadow: '0 10px 28px rgba(43,36,32,.14)', maxHeight: 260, overflowY: 'auto' }}>
+        <ul role="listbox" onMouseDown={(e) => e.preventDefault()} style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 4px)', zIndex: 20, margin: 0, padding: 6, listStyle: 'none', background: '#FFFFFF', border: '1px solid #EAE3D6', borderRadius: 12, boxShadow: '0 10px 28px rgba(43,36,32,.14)', maxHeight: 260, overflowY: 'auto' }}>
           {hits.map((h) => (
             <li key={h.id}>
               <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => { onChange(h); setQ(''); setHits([]); setOpen(false) }}
@@ -78,6 +80,7 @@ export default function PlacePicker({
               </button>
             </li>
           ))}
+          <li style={{ padding: '4px 10px 2px', fontSize: 10.5, color: '#B3A78F' }}>출처 ⓒ한국관광공사</li>
         </ul>
       )}
     </div>

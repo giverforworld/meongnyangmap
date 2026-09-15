@@ -1,9 +1,10 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { Pet } from '@/lib/types'
 import PhotoPicker from './PhotoPicker'
+import PetFace from './PetFace'
 
 /**
  * 장소 상세에 붙는 사용자 참여 두 덩이 — 방문 리뷰와 커뮤니티 이야기.
@@ -63,7 +64,7 @@ export function PlaceReviews({
   /** 로그인돼 있으면 닉네임을 미리 채운다 */
   nickname?: string
 }) {
-  const [data, setData] = useState<{ reviews: Review[]; count: number; avg: number | null; entry: Record<Entry, number>; offline?: boolean } | null>(null)
+  const [data, setData] = useState<{ reviews: Review[]; count: number; avg: number | null; entry: Record<Entry, number>; capped?: boolean; offline?: boolean } | null>(null)
   const [writing, setWriting] = useState(false)
   const [rating, setRating] = useState(0)
   const [entry, setEntry] = useState<Entry | null>(null)
@@ -77,12 +78,16 @@ export function PlaceReviews({
   const [delPw, setDelPw] = useState('')
   const [delError, setDelError] = useState('')
   const [viewing, setViewing] = useState<string | null>(null)
+  // 장소를 빨리 바꾸면 앞 장소의 응답이 늦게 온다. 마지막 요청만 화면에 쓴다
+  const seq = useRef(0)
 
-  const load = () =>
+  const load = () => {
+    const my = ++seq.current
     fetch(`/api/reviews?place=${placeId}`)
       .then((r) => r.json())
-      .then(setData)
-      .catch(() => setData({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 } }))
+      .then((d) => { if (my === seq.current) setData(d) })
+      .catch(() => { if (my === seq.current) setData({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 } }) })
+  }
 
   // 장소가 바뀌면 앞 장소의 리뷰와 쓰던 폼을 남기지 않는다
   useEffect(() => {
@@ -133,8 +138,8 @@ export function PlaceReviews({
     <section style={{ borderTop: '1px solid #EFE8DA', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 9 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: '#B3A78F' }}>
-          방문 리뷰 <span style={{ color: '#E85D3D' }}>{data ? data.count : '…'}</span>
-          <span style={{ fontWeight: 500, letterSpacing: 0 }}> · 멍냥맵 사용자가 남긴 것</span>
+          방문 리뷰 <span style={{ color: '#E85D3D' }}>{data ? `${data.count}${data.capped ? '+' : ''}` : '…'}</span>
+          <span style={{ fontWeight: 500, letterSpacing: 0 }}> · 멍냥맵 사용자가 남긴 것{data?.capped ? ' · 최근 50개 기준' : ''}</span>
         </span>
         {!writing && (
           <button onClick={() => setWriting(true)}
@@ -172,7 +177,7 @@ export function PlaceReviews({
                 )
               })}
             </div>
-            {pet && <span style={{ fontSize: 11.5, color: '#A08872' }}>{pet.emoji} {pet.name}({pet.sizeLabel})와 다녀온 것으로 남겨요</span>}
+            {pet && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11.5, color: '#A08872' }}><PetFace emoji={pet.emoji} size={15} />{pet.name}({pet.sizeLabel})와 다녀온 것으로 남겨요</span>}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -276,13 +281,15 @@ interface Story {
 export function PlaceStories({ placeId, placeTitle, placeAddr }: { placeId: string; placeTitle: string; placeAddr: string }) {
   const [stories, setStories] = useState<Story[] | null>(null)
   const [more, setMore] = useState(false)
+  const seq = useRef(0)
 
   useEffect(() => {
+    const my = ++seq.current
     setStories(null)
     fetch(`/api/posts?place=${placeId}&limit=3`)
       .then((r) => r.json())
-      .then((d) => { if (d.offline) return; setStories(d.posts ?? []); setMore(Boolean(d.hasMore)) })
-      .catch(() => setStories([]))
+      .then((d) => { if (my !== seq.current || d.offline) return; setStories(d.posts ?? []); setMore(Boolean(d.hasMore)) })
+      .catch(() => { if (my === seq.current) setStories([]) })
   }, [placeId])
 
   if (stories === null) return null

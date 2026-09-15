@@ -14,6 +14,24 @@ export const dynamic = 'force-dynamic'
 const MAX_BYTES = 5 * 1024 * 1024
 const TYPES: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
 
+/**
+ * 한 주소에서 10분에 30장. 글쓰기와 달리 사진은 지워지지 않는 저장소를 먹어서,
+ * 아무 제한이 없으면 스크립트 하나로 버킷을 채울 수 있다. 서버리스라 인스턴스마다
+ * 따로 세지만, 그래도 없는 것보다 훨씬 낫다. 실제 사람이 닿을 숫자는 아니다.
+ */
+const WINDOW_MS = 10 * 60 * 1000
+const PER_WINDOW = 30
+const hits = new Map<string, number[]>()
+function allow(ip: string) {
+  const now = Date.now()
+  const list = (hits.get(ip) ?? []).filter((t) => now - t < WINDOW_MS)
+  if (list.length >= PER_WINDOW) return false
+  list.push(now)
+  hits.set(ip, list)
+  if (hits.size > 5000) hits.clear() // 메모리가 무한히 자라지 않게
+  return true
+}
+
 /** 확장자가 아니라 내용의 첫 바이트로 종류를 확인한다 */
 function sniff(buf: Uint8Array): string | null {
   if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg'
@@ -24,6 +42,8 @@ function sniff(buf: Uint8Array): string | null {
 
 export async function POST(req: Request) {
   if (!boardReady) return NextResponse.json({ error: '사진 저장소가 연결되지 않았어요' }, { status: 503 })
+  const ip = (req.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown'
+  if (!allow(ip)) return NextResponse.json({ error: '사진을 너무 많이 올렸어요. 잠시 후 다시 시도해주세요' }, { status: 429 })
   try {
     const form = await req.formData()
     const file = form.get('file')

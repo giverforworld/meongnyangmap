@@ -10,6 +10,7 @@ import { useIsMobile } from '@/lib/useIsMobile'
 import { distance } from '@/lib/geo'
 import KakaoMap from './KakaoMap'
 import { PlaceReviews, PlaceStories } from './PlaceSocial'
+import PetFace from './PetFace'
 
 const BADGE = {
   ok: {
@@ -174,7 +175,7 @@ export default function Home() {
    * 그 장소의 지역을 고르고 이름으로 검색해 목록에 올린 뒤, 목록이 도착하면 연다.
    * 지역 목록 첫 페이지(100곳)에 없을 수 있어서 검색으로 확실히 올린다.
    */
-  const pendingFocus = useRef<string | null>(null)
+  const pendingFocus = useRef<{ id: string; cat: string } | null>(null)
   useEffect(() => {
     const id = new URLSearchParams(window.location.search).get('focus') ?? ''
     if (!/^\d{1,12}$/.test(id)) return
@@ -183,7 +184,8 @@ export default function Home() {
       .then((d) => {
         const p: Place | undefined = d.places?.[0]
         if (!p) return
-        pendingFocus.current = p.contentid
+        // 쇼핑은 기본 목록에서 빠지므로 그 종류 칩까지 같이 켠다
+        pendingFocus.current = { id: p.contentid, cat: p.cat === ASIDE_CAT ? ASIDE_CAT : ALL }
         setRegnCd(p.regnCd)
         setSignguCd(p.signguCd)
         setQ(p.title)
@@ -208,7 +210,7 @@ export default function Home() {
    * 한 번 더 나간다 — 조회 기록을 방금 비웠기 때문이다.
    */
   useEffect(() => {
-    setCat(ALL)
+    setCat(pendingFocus.current?.cat ?? ALL)
     setSub('전체')
     setLimit(PAGE)
     setSelectedId(null)
@@ -225,7 +227,9 @@ export default function Home() {
    * 1,008KB 였고 화면은 50곳만 그렸다. 지금은 그릴 만큼만 받는다(100건 32KB).
    * 칩에 붙는 숫자도 서버가 세어 보낸다 — 전체를 갖고 있지 않으면 셀 수 없기 때문이다.
    */
+  const listSeq = useRef(0)
   useEffect(() => {
+    const my = ++listSeq.current
     setLoading(true)
     setError(null)
     const qs = new URLSearchParams({
@@ -239,20 +243,21 @@ export default function Home() {
     fetch(`/api/places?${qs}`)
       .then((r) => r.json())
       .then((d) => {
+        if (my !== listSeq.current) return
         if (d.error) setError(d.error)
         setPlaces(d.places ?? [])
         setTotal(d.total ?? 0)
         setCounts(d.counts ?? { all: 0, byCat: {}, bySub: {} })
         // 커뮤니티에서 넘어온 장소가 목록에 실렸으면 연다
         const want = pendingFocus.current
-        if (want && (d.places ?? []).some((p: Place) => p.contentid === want)) {
+        if (want && (d.places ?? []).some((p: Place) => p.contentid === want.id)) {
           pendingFocus.current = null
-          setSelectedId(want)
+          setSelectedId(want.id)
           if (isMobile) setSheet('half')
         }
       })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false))
+      .catch((e) => { if (my === listSeq.current) setError(String(e)) })
+      .finally(() => { if (my === listSeq.current) setLoading(false) })
   }, [regnCd, signguCd, q, nearIds, cat, sub, limit])
 
   // 장소를 바꾸면 앞 장소의 정보가 남지 않게 비우고 새로 받는다
@@ -463,8 +468,10 @@ export default function Home() {
   /**
    * 프로필 버튼은 상단 메뉴(Nav)에 있다. 아이가 바뀌면 판정이 전부 달라지므로
    * 보고 있던 상세는 닫는다 — 이전 아이 기준 판정이 그대로 떠 있으면 안 된다.
+   * 판정에 쓰는 값으로만 본다. 로그인 동기화가 같은 아이를 새 객체로 내려줘도 닫지 않게.
    */
-  useEffect(() => setSelectedId(null), [pet])
+  const petSig = pet ? `${pet.key}|${pet.size}|${pet.isDangerous}|${pet.hasCage}|${pet.hasMuzzle}` : ''
+  useEffect(() => setSelectedId(null), [petSig])
 
   /** 종류 칩 하나. 필터 바(넓은 화면)와 필터 시트(좁은 화면)가 같이 쓴다 */
   const catChip = (label: string, count: number) => {
@@ -833,7 +840,7 @@ export default function Home() {
           {!isMobile && (
           <div style={{ position: 'absolute', left: 16, top: 14, background: 'rgba(255,255,255,.94)', border: '1px solid #EAE3D6', borderRadius: 99, padding: '6px 14px', fontSize: 12.5, color: '#6E5F4D' }}>
             {pet
-              ? <>{pet.emoji} <b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사</>
+              ? <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 3 }}><PetFace emoji={pet.emoji} size={16} /></span><b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사</>
               : <>🐶 <b>프로필을 등록</b>하면 등록한 아이 기준으로 동반 가능 여부를 필터링해요 · 출처 ⓒ한국관광공사</>}
           </div>
           )}

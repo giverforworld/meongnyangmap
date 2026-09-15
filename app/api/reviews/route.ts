@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { boardReady, sbInsert, sbSelect } from '@/lib/supabase'
 import { hashPassword } from '@/lib/password'
-import { cleanPhotos, isContentId } from '@/lib/board'
+import { cleanPhotos, isContentId, resolvePlace } from '@/lib/board'
 
 export const dynamic = 'force-dynamic'
 
@@ -43,7 +43,8 @@ export async function GET(req: Request) {
     const avg = count ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : null
     const entry = { ok: 0, cond: 0, denied: 0 }
     for (const r of reviews) if (r.entry) entry[r.entry]++
-    return NextResponse.json({ reviews, count, avg, entry })
+    // 요약은 받아온 만큼(최근 MAX 개)으로 센다. 그보다 많으면 화면이 '최근 N개 기준'이라고 적는다
+    return NextResponse.json({ reviews, count, avg, entry, capped: count >= MAX })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message, reviews: [], count: 0, avg: null }, { status: 500 })
   }
@@ -53,15 +54,17 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   if (!boardReady) return NextResponse.json({ error: '리뷰 저장소가 아직 연결되지 않았어요' }, { status: 503 })
   try {
-    const { placeId, placeTitle, nickname, rating, entry, body, photos, petSize, password } = await req.json()
+    const { placeId, nickname, rating, entry, body, photos, petSize, password } = await req.json()
 
-    const pid = String(placeId ?? '').trim()
-    const ptitle = String(placeTitle ?? '').trim().slice(0, 100)
+    // 장소 이름은 화면이 보낸 것이 아니라 우리 목록에서 찾는다
+    const pl = await resolvePlace({ id: placeId })
+    if (!pl?.place_id) return bad('어느 장소의 리뷰인지 알 수 없어요')
+    const pid = pl.place_id
+    const ptitle = pl.place_title!
     const nick = String(nickname ?? '').trim()
     const b = String(body ?? '').trim()
     const pw = String(password ?? '')
     const rt = Number(rating)
-    if (!isContentId(pid) || !ptitle) return bad('어느 장소의 리뷰인지 알 수 없어요')
     if (!nick || nick.length > 20) return bad('닉네임은 1~20자로 적어주세요')
     if (!Number.isInteger(rt) || rt < 1 || rt > 5) return bad('별점을 골라주세요')
     if (entry != null && !['ok', 'cond', 'denied'].includes(entry)) return bad('입장 결과 값이 올바르지 않아요')
