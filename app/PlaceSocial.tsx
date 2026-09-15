@@ -29,7 +29,7 @@ interface Review {
 
 const ENTRY: Record<Entry, { label: string; color: string; bg: string; border: string }> = {
   ok: { label: '문제없이 입장', color: '#2F8F4E', bg: '#EAF6EA', border: '#2F8F4E' },
-  cond: { label: '조건 붙어서 입장', color: '#8A6208', bg: '#FBF3DD', border: '#C98A12' },
+  cond: { label: '조건 붙어서 입장', color: '#9A7300', bg: '#FFF7D6', border: '#E8B400' },
   denied: { label: '입장 거부', color: '#C0392B', bg: '#FBEDEA', border: '#E0A9A0' },
 }
 const SIZE_LABEL = { small: '소형견', medium: '중형견', large: '대형견' } as const

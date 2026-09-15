@@ -8,7 +8,7 @@ type Judged = Place & { state: CardState }
 
 const PIN = {
   ok: { bg: '#2F8F4E', border: '#256F3D', icon: '○' },
-  cond: { bg: '#C98A12', border: '#9C6B0C', icon: '✓' },
+  cond: { bg: '#FFC93C', border: '#E0A100', icon: '✓', fg: '#5C4300' },
   loading: { bg: '#B3A78F', border: '#8E836E', icon: '…' },
   failed: { bg: '#C0392B', border: '#96271B', icon: '!' },
   /** 프로필 등록 전 — 동반 가능한 곳들이니 초록 체크. 판정은 등록 뒤에 한다 */
@@ -261,6 +261,8 @@ function buildPin(p: Judged) {
   body.className = 'map-pin-body'
   body.style.background = s.bg
   body.style.borderColor = s.border
+  // 노랑 핀은 흰 글자가 안 읽힌다 — 상태별로 글자색을 둔다
+  body.style.color = 'fg' in s ? (s as { fg: string }).fg : '#FFFFFF'
 
   const icon = document.createElement('span')
   icon.textContent = s.icon

@@ -72,7 +72,7 @@ type Sort = 'default' | 'visitors' | 'near'
 
 const SORTS: { key: Sort; label: string }[] = [
   { key: 'near', label: '나와 가까운 순' },
-  { key: 'default', label: '조건이 확실한 순' },
+  { key: 'default', label: '동반 조건이 확실한 순' },
   { key: 'visitors', label: '요즘 붐비는 지역 순' },
 ]
 
@@ -205,6 +205,9 @@ function HotView() {
       .then((d) => setRegions(d.regions ?? []))
       .catch(() => {})
   }, [])
+
+  // 처음부터 가까운 순으로 — 위치를 못 받으면 '조건이 확실한 순'에 머문다
+  useEffect(() => { pickSort('near') }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // 거리순은 받아온 목록을 브라우저에서 다시 늘어놓는 것이라 서버에 되묻지 않는다
   const serverSort = sort === 'visitors' ? 'visitors' : 'default'
@@ -371,7 +374,7 @@ const NEAR_MAX = 300
 
 const CAMP_SORTS: { key: 'default' | 'near'; label: string }[] = [
   { key: 'near', label: '나와 가까운 순' },
-  { key: 'default', label: '확실한 곳 먼저' },
+  { key: 'default', label: '동반 조건이 확실한 순' },
 ]
 
 function CampView() {
@@ -406,6 +409,9 @@ function CampView() {
 
   // 아이가 바뀌면 판정이 달라져 목록이 통째로 바뀐다 — 첫 페이지부터 다시
   useEffect(() => setLimit(PAGE), [pet])
+
+  // 처음부터 가까운 순으로 — 위치를 못 받으면 '확실한 곳 먼저'에 머문다
+  useEffect(() => { pickSort('near') }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function pickSort(k: 'default' | 'near') {
     setGeoError(null)
@@ -549,7 +555,7 @@ function CampView() {
               <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
                   <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#2B2420', wordBreak: 'keep-all' }}>{c.name}</h2>
-                  <span style={{ flex: 'none', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap', border: `1.5px solid ${ok ? '#2F8F4E' : '#C98A12'}`, color: ok ? '#2F8F4E' : '#8A6208', background: ok ? '#EAF6EA' : '#FBF3DD' }}>
+                  <span style={{ flex: 'none', fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 99, whiteSpace: 'nowrap', border: `1.5px solid ${ok ? '#2F8F4E' : '#E8B400'}`, color: ok ? '#2F8F4E' : '#9A7300', background: ok ? '#EAF6EA' : '#FFF7D6' }}>
                     {ok ? '○ 동반 가능' : '✓ 확인 필요'}
                   </span>
                 </div>
@@ -562,7 +568,7 @@ function CampView() {
                   )}
                 </p>
 
-                <p style={{ margin: 0, fontSize: 12.5, color: ok ? '#2F8F4E' : '#8A6208', lineHeight: 1.5 }}>
+                <p style={{ margin: 0, fontSize: 12.5, color: ok ? '#2F8F4E' : '#9A7300', lineHeight: 1.5 }}>
                   {c.j.why}
                 </p>
 

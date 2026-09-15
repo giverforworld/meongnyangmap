@@ -3,6 +3,7 @@ import rulesFile from '../data/petRules.json'
 import detailsFile from '../data/details.json'
 import visitorsFile from '../data/visitors.json'
 import { CONTENT_TYPES, type ContentTypeId } from './kto'
+import { isExcluded } from './exclude'
 
 /**
  * 배치가 받아둔 세 파일을 엮어 화면용 목록을 만든다.
@@ -11,7 +12,7 @@ import { CONTENT_TYPES, type ContentTypeId } from './kto'
  * "뭐 하고 놀지?"에 답하려면 우리가 먼저 골라 줘야 한다. 그 기준을 데이터로 세운다.
  */
 
-const PLACES = (placesFile as { places?: any[] }).places ?? []
+const PLACES = ((placesFile as { places?: any[] }).places ?? []).filter((p) => !isExcluded(String(p.contentid)))
 const RULES = (rulesFile as { rules?: Record<string, any> }).rules ?? {}
 const DETAILS = (detailsFile as { details?: Record<string, any> }).details ?? {}
 

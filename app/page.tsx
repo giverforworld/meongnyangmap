@@ -17,7 +17,7 @@ const BADGE = {
     text: '○ 입장 가능', border: '#2F8F4E', color: '#2F8F4E', bg: '#EAF6EA', checkBg: '#F2FAF2',
   },
   cond: {
-    text: '✓ 조건부 가능', border: '#C98A12', color: '#8A6208', bg: '#FBF3DD', checkBg: '#FDF8EA',
+    text: '✓ 조건부 가능', border: '#E8B400', color: '#9A7300', bg: '#FFF7D6', checkBg: '#FFFBEA',
   },
   loading: {
     text: '조건 확인 중…', border: '#E3DCCE', color: '#A08872', bg: '#F8F5EE', checkBg: '#FAF8F3',
@@ -48,7 +48,7 @@ const CAT_ORDER = ['관광지', '음식점', '숙박', '문화시설', '레포�
  */
 const ASIDE_CAT = '쇼핑'
 /** 쇼핑을 뺀 나머지 전부 */
-const ALL = '갈 만한 곳'
+const ALL = '추천 장소'
 
 /** 한 번에 그리는 카드 수. 서버가 이만큼만 보내고, 이 수만큼만 동반 조건을 조회한다 */
 const PAGE = 100
@@ -516,7 +516,7 @@ export default function Home() {
         {pet ? (
           <>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#2F8F4E' }} />입장 가능 {okCount}</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#C98A12' }} />조건부 {condCount}</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#FFC93C' }} />조건부 {condCount}</span>
           </>
         ) : (
           <span style={{ color: '#E85D3D', fontWeight: 700 }}>🐶 프로필을 등록하면 동반 가능 여부를 필터링해요</span>
@@ -566,7 +566,7 @@ export default function Home() {
                 </span>
               )}
             </div>
-            <div style={{ fontSize: 12.5, color: p.j ? (condCheck ? '#8A6208' : '#2F8F4E') : '#A08872' }}>
+            <div style={{ fontSize: 12.5, color: p.j ? (condCheck ? '#9A7300' : '#2F8F4E') : '#A08872' }}>
               {p.j ? (condCheck ? condCheck.text : p.j.checks[0]?.text) : p.state === 'info' ? describeRules(rules(p)) : b.text}
             </div>
           </div>
@@ -822,7 +822,7 @@ export default function Home() {
             {pet ? (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#2F8F4E' }} />입장 가능 {okCount}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#C98A12' }} />조건부 가능 {condCount}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#FFC93C' }} />조건부 가능 {condCount}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7, color: '#B3A78F' }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#D8D0C0' }} />불가 {hiddenCount} (숨김)</div>
               </>
             ) : (
@@ -989,7 +989,7 @@ export default function Home() {
                     if (!crowd) return null
                     const hint = crowdHint(crowd)
                     if (!hint) return null
-                    const BAR = { quiet: '#2F8F4E', normal: '#C98A12', busy: '#C0392B' } as const
+                    const BAR = { quiet: '#2F8F4E', normal: '#FFC93C', busy: '#C0392B' } as const
                     return (
                       <section style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '11px 13px', display: 'flex', flexDirection: 'column', gap: 9 }}>
                         <b style={{ fontSize: 13 }}>언제 가면 좋을까</b>

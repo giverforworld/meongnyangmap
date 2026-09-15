@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import PlaceMapPicker from './PlaceMapPicker'
 
 export interface PlaceRef {
   id: string
@@ -22,6 +23,7 @@ export default function PlacePicker({
   const [hits, setHits] = useState<PlaceRef[]>([])
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [mapOpen, setMapOpen] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const seq = useRef(0)
 
@@ -60,14 +62,22 @@ export default function PlacePicker({
 
   return (
     <div style={{ position: 'relative' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 12px', borderRadius: 12, border: '1.5px solid #EAE3D6', background: '#FFFFFF' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 0 12px', borderRadius: 12, border: '1.5px solid #EAE3D6', background: '#FFFFFF' }}>
         <span style={{ fontSize: 14, flex: 'none', color: '#A08872' }}>📍</span>
         <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder="어느 곳 이야기인가요? 장소 이름으로 찾기 (선택)"
+          placeholder="어느 곳 이야기인가요? 이름으로 찾기 (선택)"
           style={{ flex: 1, font: 'inherit', fontSize: 14, padding: '10px 0', border: 'none', background: 'transparent', color: '#2B2420', outline: 'none', minWidth: 0 }} />
         {busy && <span style={{ fontSize: 11.5, color: '#B3A78F', flex: 'none' }}>찾는 중…</span>}
+        {/* 이름을 모르면 지도에서 핀으로 */}
+        <button type="button" onClick={() => setMapOpen(true)}
+          style={{ flex: 'none', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '6px 10px', borderRadius: 9, border: '1.5px solid #E3DCCE', background: '#F6F1E7', color: '#6E5F4D', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+          지도에서 고르기
+        </button>
       </div>
+      {mapOpen && (
+        <PlaceMapPicker onClose={() => setMapOpen(false)} onPick={(p) => { onChange(p); setMapOpen(false) }} />
+      )}
       {open && hits.length > 0 && (
         <ul role="listbox" onMouseDown={(e) => e.preventDefault()} style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 4px)', zIndex: 20, margin: 0, padding: 6, listStyle: 'none', background: '#FFFFFF', border: '1px solid #EAE3D6', borderRadius: 12, boxShadow: '0 10px 28px rgba(43,36,32,.14)', maxHeight: 260, overflowY: 'auto' }}>
           {hits.map((h) => (

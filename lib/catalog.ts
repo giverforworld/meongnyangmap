@@ -1,4 +1,5 @@
 import { call, CONTENT_TYPES, type ContentTypeId } from './kto'
+import { isExcluded } from './exclude'
 import type { Place } from './types'
 import prebuilt from '../data/places.json'
 
@@ -54,13 +55,13 @@ async function fetchAll(): Promise<Place[]> {
   // "이 조건에 맞는 장소가 없어요"로 조용히 뜨고, 상류 장애를 아무도 눈치채지 못한다.
   if (items.length === 0) throw new Error('전국 목록이 비어 있어요')
 
-  return items.map(toPlace)
+  return items.map(toPlace).filter((p) => !isExcluded(p.contentid))
 }
 
 /** 배치가 받아둔 목록. 수집 전이면 비어 있다 */
 const FILE: Place[] | null = (() => {
   const rows = (prebuilt as { places?: any[] }).places
-  return rows?.length ? rows.map(toPlace) : null
+  return rows?.length ? rows.map(toPlace).filter((p) => !isExcluded(p.contentid)) : null
 })()
 
 /** 파일을 받아둔 시각. 없거나 못 읽으면 0 — 낡은 것으로 친다 */

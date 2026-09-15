@@ -53,36 +53,21 @@ function Mouth({ y, color = '#4A3A32', w = 1.5, spread = 4.5 }: { y: number; col
 }
 
 function Dog() {
-  // 요크셔테리어 아기 — 빵실한 검은 털뭉치에 황금빛 주둥이·눈썹, 쫑긋한 귀
-  const FUR = '#3D3841'
-  // 둘레를 살짝 울퉁불퉁하게 — 14개를 반지름 21.3 원 위에 고르게. 크면 갈기처럼 보인다
-  const fluff = Array.from({ length: 14 }, (_, i) => {
-    const a = (Math.PI * 2 * i) / 14 - Math.PI / 2
-    return [32 + Math.cos(a) * 21.3, 37 + Math.sin(a) * 21.3] as const
-  })
+  // 처음 그린 강아지 — 늘어진 갈색 귀, 크림색 얼굴, 한쪽 눈 위 얼룩
   return (
     <>
-      {fluff.map(([x, y]) => <circle key={`${x.toFixed(1)}-${y.toFixed(1)}`} cx={x} cy={y} r="4.6" fill={FUR} />)}
-      <circle cx="32" cy="37" r="22" fill={FUR} />
-      {/* 쫑긋한 귀 — 머리 위에 얹고, 안쪽은 황금빛 */}
-      <path d="M13 26 L17.5 10 L28.5 20 Z" fill={FUR} stroke={FUR} strokeWidth="3" strokeLinejoin="round" />
-      <path d="M51 26 L46.5 10 L35.5 20 Z" fill={FUR} stroke={FUR} strokeWidth="3" strokeLinejoin="round" />
-      <path d="M17 23 L19.2 14.5 L25.8 20.5 Z" fill="#D99B5A" />
-      <path d="M47 23 L44.8 14.5 L38.2 20.5 Z" fill="#D99B5A" />
-      {/* 정수리 잔털 */}
-      <path d="M27 16 q2 -4.5 4.5 -1.5 M32.5 14 q2.5 -3.5 4.5 -.5" fill="none" stroke="#5A5462" strokeWidth="1.6" strokeLinecap="round" />
-      {/* 황금빛 얼굴 — 주둥이와 볼 */}
-      <ellipse cx="32" cy="43.5" rx="16" ry="13" fill="#D99B5A" />
-      {/* 눈썹 점 */}
-      <ellipse cx="23.5" cy="29" rx="3.2" ry="2" fill="#D99B5A" />
-      <ellipse cx="40.5" cy="29" rx="3.2" ry="2" fill="#D99B5A" />
-      {/* 주둥이 — 더 밝게 */}
-      <ellipse cx="32" cy="47.5" rx="9" ry="6" fill="#EBB777" />
-      <Eyes y={37.8} dx={8} r={3.6} />
-      <ellipse cx="32" cy="44.3" rx="3.4" ry="2.6" fill="#2B2420" />
-      <circle cx="30.9" cy="43.6" r=".8" fill="#FFFFFF" opacity=".8" />
-      <Mouth y={46.4} spread={4.2} />
-      <Blush y={47} dx={14.5} color="#F2A29B" />
+      {/* 늘어진 귀 */}
+      <ellipse cx="13" cy="33" rx="8" ry="14" fill="#C98B5C" transform="rotate(12 13 33)" />
+      <ellipse cx="51" cy="33" rx="8" ry="14" fill="#C98B5C" transform="rotate(-12 51 33)" />
+      <circle cx="32" cy="35" r="22" fill="#F6DDB0" />
+      {/* 한쪽 눈 위 얼룩 */}
+      <ellipse cx="41" cy="27" rx="7.5" ry="6.5" fill="#E7C08A" opacity=".8" />
+      <ellipse cx="32" cy="42.5" rx="10.5" ry="7.5" fill="#FBEFD9" />
+      <Eyes y={33} />
+      <ellipse cx="32" cy="39.5" rx="3.6" ry="2.7" fill="#3B2A22" />
+      <circle cx="30.8" cy="38.8" r=".9" fill="#FFFFFF" opacity=".8" />
+      <Mouth y={41.6} spread={4.6} />
+      <Blush y={41} dx={15} />
     </>
   )
 }
