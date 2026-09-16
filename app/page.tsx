@@ -11,6 +11,7 @@ import { distance } from '@/lib/geo'
 import KakaoMap from './KakaoMap'
 import { PlaceReviews, PlaceStories } from './PlaceSocial'
 import PetFace from './PetFace'
+import { PawPinIcon, SearchIcon } from './icons'
 
 const BADGE = {
   ok: {
@@ -595,7 +596,7 @@ export default function Home() {
         <div style={{ padding: '8px 12px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none', display: 'flex', gap: 8 }}>
           <button className="hov-accent" onClick={() => setFilterOpen(true)}
             style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 10, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 14, padding: '13px 15px', fontFamily: 'inherit', fontSize: 15.5, color: '#2B2420', cursor: 'pointer', textAlign: 'left' }}>
-            <span style={{ flex: 'none', fontSize: 17 }}>🔎</span>
+            <SearchIcon size={19} />
             <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {nearIds ? <b style={{ color: '#E85D3D' }}>내 주변 20km</b> : region?.name ?? '지역'}
               {!nearIds && signguCd && ` · ${region?.sigungu.find((x) => x.code === signguCd)?.name ?? ''}`}
@@ -615,7 +616,7 @@ export default function Home() {
       ) : (
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
         <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 14px' }}>
-          <span style={{ fontSize: 16 }}>📍</span>
+          <PawPinIcon size={20} />
           <select value={regnCd} onChange={(e) => { setRegnCd(e.target.value); setSignguCd('') }}
             style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 15.5, color: '#2B2420', cursor: 'pointer', outline: 'none' }}>
             {regions.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
@@ -629,8 +630,8 @@ export default function Home() {
 
         {/* 검색 — 전국 목록 위에서 이름·주소로 찾는다 */}
         <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 9, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 14px', minWidth: 230 }}>
-          <span style={{ fontSize: 16 }}>🔎</span>
-          <input value={q} placeholder="장소 이름으로 찾기"
+          <SearchIcon size={18} />
+          <input value={q} placeholder="장소 이름으로 검색"
             onChange={(e) => { setQ(e.target.value); setNearIds(null) }}
             style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 15.5, color: '#2B2420', outline: 'none', width: '100%' }} />
           {q && (
@@ -780,8 +781,8 @@ export default function Home() {
               <section style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 <h2 style={{ margin: 0, fontSize: 14.5, fontWeight: 700 }}>이름으로 찾기</h2>
                 <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 12, padding: '9px 13px' }}>
-                  <span>🔎</span>
-                  <input value={q} placeholder="장소 이름으로 찾기" autoFocus={!!q}
+                  <SearchIcon size={18} />
+                  <input value={q} placeholder="장소 이름으로 검색" autoFocus={!!q}
                     onChange={(e) => { setQ(e.target.value); setNearIds(null) }}
                     style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 14.5, color: '#2B2420', outline: 'none', width: '100%' }} />
                   {q && (
