@@ -41,6 +41,8 @@ const visitOf = (p: any) =>
 
 export interface Curated {
   contentid: string
+  /** 상세(detailCommon2 등)를 부를 때 필요하다 */
+  contenttypeid: string
   title: string
   addr1: string
   cat: string
@@ -69,6 +71,7 @@ function toCurated(id: string, reasons: string[]): Curated {
     regionName: v?.name ?? '',
     regionRank: v?.rank ?? null,
     contentid: id,
+    contenttypeid: String(p.contenttypeid ?? ''),
     title: p.title ?? '',
     addr1: p.addr1 ?? '',
     cat: CONTENT_TYPES[Number(p.contenttypeid) as ContentTypeId] ?? '기타',

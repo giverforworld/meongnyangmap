@@ -86,21 +86,24 @@ export default function Nav() {
             ref={on ? active : undefined}
             style={{
               display: 'flex',
+              // 좁은 화면에서는 아이콘을 글자 위에 — 옆에 두면 세 메뉴가 가로로 넘친다
+              flexDirection: isMobile ? 'column' : 'row',
               alignItems: 'center',
-              gap: 7,
+              justifyContent: 'center',
+              gap: isMobile ? 2 : 7,
               flex: 'none',
-              margin: isMobile ? '7px 0' : '8px 0',
-              padding: isMobile ? '10px 7px' : '10px 17px',
-              borderRadius: 99,
-              fontSize: isMobile ? 15 : 18,
+              margin: isMobile ? '5px 0' : '8px 0',
+              padding: isMobile ? '5px 9px 4px' : '10px 17px',
+              borderRadius: isMobile ? 12 : 99,
+              fontSize: isMobile ? 11.5 : 18,
               fontWeight: on ? 700 : 500,
               background: on ? '#E85D3D' : 'transparent',
               color: on ? '#FFFFFF' : '#8A7A65',
               textDecoration: 'none',
+              lineHeight: 1.1,
             }}
           >
-            {/* 좁은 화면에서는 아이콘까지 넣으면 메뉴 넉 줄이 가로로 넘친다 — 라벨만 둔다 */}
-            {!isMobile && <m.Icon />}
+            <m.Icon size={isMobile ? 19 : 21} />
             {m.label}
           </Link>
         )
@@ -144,12 +147,12 @@ export default function Nav() {
  * 이모지는 색이 고정이라 활성·비활성 상태를 따라오지 못한다.
  * currentColor 를 쓰면 탭 글자색을 그대로 따라가고, 활성일 때만 오렌지로 켜진다.
  */
-const ico: React.CSSProperties = { width: 21, height: 21, flex: 'none', display: 'block' }
+const ico = (size: number): React.CSSProperties => ({ width: size, height: size, flex: 'none', display: 'block' })
 
 /** 멍냥맵 — 이 탭이 하는 일은 "이 장소, 갈 수 있나?" 판정이다 */
-function PinIcon() {
+function PinIcon({ size = 21 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" style={ico} aria-hidden="true" fill="none" stroke="currentColor"
+    <svg viewBox="0 0 24 24" style={ico(size)} aria-hidden="true" fill="none" stroke="currentColor"
       strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 21.2c4.1-4.8 6.2-8.5 6.2-11.2a6.2 6.2 0 1 0-12.4 0c0 2.7 2.1 6.4 6.2 11.2Z" />
       <circle cx="12" cy="9.9" r="2.4" />
@@ -158,9 +161,9 @@ function PinIcon() {
 }
 
 /** 핫플레이스 — "골라 뒀다"는 뜻만. 방문자수·평점 같은 없는 데이터를 암시하지 않는다 */
-function SparkleIcon() {
+function SparkleIcon({ size = 21 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" style={ico} aria-hidden="true" fill="currentColor">
+    <svg viewBox="0 0 24 24" style={ico(size)} aria-hidden="true" fill="currentColor">
       <path d="M9.8 2c.75 4.9 2.3 6.45 7.2 7.2-4.9.75-6.45 2.3-7.2 7.2-.75-4.9-2.3-6.45-7.2-7.2 4.9-.75 6.45-2.3 7.2-7.2Z" />
       <path d="M17.9 13.4c.36 2.35 1.15 3.15 3.5 3.5-2.35.36-3.14 1.15-3.5 3.5-.36-2.35-1.15-3.14-3.5-3.5 2.35-.35 3.14-1.15 3.5-3.5Z" />
     </svg>
@@ -168,9 +171,9 @@ function SparkleIcon() {
 }
 
 /** 커뮤니티 — "다녀온 이야기" = 발자국 이야기. 발가락 셋은 슬픈 얼굴로 읽혀 넷으로 둔다 */
-function BubblePawIcon() {
+function BubblePawIcon({ size = 21 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 24" style={ico} aria-hidden="true">
+    <svg viewBox="0 0 24 24" style={ico(size)} aria-hidden="true">
       <path d="M21 11.9c0 4.1-4 7.4-8.9 7.4-1 0-2-.14-2.9-.4L3.6 20.6l1.5-3.6C3.8 15.6 3.1 13.8 3.1 11.9c0-4.1 4-7.4 8.9-7.4S21 7.8 21 11.9Z"
         fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinejoin="round" />
       <g fill="currentColor">

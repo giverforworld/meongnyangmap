@@ -1,42 +1,17 @@
 'use client'
 
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { judge, sizeOf } from '@/lib/petTour'
-import type { CardState, Detail, Judgement, PetRules, Place, RulesEntry } from '@/lib/types'
+import type { CardState, Judgement, Place, RulesEntry } from '@/lib/types'
 import { usePetsContext } from './PetsProvider'
-import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
-import { restStatus, todayLabel } from '@/lib/openHours'
 import { useIsMobile } from '@/lib/useIsMobile'
 import { distance } from '@/lib/geo'
 import KakaoMap from './KakaoMap'
-import { PlaceReviews, PlaceStories } from './PlaceSocial'
 import PetFace from './PetFace'
 import { PawPinIcon, SearchIcon } from './icons'
+import { BADGE, CAT_EMOJI, describeRules } from './placeUi'
+import PlaceDetail from './PlaceDetail'
 
-const BADGE = {
-  ok: {
-    text: '○ 입장 가능', border: '#2F8F4E', color: '#2F8F4E', bg: '#EAF6EA', checkBg: '#F2FAF2',
-  },
-  cond: {
-    text: '✓ 조건부 가능', border: '#E8B400', color: '#9A7300', bg: '#FFF7D6', checkBg: '#FFFBEA',
-  },
-  loading: {
-    text: '조건 확인 중…', border: '#E3DCCE', color: '#A08872', bg: '#F8F5EE', checkBg: '#FAF8F3',
-  },
-  failed: {
-    text: '! 조건 확인 실패', border: '#E0A9A0', color: '#C0392B', bg: '#FBEDEA', checkBg: '#FDF5F3',
-  },
-  /** 프로필 등록 전 — 조건은 있지만 누구 기준으로도 재지 않았다. 핀과 같은 초록 */
-  info: {
-    text: '✓ 동반 조건 있음', border: '#2F8F4E', color: '#2F8F4E', bg: '#EAF6EA', checkBg: '#F2FAF2',
-  },
-} as const
-
-const CAT_EMOJI: Record<string, string> = {
-  관광지: '🏞', 문화시설: '🎨', 행사: '🎪', 레포츠: '⛰', 숙박: '🏡', 쇼핑: '🛍', 음식점: '🍽',
-}
-
-/** 버튼 순서. 목록에 실제로 있는 것만 그린다 — 행사는 현재 전 지역 0건이다 */
 const CAT_ORDER = ['관광지', '음식점', '숙박', '문화시설', '레포츠', '행사']
 
 /**
@@ -60,50 +35,7 @@ interface Region {
   sigungu: { code: string; name: string }[]
 }
 
-/**
- * 전화 필드는 "전통가옥 운영사무실 02-6358-5533" 처럼 이름과 번호가 한 덩어리로 온다.
- * 그대로 버튼에 넣으면 번호 중간에서 줄이 바뀌어 읽기 어렵다 — 갈라서 번호는 붙여 둔다.
- */
-function splitTel(raw: string) {
-  const m = raw.match(/(0\d{1,2}[-\s.]?\d{3,4}[-\s.]?\d{4}|1[35]\d{2}[-\s.]?\d{4})/)
-  if (!m) return { label: '', num: raw.trim() }
-  return {
-    label: raw.slice(0, m.index).trim().replace(/[(,\/·]+$/, '').trim(),
-    num: m[0],
-  }
-}
-
 type Judged = Place & { j: Judgement | null; state: CardState }
-
-/**
- * 등록 전 카드 한 줄 — 판정 대신 동반구분만. 누구 기준으로도 재지 않은 상태라
- * "가능"이나 "불가" 같은 결론을 내지 않는다.
- */
-function describeRules(r: PetRules | null): string {
-  if (!r) return '동반 조건 정보가 등록되지 않은 장소예요'
-  if (r.noPets) return '반려동물 동반 불가로 등록돼 있어요'
-  if (r.zone === 'all') return '전 구역 동반 가능'
-  if (r.zone === 'partial') return r.zoneHint ?? '일부 구역만 동반 가능'
-  return '동반 조건이 등록돼 있어요'
-}
-
-/** 등록 전 상세 패널 — 원문 조건을 줄로 늘어놓는다 */
-function ruleLines(r: PetRules | null): string[] {
-  if (!r) return ['동반 조건 정보가 등록되지 않은 장소예요']
-  const out: string[] = []
-  if (r.noPets) out.push('반려동물 동반 불가')
-  else if (r.serviceDogOnly) out.push('안내견만 동반 가능')
-  else {
-    if (r.zone === 'all') out.push('전 구역 동반 가능')
-    else if (r.zone === 'partial') out.push(r.zoneHint ?? '일부 구역만 동반 가능')
-    if (r.allowedSizes) out.push(`${r.allowedSizes.map((x) => ({ small: '소형견', medium: '중형견', large: '대형견' })[x]).join('·')}만 가능`)
-    if (r.maxKg !== null) out.push(`${r.maxKg}kg ${r.maxKgInclusive === false ? '미만' : '이하'}`)
-    if (r.excludeDangerous) out.push('맹견 동반 불가')
-    if (r.needs.length) out.push(`준비물: ${r.needs.join(', ')}`)
-  }
-  if (out.length === 0) out.push('등록된 조건이 적어요 — 방문 전 확인을 권해요')
-  return out
-}
 
 export default function Home() {
   const [regions, setRegions] = useState<Region[]>([])
@@ -120,12 +52,8 @@ export default function Home() {
   }>({ all: 0, byCat: {}, bySub: {} })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [detail, setDetail] = useState<Detail | null>(null)
   /** 이 장소의 향후 30일 혼잡 예측. 매칭된 곳에만 있다 */
-  const [crowd, setCrowd] = useState<CrowdDay[] | null>(null)
-  const [detailLoading, setDetailLoading] = useState(false)
   /** 소개글은 길어서 접어 둔다 — 판정과 현장 규정이 먼저 보여야 한다 */
-  const [overviewOpen, setOverviewOpen] = useState(false)
   /** 검색어와 '내 주변' — 셋 다 같은 전국 목록 위에서 걸러낸다 */
   const [q, setQ] = useState('')
   /** 현재 위치로 고른 contentid 목록. 좌표 자체는 서버로 보내지 않는다 */
@@ -145,8 +73,6 @@ export default function Home() {
   const [rulesById, setRulesById] = useState<Record<string, RulesEntry>>({})
   /** 이미 조회를 건 contentid. 같은 장소를 두 번 부르지 않기 위한 것 */
   const requested = useRef(new Set<string>())
-  /** 상세 패널 스크롤 영역 */
-  const panelBody = useRef<HTMLDivElement>(null)
   /** 분류체계 코드 → 이름 */
   const [catNames, setCatNames] = useState<Record<string, string>>({})
 
@@ -260,31 +186,6 @@ export default function Home() {
       .catch((e) => { if (my === listSeq.current) setError(String(e)) })
       .finally(() => { if (my === listSeq.current) setLoading(false) })
   }, [regnCd, signguCd, q, nearIds, cat, sub, limit])
-
-  // 장소를 바꾸면 앞 장소의 정보가 남지 않게 비우고 새로 받는다
-  useEffect(() => {
-    setDetail(null)
-    setCrowd(null)
-    setOverviewOpen(false)
-    // 다른 장소를 열었는데 앞 장소에서 내려둔 스크롤이 남아 있으면 제목과 판정이 가려진다
-    panelBody.current?.scrollTo({ top: 0 })
-    if (!selectedId) return
-    const p = places.find((x) => x.contentid === selectedId)
-    if (!p) return
-
-    let alive = true
-    setDetailLoading(true)
-    fetch(`/api/detail?contentId=${p.contentid}&contentTypeId=${p.contenttypeid}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!alive) return
-        setDetail(d.detail ?? null)
-        setCrowd(d.crowd ?? null)
-      })
-      .catch(() => { if (alive) { setDetail(null); setCrowd(null) } })
-      .finally(() => { if (alive) setDetailLoading(false) })
-    return () => { alive = false }
-  }, [selectedId, places])
 
   /**
    * 내 주변 — 좌표를 서버로 보내지 않는다.
@@ -459,6 +360,75 @@ export default function Home() {
     setSheetPx(null)
   }
 
+  /**
+   * 손가락 — 시트 **아무 데나** 잡고 끌 수 있다. 손잡이만 잡히면 아무도 못 찾는다.
+   *
+   * 규칙은 지도앱들과 같다: 시트가 다 올라오기 전엔 위·아래로 끌면 시트가 움직이고,
+   * 다 올라온 뒤엔 목록이 스크롤된다. 목록 맨 위에서 아래로 끌면 다시 시트가 내려온다.
+   * 가로로 끄는 건(칩 줄) 건드리지 않는다. 놓을 때는 빠르기를 본다 — 휙 올리면 끝까지,
+   * 휙 내리면 내려간다. 느리게 놓으면 가장 가까운 단계.
+   *
+   * React 의 onTouchMove 는 passive 라 preventDefault 가 안 먹는다. 직접 단다.
+   */
+  const sheetState = useRef(sheet)
+  sheetState.current = sheet
+  useEffect(() => {
+    const el = sheetRef.current
+    if (!el || !isMobile) return
+    let startX = 0, startY = 0, startH = 0, lastY = 0, lastT = 0, vy = 0
+    let active = false, decided = false, curH = 0
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0]
+      startX = t.clientX; startY = lastY = t.clientY
+      startH = curH = el.clientHeight; lastT = e.timeStamp; vy = 0
+      active = true; decided = false
+    }
+    const onMove = (e: TouchEvent) => {
+      if (!active) return
+      const t = e.touches[0]
+      const dy = t.clientY - startY
+      const dx = t.clientX - startX
+      if (!decided) {
+        if (Math.abs(dy) < 5 && Math.abs(dx) < 5) return
+        if (Math.abs(dx) > Math.abs(dy)) { active = false; return } // 가로 — 칩 줄 스크롤
+        const list = el.querySelector('[data-sheet-scroll]') as HTMLElement | null
+        const inList = Boolean(list && list.contains(e.target as Node))
+        // 다 올라온 시트에서 목록 안을 끌면: 맨 위에서 아래로 끌 때만 시트가 내려온다
+        if (sheetState.current === 'full' && inList && !(dy > 0 && (list?.scrollTop ?? 0) <= 0)) { active = false; return }
+        decided = true
+      }
+      e.preventDefault()
+      const dt = Math.max(1, e.timeStamp - lastT)
+      vy = (t.clientY - lastY) / dt // px/ms, 아래가 +
+      lastY = t.clientY; lastT = e.timeStamp
+      const max = (el.parentElement?.clientHeight ?? 0) * 0.92
+      curH = Math.max(72, Math.min(max, startH - dy))
+      setSheetPx(curH)
+    }
+    const onEnd = () => {
+      if (!active) return
+      active = false
+      if (!decided) return
+      const r = curH / (el.parentElement?.clientHeight || 1)
+      let next: 'peek' | 'half' | 'full'
+      if (vy < -0.45) next = 'full'
+      else if (vy > 0.45) next = r > 0.62 ? 'half' : 'peek'
+      else next = r < 0.28 ? 'peek' : r < 0.66 ? 'half' : 'full'
+      setSheet(next)
+      setSheetPx(null)
+    }
+    el.addEventListener('touchstart', onStart, { passive: true })
+    el.addEventListener('touchmove', onMove, { passive: false })
+    el.addEventListener('touchend', onEnd)
+    el.addEventListener('touchcancel', onEnd)
+    return () => {
+      el.removeEventListener('touchstart', onStart)
+      el.removeEventListener('touchmove', onMove)
+      el.removeEventListener('touchend', onEnd)
+      el.removeEventListener('touchcancel', onEnd)
+    }
+  }, [isMobile])
+
   /** 상세 패널에서 원본 조건이 필요할 때 — 조회가 끝난 경우에만 있다 */
   const rules = (p: Judged) => {
     const e = rulesById[p.contentid]
@@ -504,7 +474,7 @@ export default function Home() {
     <>
     <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', padding: isMobile ? '0 16px 6px' : '14px 16px 8px' }}>
       <span style={{ fontSize: 14, fontWeight: 700 }}>
-        {pet ? `${pet.name}가 갈 수 있는 곳` : '반려동물 동반 가능 장소'} <span style={{ color: '#E85D3D' }}>{visible.length}</span>
+        {pet ? `${pet.name}와 함께 갈 수 있는 곳` : '반려동물 동반 가능 장소'} <span style={{ color: '#E85D3D' }}>{visible.length}</span>
       </span>
       <span style={{ fontSize: 12, color: '#B3A78F' }}>
         {isMobile ? `${total.toLocaleString()}곳 중` : '이름 순'}
@@ -536,7 +506,7 @@ export default function Home() {
       </div>
     )}
 
-    <div style={{ flex: 1, overflowY: 'auto', padding: '4px 12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+    <div data-sheet-scroll style={{ flex: 1, overflowY: 'auto', overscrollBehavior: 'contain', padding: '4px 12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
       {loading && <div style={{ padding: 20, fontSize: 13, color: '#A08872', textAlign: 'center' }}>불러오는 중…</div>}
       {!loading && error && <div style={{ padding: 16, fontSize: 12.5, color: '#C0392B', lineHeight: 1.5 }}>{error}</div>}
       {!loading && !error && visible.length === 0 && (
@@ -615,8 +585,9 @@ export default function Home() {
         </div>
       ) : (
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
-        <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 14px' }}>
-          <PawPinIcon size={30} />
+        {/* 아이콘은 글자 높이(15.5px)에 맞춘 22px, 간격은 글자와 같은 8px — 크면 셀렉트 박스가 아니라 배지처럼 보인다 */}
+        <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 12px 9px 12px' }}>
+          <PawPinIcon size={22} />
           <select value={regnCd} onChange={(e) => { setRegnCd(e.target.value); setSignguCd('') }}
             style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 15.5, color: '#2B2420', cursor: 'pointer', outline: 'none' }}>
             {regions.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}
@@ -863,281 +834,39 @@ export default function Home() {
                 background: '#FFFFFF', borderTop: '1px solid #EAE3D6',
                 borderRadius: '18px 18px 0 0', boxShadow: '0 -6px 24px rgba(43,36,32,.14)',
                 display: 'flex', flexDirection: 'column', minHeight: 0,
-                transition: sheetPx !== null ? 'none' : 'height .24s ease-out',
+                // 놓으면 가장 가까운 단계로 '샤샤샥' — 끄는 동안엔 손가락을 그대로 따른다
+                transition: sheetPx !== null ? 'none' : 'height .3s cubic-bezier(.2,.8,.2,1)',
+                // 시트 자체는 브라우저 제스처를 안 받는다(손가락 끌기는 위 터치 핸들러가). 목록만 세로 스크롤
+                touchAction: sheet === 'full' ? 'pan-y' : 'none',
               }}>
-              {/* touchAction: none — 이걸 두지 않으면 브라우저가 스크롤로 가로채 손잡이가 안 끌린다 */}
-              <div onPointerDown={dragStart} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}
+              {/* 손잡이 — 마우스로도 끌 수 있게 포인터 끌기는 여기만. 손가락은 시트 어디든 된다 */}
+              <div onPointerDown={(e) => { if (e.pointerType === 'mouse') dragStart(e) }} onPointerMove={(e) => { if (e.pointerType === 'mouse') dragMove(e) }} onPointerUp={dragEnd} onPointerCancel={dragEnd}
                 onClick={() => setSheet(sheet === 'full' ? 'peek' : sheet === 'half' ? 'full' : 'half')}
                 title="끌어서 높이 조절"
-                style={{ flex: 'none', padding: '9px 0 7px', display: 'flex', justifyContent: 'center', cursor: 'grab', touchAction: 'none' }}>
-                <span style={{ width: 38, height: 4, borderRadius: 99, background: '#DCD3C2' }} />
+                style={{ flex: 'none', padding: '10px 0 8px', display: 'flex', justifyContent: 'center', cursor: 'grab' }}>
+                <span style={{ width: 40, height: 5, borderRadius: 99, background: '#DCD3C2' }} />
               </div>
               {listPanel}
             </div>
           )}
 
-          {/* 상세 패널 */}
-          {sel && (() => {
-            const b = BADGE[sel.state]
-            return (
-              <div style={isMobile
-                ? { position: 'absolute', inset: 0, background: '#FFFFFF', display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 30 }
-                : { position: 'absolute', left: 14, top: 56, bottom: 14, width: 330, background: '#FFFFFF', border: '1px solid #EAE3D6', borderRadius: 18, boxShadow: '0 10px 34px rgba(43,36,32,.16)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'slidein .22s ease-out', zIndex: 30 }}>
-                {(() => {
-                  // 대표 사진이 없는 곳이 많다(숙박 32%·음식점 58%만 보유). detailImage2 로 메운다
-                  const hero = sel.firstimage || detail?.images[0]?.url || ''
-                  return (
-                    <div style={{ height: 96, background: hero ? `center/cover url(${hero})` : 'linear-gradient(135deg,#FFE0D3,#FFF4EF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38, position: 'relative' }}>
-                      {!hero && (CAT_EMOJI[sel.cat] ?? '📍')}
-                      <button onClick={() => { setSelectedId(null); if (isMobile) setSheet('half') }}
-                        style={{ position: 'absolute', right: 10, top: 10, width: 28, height: 28, borderRadius: '50%', border: 'none', background: 'rgba(255,255,255,.85)', cursor: 'pointer', fontSize: 14, color: '#6E5F4D' }}>✕</button>
-                    </div>
-                  )
-                })()}
-
-                {/* overflowAnchor: 상세 정보가 뒤늦게 채워질 때 브라우저가 스크롤을 밀어
-                    제목·판정이 화면 밖으로 나가는 것을 막는다 */}
-                <div ref={panelBody} style={{ flex: 1, overflowY: 'auto', overflowAnchor: 'none', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span className="jua" style={{ fontSize: 21 }}>{sel.title}</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, fontWeight: 700, padding: '3px 11px', borderRadius: 99, border: `1.5px solid ${b.border}`, color: b.color, background: b.bg, whiteSpace: 'nowrap' }}>{b.text}</span>
-                  </div>
-
-                  <div style={{ fontSize: 12.5, color: '#A08872' }}>{sel.cat} · {sel.addr1}</div>
-
-                  {/* 오늘 휴무 — 동반 가능해도 문이 닫혀 있으면 똑같이 헛걸음이다.
-                      '오늘 쉰다'가 확실할 때만 알리고, 규칙을 못 읽으면 원문을 그대로 보여준다 */}
-                  {(() => {
-                    if (!detail) return null
-                    const st = restStatus(detail.restdate)
-                    if (st.kind === 'closed') {
-                      return (
-                        <div style={{ border: '1.5px solid #E0A9A0', background: '#FBEDEA', borderRadius: 12, padding: '10px 13px', fontSize: 13, fontWeight: 700, color: '#C0392B' }}>
-                          🔴 오늘({todayLabel()}) 휴무 — {st.label}
-                        </div>
-                      )
-                    }
-                    // 요일은 쉬는 날이지만 "단, 공휴일이면 개관" 같은 예외가 붙은 경우.
-                    // 단정하면 열린 곳을 막게 되므로 원문을 함께 보여주고 확인을 권한다
-                    if (st.kind === 'maybe') {
-                      return (
-                        <div style={{ border: '1.5px solid #F0D9A0', background: '#FBF3DD', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#8A6208', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          <b style={{ fontSize: 13 }}>🟡 오늘({todayLabel()}) 휴무일 수 있어요 — {st.label}</b>
-                          <span>{st.note}</span>
-                          <span style={{ color: '#A08872' }}>예외 규정이 있어 방문 전 확인을 권해요</span>
-                        </div>
-                      )
-                    }
-                    if (!detail.usetime && !detail.restdate) return null
-                    return (
-                      <div style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#6E5F4D', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {detail.usetime && <div>🕘 {detail.usetime}</div>}
-                        {detail.restdate && (
-                          <div style={{ color: st.kind === 'always' ? '#2F8F4E' : '#8A6208' }}>
-                            📅 {detail.restdate}
-                          </div>
-                        )}
-                        {detail.parking && <div>🅿️ 주차 {detail.parking}</div>}
-                      </div>
-                    )
-                  })()}
-
-                  <div style={{ border: `1.5px solid ${b.border}`, background: b.checkBg, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                    <span style={{ fontSize: 13.5, fontWeight: 700 }}>
-                      {pet ? `입장 조건 체크리스트 — ${pet.name} 기준` : '동반 조건'}
-                    </span>
-                    {sel.j ? (
-                      sel.j.checks.map((ck, i) => (
-                        <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
-                          <span style={{ fontWeight: 700, color: ck.color }}>{ck.icon}</span>
-                          <span>{ck.text}</span>
-                        </div>
-                      ))
-                    ) : sel.state === 'info' ? (
-                      // 등록 전 — 판정 없이 원문 조건을 그대로 늘어놓는다. ✓/! 를 찍지 않는다
-                      <>
-                        {ruleLines(rules(sel)).map((line, i) => (
-                          <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
-                            <span style={{ color: '#B3A78F' }}>•</span>
-                            <span>{line}</span>
-                          </div>
-                        ))}
-                        <div style={{ fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>
-                          🐶 프로필을 등록하면 우리 아이가 갈 수 있는지 바로 판정해요
-                        </div>
-                      </>
-                    ) : (
-                      <div style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
-                        <span style={{ fontWeight: 700, color: '#A08872' }}>!</span>
-                        <span>{b.text}</span>
-                      </div>
-                    )}
-                    <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11.5, color: '#A08872' }}>
-                      조건 정보 충실도 {rules(sel)?.completeness ?? '—'}등급 · 출처 ⓒ한국관광공사
-                    </div>
-                  </div>
-
-                  {rules(sel) && rules(sel)!.notes.length > 0 && (
-                    <div style={{ border: '1.5px solid #F0D9A0', background: '#FBF3DD', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#8A6208', display: 'flex', flexDirection: 'column', gap: 5 }}>
-                      <b>현장 규정</b>
-                      {rules(sel)!.notes.map((n, i) => <div key={i}>• {n}</div>)}
-                    </div>
-                  )}
-
-                  {/* 언제 가면 좋을까 — 붐비는 곳은 리드줄이 엉키고 아이가 스트레스를 받는다.
-                      숫자는 그 장소가 가장 붐빌 때를 100 으로 본 상대값이라, 다른 장소와
-                      견주면 안 된다. 같은 장소의 날짜끼리만 비교할 수 있다 */}
-                  {(() => {
-                    if (!crowd) return null
-                    const hint = crowdHint(crowd)
-                    if (!hint) return null
-                    const BAR = { quiet: '#2F8F4E', normal: '#FFC93C', busy: '#C0392B' } as const
-                    return (
-                      <section style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '11px 13px', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                        <b style={{ fontSize: 13 }}>언제 가면 좋을까</b>
-
-                        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 56 }}>
-                          {hint.days.map((d) => {
-                            const lv = crowdLevel(d.rate)
-                            const on = d.ymd === hint.best.ymd
-                            return (
-                              <div key={d.ymd} title={`${d.ymd.slice(4, 6)}.${d.ymd.slice(6)} · 집중률 ${d.rate}`}
-                                style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-                                <div style={{ width: '100%', height: 40, display: 'flex', alignItems: 'flex-end' }}>
-                                  <div style={{
-                                    width: '100%',
-                                    // 상한을 100 으로 고정한다. 구간 최댓값에 맞추면
-                                    // 전부 한산한 주에도 하나가 '붐빔'처럼 보인다
-                                    height: `${Math.max(6, Math.min(100, d.rate))}%`,
-                                    background: BAR[lv],
-                                    opacity: on ? 1 : 0.42,
-                                    borderRadius: 3,
-                                  }} />
-                                </div>
-                                <span style={{ fontSize: 10.5, fontWeight: on ? 700 : 500, color: on ? '#2F8F4E' : '#A08872' }}>
-                                  {dowOf(d.ymd)}
-                                </span>
-                              </div>
-                            )
-                          })}
-                        </div>
-
-                        <div style={{ fontSize: 12.5, color: '#5C5347' }}>
-                          <b style={{ color: '#2F8F4E' }}>{dowOf(hint.best.ymd)}요일</b>이 가장 한산해요
-                          <span style={{ color: '#A08872' }}> · {dowOf(hint.worst.ymd)}요일이 가장 붐벼요</span>
-                        </div>
-
-                        <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11, color: '#A08872', lineHeight: 1.5 }}>
-                          이동통신 데이터로 추정한 예측값이에요. 이 장소가 가장 붐빌 때를 100으로 본
-                          상대적인 정도라, 다른 장소와 비교하는 숫자는 아니에요 · 출처 ⓒ한국관광공사
-                        </div>
-                      </section>
-                    )
-                  })()}
-
-                  {detailLoading && (
-                    <div style={{ fontSize: 12.5, color: '#B3A78F' }}>장소 정보를 불러오는 중…</div>
-                  )}
-
-                  {/* 입장료·시설 — 있는 곳만 (관광지 100%, 나머지 41~66%) */}
-                  {detail && detail.extras.length > 0 && (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 12, rowGap: 7, fontSize: 12.5, alignItems: 'baseline' }}>
-                      {detail.extras.slice(0, 4).map((x, i) => (
-                        <Fragment key={i}>
-                          <span style={{ color: '#A08872', whiteSpace: 'nowrap' }}>{x.name}</span>
-                          <span style={{ whiteSpace: 'pre-line', color: '#2B2420' }}>{x.text}</span>
-                        </Fragment>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 소개글 — 사람이 쓴 문장이라 손대지 않고 그대로 보여준다.
-                      판정·현장 규정 같은 '결정에 쓰는' 블록과 구분되게 테두리 대신
-                      작은 표제와 가는 선으로 묶는다. 길면 접어 두고 펼치게 한다 */}
-                  {detail?.overview && (() => {
-                    const LIMIT = 200
-                    const long = detail.overview.length > LIMIT
-                    // 문장 중간에서 끊지 않는다 — 마지막 마침표까지만 보여준다
-                    const cut = () => {
-                      const head = detail.overview.slice(0, LIMIT)
-                      const end = Math.max(head.lastIndexOf('. '), head.lastIndexOf('.\n'), head.lastIndexOf('다.'))
-                      return (end > LIMIT * 0.5 ? head.slice(0, end + 1) : head.replace(/[\s,·]+$/, '') + '…')
-                    }
-                    const shown = !long || overviewOpen ? detail.overview : cut()
-                    return (
-                      <section style={{ borderTop: '1px solid #EFE8DA', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: '#B3A78F' }}>
-                          이런 곳이에요
-                        </span>
-                        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.75, color: '#5C5347', whiteSpace: 'pre-line', wordBreak: 'keep-all' }}>
-                          {shown}
-                        </p>
-                        {long && (
-                          <button onClick={() => setOverviewOpen((v) => !v)}
-                            style={{ alignSelf: 'flex-start', fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: '#E85D3D', background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}>
-                            {overviewOpen ? '접기' : '더 보기'}
-                          </button>
-                        )}
-                      </section>
-                    )
-                  })()}
-
-                  {/* 사진이 더 있으면 — Type3 은 변경 금지라 자르거나 덧씌우지 않는다 */}
-                  {detail && detail.images.length > 1 && (
-                    <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
-                      {detail.images.slice(0, 6).map((im) => (
-                        <img key={im.url} src={im.url} alt="" loading="lazy"
-                          style={{ width: 84, height: 64, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
-                      ))}
-                    </div>
-                  )}
-
-                  {/* 사용자 참여 — 관광공사 데이터가 아니라 우리 사용자가 남긴 것. 표제에 그렇게 적혀 있다 */}
-                  <PlaceReviews placeId={sel.contentid} placeTitle={sel.title} pet={pet} nickname={sessionNick} loggedIn={Boolean(petStore.session)} provider={petStore.session?.user.app_metadata?.provider as string | undefined} />
-                  <PlaceStories placeId={sel.contentid} placeTitle={sel.title} placeAddr={sel.addr1} />
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 'auto', paddingTop: 4 }}>
-                    <a className="btn-primary" href={`https://map.kakao.com/link/to/${encodeURIComponent(sel.title)},${sel.mapy},${sel.mapx}`} target="_blank" rel="noreferrer"
-                      style={{ fontSize: 14.5, fontWeight: 700, padding: '12px 0', borderRadius: 12, border: 'none', background: '#E85D3D', color: '#FFFFFF', textAlign: 'center', textDecoration: 'none' }}>
-                      길찾기
-                    </a>
-
-                    {detail?.homepage && (
-                      <a className="hov-accent" href={detail.homepage} target="_blank" rel="noreferrer"
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 13px', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', textDecoration: 'none' }}>
-                        <span style={{ fontSize: 13, flex: 'none', color: '#A08872' }}>🔗</span>
-                        <span style={{ fontSize: 13.5, fontWeight: 700, color: '#2B2420' }}>공식 홈페이지</span>
-                      </a>
-                    )}
-
-                    {detailLoading ? (
-                      <span style={{ fontSize: 12.5, color: '#B3A78F', textAlign: 'center' }}>연락처 확인 중…</span>
-                    ) : !detail || detail.tels.length === 0 ? (
-                      <span style={{ fontSize: 12.5, color: '#B3A78F', textAlign: 'center' }}>등록된 전화번호가 없어요</span>
-                    ) : (
-                      detail.tels.slice(0, 3).map((t) => {
-                        const { label, num } = splitTel(t)
-                        return (
-                          <a key={t} className="hov-accent" href={`tel:${num.replace(/[^0-9+]/g, '')}`}
-                            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 13px', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', textDecoration: 'none' }}>
-                            <span style={{ fontSize: 13, flex: 'none', color: '#A08872' }}>☎</span>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: '#2B2420', whiteSpace: 'nowrap' }}>
-                              {num}
-                            </span>
-                            {label && (
-                              <span style={{ flex: 1, minWidth: 0, fontSize: 12, color: '#A08872', textAlign: 'right', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                {label}
-                              </span>
-                            )}
-                          </a>
-                        )
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-            )
-          })()}
+          {/* 상세 패널 — 지도·핫플레이스가 같은 PlaceDetail 을 쓴다. 여기서는 자리만 잡는다 */}
+          {sel && (
+            <div style={isMobile
+              ? { position: 'absolute', inset: 0, background: '#FFFFFF', display: 'flex', flexDirection: 'column', overflow: 'hidden', zIndex: 30 }
+              : { position: 'absolute', left: 14, top: 56, bottom: 14, width: 330, background: '#FFFFFF', border: '1px solid #EAE3D6', borderRadius: 18, boxShadow: '0 10px 34px rgba(43,36,32,.16)', display: 'flex', flexDirection: 'column', overflow: 'hidden', animation: 'slidein .22s ease-out', zIndex: 30 }}>
+              <PlaceDetail
+                place={sel}
+                pet={pet}
+                rulesEntry={rulesById[sel.contentid]}
+                onClose={() => { setSelectedId(null); if (isMobile) setSheet('half') }}
+                mobile={isMobile}
+                nickname={sessionNick}
+                loggedIn={Boolean(petStore.session)}
+                provider={petStore.session?.user.app_metadata?.provider as string | undefined}
+              />
+            </div>
+          )}
         </div>
       </div>
     </div>

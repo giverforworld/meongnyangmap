@@ -4,11 +4,15 @@ import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { usePetsContext } from '../PetsProvider'
 import PetFace from '../PetFace'
+import PlaceDetail from '../PlaceDetail'
+import type { Place } from '@/lib/types'
 import { splitTags, type Camp, type CampJudge } from '@/lib/camping'
 import { distance } from '@/lib/geo'
+import { useIsMobile } from '@/lib/useIsMobile'
 
 interface Curated {
   contentid: string
+  contenttypeid: string
   title: string
   addr1: string
   cat: string
@@ -50,7 +54,7 @@ const TABS: { key: Tab; label: string; title: string; lede: React.ReactNode }[] 
     title: '우리 아이와 함께 가기 좋은 핫플레이스',
     lede: (
       <>
-        <b style={{ color: '#2B2420' }}>문 앞에서 눈치 볼 일 없이</b>, 함께 입장이 가능한 핫플레이스만을 모아놨어요.
+        <b style={{ color: '#2B2420' }}>눈치 볼 일 없이</b>, 함께 입장이 가능한 핫플레이스만을 모아놨어요.
       </>
     ),
   },
@@ -152,8 +156,18 @@ export default function Hotplace() {
 
 /* ── 핫플레이스 ──────────────────────────────────────────── */
 
+/** 핫플레이스 항목을 상세가 받는 모양으로. 목록엔 없는 칸은 비워 보낸다 */
+function toPlace(c: Curated): Place {
+  return { contentid: c.contentid, contenttypeid: c.contenttypeid, title: c.title, addr1: c.addr1, mapx: c.mapx, mapy: c.mapy, firstimage: c.firstimage, cat: c.cat, lclsSystm1: '', lclsSystm2: '', lclsSystm3: '', regnCd: c.regnCd, signguCd: '' }
+}
+
 function HotView() {
+  const petStore = usePetsContext()
+  const isMobile = useIsMobile()
   const [items, setItems] = useState<Curated[]>([])
+  /** 상세 보기로 연 장소 — 지도 화면으로 넘어가지 않고 여기서 본다 */
+  const [open, setOpen] = useState<Curated | null>(null)
+  const sessionNick = ((petStore.session?.user.user_metadata?.nickname as string) || (petStore.session?.user.user_metadata?.name as string) || '').slice(0, 20)
   const [regions, setRegions] = useState<Region[]>([])
   const [regnCd, setRegnCd] = useState('')
   const [cat, setCat] = useState('전체')
@@ -250,6 +264,24 @@ function HotView() {
 
   return (
     <>
+      {/* 상세 보기 — 지도 화면과 같은 PlaceDetail 을 이 자리에서 연다. Esc·바깥 클릭으로 닫는다 */}
+      {open && (
+        <div onClick={() => setOpen(null)} role="dialog" aria-label={`${open.title} 상세`}
+          style={{ position: 'fixed', inset: 0, zIndex: 80, background: 'rgba(43,36,32,.42)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: isMobile ? 0 : 16 }}>
+          <div onClick={(e) => e.stopPropagation()}
+            style={{ position: 'relative', width: '100%', maxWidth: isMobile ? undefined : 400, height: isMobile ? '100%' : 'min(720px, 92vh)', background: '#FFFFFF', borderRadius: isMobile ? 0 : 20, overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 16px 48px rgba(43,36,32,.24)' }}>
+            <PlaceDetail
+              place={toPlace(open)}
+              pet={petStore.pet}
+              onClose={() => setOpen(null)}
+              mobile={isMobile}
+              nickname={sessionNick}
+              loggedIn={Boolean(petStore.session)}
+              provider={petStore.session?.user.app_metadata?.provider as string | undefined}
+            />
+          </div>
+        </div>
+      )}
       <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
         <select
           value={regnCd}
@@ -333,10 +365,10 @@ function HotView() {
               </div>
               {/* 지도 상세(판정·리뷰)로, 그리고 커뮤니티에 이곳 이야기 쓰기로 */}
               <div style={{ display: 'flex', gap: 6, paddingTop: 8, borderTop: '1px solid #F3EEE4', marginTop: 4 }}>
-                <Link href={`/?focus=${p.contentid}`} className="hov-accent"
-                  style={{ flex: 1, textAlign: 'center', fontSize: 12.5, fontWeight: 700, padding: '7px 0', borderRadius: 9, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', textDecoration: 'none' }}>
-                  지도·리뷰 보기
-                </Link>
+                <button onClick={() => setOpen(p)} className="hov-accent"
+                  style={{ flex: 1, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '7px 0', borderRadius: 9, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', cursor: 'pointer' }}>
+                  상세 보기
+                </button>
                 <Link href={`/community?write=1&place=${p.contentid}&title=${encodeURIComponent(p.title)}&addr=${encodeURIComponent(p.addr1)}`} className="hov-accent"
                   style={{ flex: 1, textAlign: 'center', fontSize: 12.5, fontWeight: 700, padding: '7px 0', borderRadius: 9, border: '1.5px solid #F3C9BB', background: '#FFF4EF', color: '#E85D3D', textDecoration: 'none' }}>
                   이곳 이야기 쓰기
