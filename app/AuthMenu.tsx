@@ -61,12 +61,15 @@ export default function AuthMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         title={u ? `${who} · 로그아웃` : '소셜 로그인 — 안 해도 전부 쓸 수 있어요'}
-        // 옆의 프로필 칩과 같은 키(아바타 40 · 두 줄)로 맞춘다 — 둘이 높이가 다르면 나란히 서지 않는다
+        // 옆의 프로필 칩과 같은 키(아바타 40 · 두 줄)로 맞춘다 — 둘이 높이가 다르면 나란히 서지 않는다.
+        // 로그인 전 좁은 화면은 아이콘 위·글자 아래 두 줄로 — 사람 아이콘 하나만 두면 로그인인 줄 아무도 모른다
         style={{
-          display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
+          flexDirection: compact && !u ? 'column' : 'row',
+          gap: compact ? (u ? 6 : 1) : 10,
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
-          padding: compact ? '3px 3px' : '6px 20px 6px 7px', minWidth: compact ? undefined : 150,
-          borderRadius: 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
+          padding: compact ? (u ? '3px 3px' : '3px 6px') : '6px 18px 6px 9px', minWidth: compact ? undefined : 150,
+          borderRadius: compact && !u ? 12 : 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
           background: '#FFFFFF', color: '#2B2420', cursor: 'pointer',
         }}
       >
@@ -87,17 +90,20 @@ export default function AuthMenu({
               </span>
             )}
           </>
+        ) : compact ? (
+          <>
+            <SocialPair size={18} />
+            <span style={{ fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: -0.2 }}>소셜 로그인</span>
+          </>
         ) : (
           <>
-            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, borderRadius: '50%', background: '#F6F1E7', flex: 'none', color: '#8A7A65' }}>
-              <PersonIcon size={compact ? 16 : 22} />
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', height: 40, flex: 'none' }}>
+              <SocialPair size={27} />
             </span>
-            {!compact && (
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span>소셜 로그인</span>
-                <span style={{ fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2 }}>카카오 · 구글 ▾</span>
-              </span>
-            )}
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span style={{ whiteSpace: 'nowrap' }}>소셜 로그인</span>
+              <span style={{ fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2, whiteSpace: 'nowrap' }}>카카오 · 구글 ▾</span>
+            </span>
           </>
         )}
       </button>
@@ -142,7 +148,25 @@ export default function AuthMenu({
   )
 }
 
-/** 사람 실루엣 — 로그인 전에는 이것만, 로그인 뒤에는 사진이 없을 때 */
+/**
+ * 카카오·구글 동그라미 둘을 살짝 겹쳐 놓은 것 — "어떤 로그인인지"를 글자보다 먼저 말한다.
+ * 겹치는 쪽(구글)은 흰 테두리로 카카오 위에 올라앉는다.
+ */
+function SocialPair({ size = 24 }: { size?: number }) {
+  const overlap = Math.round(size * 0.32)
+  return (
+    <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flex: 'none' }}>
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, borderRadius: '50%', background: '#FEE500', flex: 'none' }}>
+        <KakaoIcon size={Math.round(size * 0.62)} />
+      </span>
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, marginLeft: -overlap, borderRadius: '50%', background: '#FFFFFF', boxShadow: '0 0 0 1.5px #FFFFFF, inset 0 0 0 1px #E3DCCE', flex: 'none' }}>
+        <GoogleIcon size={Math.round(size * 0.56)} />
+      </span>
+    </span>
+  )
+}
+
+/** 사람 실루엣 — 로그인 뒤에 사진이 없을 때 */
 function PersonIcon({ size = 18 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor"

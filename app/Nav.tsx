@@ -39,7 +39,7 @@ export default function Nav() {
         display: 'flex',
         alignItems: 'center',
         gap: isMobile ? 6 : 12,
-        padding: isMobile ? '0 8px 0 6px' : '0 20px 0 24px',
+        padding: isMobile ? '0 6px 0 4px' : '0 20px 0 24px',
         background: '#FFFFFF',
         borderBottom: '1px solid #EAE3D6',
         flex: 'none',
