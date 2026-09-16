@@ -4,7 +4,7 @@
  */
 
 /** 지역 — 주황 핀 안에 발자국. 멍냥맵의 "여기" */
-export function PawPinIcon({ size = 20 }: { size?: number }) {
+export function PawPinIcon({ size = 24 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" style={{ flex: 'none', display: 'block' }}>
       <path d="M12 22.2c4.5-5 6.8-8.8 6.8-11.5a6.8 6.8 0 1 0-13.6 0c0 2.7 2.3 6.5 6.8 11.5Z" fill="#E85D3D" />
