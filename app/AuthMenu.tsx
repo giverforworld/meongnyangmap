@@ -60,7 +60,7 @@ export default function AuthMenu({
         onClick={() => setOpen((v) => !v)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={u ? `${who} · 로그아웃` : '소셜 로그인 — 안 해도 전부 쓸 수 있어요'}
+        title={u ? `${who} · 로그아웃` : '로그인 — 안 해도 전부 쓸 수 있어요'}
         // 옆의 프로필 칩과 같은 키(아바타 40 · 두 줄)로 맞춘다 — 둘이 높이가 다르면 나란히 서지 않는다.
         // 로그인 전 좁은 화면은 아이콘 위·글자 아래 두 줄로 — 사람 아이콘 하나만 두면 로그인인 줄 아무도 모른다
         style={{
@@ -93,7 +93,7 @@ export default function AuthMenu({
         ) : compact ? (
           // 좁은 화면 — 글자가 주인공(메뉴 탭 글자와 같은 11.5px), 아이콘은 그 아래 작게
           <>
-            <span style={{ fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: -0.2 }}>소셜 로그인</span>
+            <span style={{ fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: -0.2 }}>로그인</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <SocialDot kind="kakao" size={15} />
               <SocialDot kind="google" size={15} />
@@ -102,7 +102,7 @@ export default function AuthMenu({
         ) : (
           // 프로필 칩의 아바타(40) 높이에 맞춘 두 줄 — 둘째 줄은 아이콘만. 글자 없이도 무슨 로그인인지 보인다
           <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 40 }}>
-            <span style={{ whiteSpace: 'nowrap' }}>소셜 로그인</span>
+            <span style={{ whiteSpace: 'nowrap' }}>로그인</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 3, whiteSpace: 'nowrap' }}>
               <SocialDot kind="kakao" size={18} />
               <SocialDot kind="google" size={18} />
