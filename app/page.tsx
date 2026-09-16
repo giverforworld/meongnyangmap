@@ -37,6 +37,10 @@ interface Region {
 
 type Judged = Place & { j: Judgement | null; state: CardState }
 
+/** 좁은 화면 목록 시트의 단계 — 아래에서 위 순서 */
+type SheetStage = 'peek' | 'half' | 'tall' | 'full'
+const STAGES: SheetStage[] = ['peek', 'half', 'tall', 'full']
+
 export default function Home() {
   const [regions, setRegions] = useState<Region[]>([])
   const [regnCd, setRegnCd] = useState('11')
@@ -82,7 +86,7 @@ export default function Home() {
    * 목록과 지도를 탭으로 갈라 두면 "이게 어디쯤이지"를 확인할 때마다 화면을 갈아타야 한다.
    * 지도앱들이 시트를 쓰는 이유가 그것이라, 높이를 세 단계로 끊어 같은 방식을 따른다.
    */
-  const [sheet, setSheet] = useState<'peek' | 'half' | 'full'>('half')
+  const [sheet, setSheet] = useState<SheetStage>('half')
   /** 손가락으로 끄는 동안의 실제 높이(px). 놓으면 가장 가까운 단계로 붙는다 */
   const [sheetPx, setSheetPx] = useState<number | null>(null)
   /**
@@ -329,8 +333,19 @@ export default function Home() {
 
   const sel = visible.find((p) => p.contentid === selectedId) ?? null
 
-  /** 시트 단계별 높이. peek 은 손잡이와 머리글만 남긴다. full 은 검색창 바로 아래까지 — 지도를 다 덮는다 */
-  const SHEET_H = { peek: '86px', half: '46%', full: '100%' } as const
+  /**
+   * 시트 단계별 높이 — 넷. peek 은 손잡이와 머리글만, half 는 지도와 반반,
+   * tall 은 지도를 한 뼘 남기고, full 은 검색창 바로 아래까지 올라가 지도를 다 덮는다.
+   * tall 없이 half 에서 바로 full 로 튀면 한 번에 너무 많이 움직인다.
+   */
+  const SHEET_H: Record<SheetStage, string> = { peek: '86px', half: '46%', tall: '88%', full: '100%' }
+  /** 놓은 높이(부모 대비 비율)와 빠르기로 다음 단계를 고른다. 휙 올리면 한 단계 위, 휙 내리면 한 단계 아래, 느리면 가장 가까운 단계 */
+  const snapStage = (r: number, vy: number, parentH: number): SheetStage => {
+    const ratio: Record<SheetStage, number> = { peek: 86 / Math.max(1, parentH), half: 0.46, tall: 0.88, full: 1 }
+    if (vy < -0.45) return STAGES.find((k) => ratio[k] > r + 0.02) ?? 'full'
+    if (vy > 0.45) return [...STAGES].reverse().find((k) => ratio[k] < r - 0.02) ?? 'peek'
+    return STAGES.reduce((best, k) => (Math.abs(ratio[k] - r) < Math.abs(ratio[best] - r) ? k : best), 'half' as SheetStage)
+  }
   /** 지도에서 시트에 가려지는 비율 — 핀을 그 위로 올리는 데 쓴다 */
   const mapInset = !isMobile ? 0 : sheet === 'peek' ? 0.14 : 0.5
 
@@ -355,8 +370,8 @@ export default function Home() {
     if (!dragRef.current || !el || sheetPx === null) return
     dragRef.current = null
     // 놓은 높이에서 가장 가까운 단계로 붙인다
-    const r = sheetPx / (el.parentElement?.clientHeight || 1)
-    setSheet(r < 0.28 ? 'peek' : r < 0.66 ? 'half' : 'full')
+    const parentH = el.parentElement?.clientHeight || 1
+    setSheet(snapStage(sheetPx / parentH, 0, parentH))
     setSheetPx(null)
   }
 
@@ -409,12 +424,8 @@ export default function Home() {
       if (!active) return
       active = false
       if (!decided) return
-      const r = curH / (el.parentElement?.clientHeight || 1)
-      let next: 'peek' | 'half' | 'full'
-      if (vy < -0.45) next = 'full'
-      else if (vy > 0.45) next = r > 0.62 ? 'half' : 'peek'
-      else next = r < 0.28 ? 'peek' : r < 0.66 ? 'half' : 'full'
-      setSheet(next)
+      const parentH = el.parentElement?.clientHeight || 1
+      setSheet(snapStage(curH / parentH, vy, parentH))
       setSheetPx(null)
     }
     el.addEventListener('touchstart', onStart, { passive: true })
@@ -844,7 +855,7 @@ export default function Home() {
               }}>
               {/* 손잡이 — 마우스로도 끌 수 있게 포인터 끌기는 여기만. 손가락은 시트 어디든 된다 */}
               <div onPointerDown={(e) => { if (e.pointerType === 'mouse') dragStart(e) }} onPointerMove={(e) => { if (e.pointerType === 'mouse') dragMove(e) }} onPointerUp={dragEnd} onPointerCancel={dragEnd}
-                onClick={() => setSheet(sheet === 'full' ? 'peek' : sheet === 'half' ? 'full' : 'half')}
+                onClick={() => setSheet(STAGES[(STAGES.indexOf(sheet) + 1) % STAGES.length])}
                 title="끌어서 높이 조절"
                 style={{ flex: 'none', padding: '10px 0 8px', display: 'flex', justifyContent: 'center', cursor: 'grab' }}>
                 <span style={{ width: 40, height: 5, borderRadius: 99, background: '#DCD3C2' }} />
