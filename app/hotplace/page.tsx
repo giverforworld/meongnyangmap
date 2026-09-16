@@ -321,11 +321,6 @@ function HotView() {
             · {period.from.slice(4, 6)}.{period.from.slice(6)}~{period.to.slice(4, 6)}.{period.to.slice(6)} 집계
           </span>
         )}
-        {sort === 'near' && here && (
-          <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.5 }}>
-            위치는 <b style={{ color: '#8A7A65' }}>이 브라우저 안에서만</b> 쓰고 서버로 보내지 않아요
-          </span>
-        )}
         {geoError && (
           <span style={{ fontSize: 11.5, color: '#C0392B', lineHeight: 1.5 }}>{geoError}</span>
         )}
@@ -558,12 +553,6 @@ function CampView() {
             </button>
           )
         })}
-        {sort === 'near' && nearIds && (
-          <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.5 }}>
-            내 위치에서 <b style={{ color: '#8A7A65' }}>가까운 {NEAR_MAX}곳</b> 안에서 봐요
-            · 위치는 이 브라우저 안에서만 쓰고 서버로 보내지 않아요
-          </span>
-        )}
         {geoError && (
           <span style={{ fontSize: 11.5, color: '#C0392B', lineHeight: 1.5 }}>{geoError}</span>
         )}
