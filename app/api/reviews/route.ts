@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { boardReady, sbInsert, sbSelect } from '@/lib/supabase'
 import { hashPassword } from '@/lib/password'
 import { cleanPhotos, isContentId, resolvePlace } from '@/lib/board'
+import { petSnapshotOf, viewerOf } from '@/lib/auth'
+import { randomBytes } from 'node:crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,6 +19,12 @@ export interface Review {
   photos: string[]
   pet_size: 'small' | 'medium' | 'large' | null
   created_at: string
+  author_avatar: string | null
+  author_provider: string | null
+  pet_name: string | null
+  pet_emoji: string | null
+  /** 로그인해서 보는 사람의 것인지 — 서버가 계정으로 확인 */
+  mine?: boolean
 }
 
 /**
@@ -35,10 +43,13 @@ export async function GET(req: Request) {
   if (!boardReady) return NextResponse.json({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 }, offline: true })
 
   try {
-    const reviews = await sbSelect<Review>(
-      `reviews?select=id,place_id,nickname,rating,entry,body,photos,pet_size,created_at` +
+    const rows = await sbSelect<Review & { author_id: string | null }>(
+      `reviews?select=id,place_id,nickname,rating,entry,body,photos,pet_size,created_at,author_id,author_avatar,author_provider,pet_name,pet_emoji` +
         `&place_id=eq.${place}&deleted_at=is.null&order=created_at.desc&limit=${MAX}`
     )
+    // 계정 id 는 밖으로 내지 않는다 — 내 것인지만
+    const viewer = rows.some((r) => r.author_id) ? await viewerOf(req) : null
+    const reviews: Review[] = rows.map(({ author_id, ...r }) => ({ ...r, mine: Boolean(viewer && viewer.id === author_id) }))
     const count = reviews.length
     const avg = count ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : null
     const entry = { ok: 0, cond: 0, denied: 0 }
@@ -54,7 +65,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   if (!boardReady) return NextResponse.json({ error: '리뷰 저장소가 아직 연결되지 않았어요' }, { status: 503 })
   try {
-    const { placeId, nickname, rating, entry, body, photos, petSize, password } = await req.json()
+    const { placeId, nickname, rating, entry, body, photos, petSize, password, petKey } = await req.json()
+    const viewer = await viewerOf(req)
 
     // 장소 이름은 화면이 보낸 것이 아니라 우리 목록에서 찾는다
     const pl = await resolvePlace({ id: placeId })
@@ -63,7 +75,7 @@ export async function POST(req: Request) {
     const ptitle = pl.place_title!
     const nick = String(nickname ?? '').trim()
     const b = String(body ?? '').trim()
-    const pw = String(password ?? '')
+    const pw = viewer ? randomBytes(24).toString('hex') : String(password ?? '')
     const rt = Number(rating)
     if (!nick || nick.length > 20) return bad('닉네임은 1~20자로 적어주세요')
     if (!Number.isInteger(rt) || rt < 1 || rt > 5) return bad('별점을 골라주세요')
@@ -74,6 +86,7 @@ export async function POST(req: Request) {
     if (ph === null) return bad('사진은 우리 저장소에 올린 것만 4장까지 붙일 수 있어요')
     const size = ['small', 'medium', 'large'].includes(petSize) ? petSize : null
 
+    const pet = viewer ? await petSnapshotOf(viewer.id, typeof petKey === 'string' ? petKey : null) : null
     const saved = await sbInsert<{ id: number }>('reviews', {
       place_id: pid,
       place_title: ptitle,
@@ -84,6 +97,12 @@ export async function POST(req: Request) {
       photos: ph,
       pet_size: size,
       password_hash: hashPassword(pw),
+      author_id: viewer?.id ?? null,
+      author_name: viewer?.name ?? null,
+      author_avatar: viewer?.avatar ?? null,
+      author_provider: viewer?.provider ?? null,
+      pet_name: pet?.pet_name ?? null,
+      pet_emoji: pet?.pet_emoji ?? null,
     })
     return NextResponse.json({ id: saved.id })
   } catch (e) {

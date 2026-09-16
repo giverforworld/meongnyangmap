@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { boardReady, sbSelect, sbUpdate } from '@/lib/supabase'
 import { verifyPassword } from '@/lib/password'
+import { viewerOf } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -14,13 +15,15 @@ export async function DELETE(req: Request, { params }: Ctx) {
   if (!Number.isInteger(n)) return NextResponse.json({ error: '없는 리뷰예요' }, { status: 404 })
 
   try {
-    const { password } = await req.json()
-    const rows = await sbSelect<{ id: number; password_hash: string }>(
-      `reviews?select=id,password_hash&id=eq.${n}&deleted_at=is.null`
+    const { password } = await req.json().catch(() => ({}))
+    const rows = await sbSelect<{ id: number; password_hash: string; author_id: string | null }>(
+      `reviews?select=id,password_hash,author_id&id=eq.${n}&deleted_at=is.null`
     )
     if (rows.length === 0) return NextResponse.json({ error: '없는 리뷰예요' }, { status: 404 })
-    if (!verifyPassword(String(password ?? ''), rows[0].password_hash)) {
-      return NextResponse.json({ error: '비밀번호가 달라요' }, { status: 403 })
+    const viewer = rows[0].author_id ? await viewerOf(req) : null
+    const mine = Boolean(viewer && viewer.id === rows[0].author_id)
+    if (!mine && !verifyPassword(String(password ?? ''), rows[0].password_hash)) {
+      return NextResponse.json({ error: rows[0].author_id ? '이 리뷰를 쓴 계정으로 로그인해야 지울 수 있어요' : '비밀번호가 달라요' }, { status: 403 })
     }
     await sbUpdate('reviews', `id=eq.${n}`, { deleted_at: new Date().toISOString() })
     return NextResponse.json({ ok: true })

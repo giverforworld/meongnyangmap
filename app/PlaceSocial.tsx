@@ -5,6 +5,9 @@ import { useEffect, useRef, useState } from 'react'
 import type { Pet } from '@/lib/types'
 import PhotoPicker from './PhotoPicker'
 import PetFace from './PetFace'
+import Author from './Author'
+import { ProviderMark } from './PetSwitch'
+import { authHeaders } from '@/lib/authHeader'
 
 /**
  * 장소 상세에 붙는 사용자 참여 두 덩이 — 방문 리뷰와 커뮤니티 이야기.
@@ -25,6 +28,11 @@ interface Review {
   photos: string[]
   pet_size: 'small' | 'medium' | 'large' | null
   created_at: string
+  author_avatar: string | null
+  author_provider: string | null
+  pet_name: string | null
+  pet_emoji: string | null
+  mine?: boolean
 }
 
 const ENTRY: Record<Entry, { label: string; color: string; bg: string; border: string }> = {
@@ -55,7 +63,7 @@ function when(iso: string) {
 /* ── 방문 리뷰 ─────────────────────────────────────────── */
 
 export function PlaceReviews({
-  placeId, placeTitle, pet, nickname: presetNick,
+  placeId, placeTitle, pet, nickname: presetNick, loggedIn = false, provider,
 }: {
   placeId: string
   placeTitle: string
@@ -63,6 +71,9 @@ export function PlaceReviews({
   pet: Pet | null
   /** 로그인돼 있으면 닉네임을 미리 채운다 */
   nickname?: string
+  /** 로그인 상태 — 비밀번호 대신 계정으로 남긴다. 확인은 서버가 토큰으로 한다 */
+  loggedIn?: boolean
+  provider?: string
 }) {
   const [data, setData] = useState<{ reviews: Review[]; count: number; avg: number | null; entry: Record<Entry, number>; capped?: boolean; offline?: boolean } | null>(null)
   const [writing, setWriting] = useState(false)
@@ -83,7 +94,8 @@ export function PlaceReviews({
 
   const load = () => {
     const my = ++seq.current
-    fetch(`/api/reviews?place=${placeId}`)
+    authHeaders()
+      .then((h) => fetch(`/api/reviews?place=${placeId}`, { headers: h }))
       .then((r) => r.json())
       .then((d) => { if (my === seq.current) setData(d) })
       .catch(() => { if (my === seq.current) setData({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 } }) })
@@ -108,8 +120,8 @@ export function PlaceReviews({
     try {
       const r = await fetch('/api/reviews', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ placeId, placeTitle, nickname, rating, entry, body, photos, petSize: pet?.size ?? null, password }),
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({ placeId, placeTitle, nickname, rating, entry, body, photos, petSize: pet?.size ?? null, password, petKey: pet?.key ?? null }),
       })
       const d = await r.json()
       if (!r.ok) return setError(d.error ?? '리뷰를 올리지 못했어요')
@@ -125,7 +137,7 @@ export function PlaceReviews({
 
   async function remove(id: number) {
     setDelError('')
-    const r = await fetch(`/api/reviews/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: delPw }) })
+    const r = await fetch(`/api/reviews/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ password: delPw }) })
     const d = await r.json()
     if (!r.ok) return setDelError(d.error ?? '지우지 못했어요')
     setDeleting(null); setDelPw('')
@@ -194,9 +206,15 @@ export function PlaceReviews({
             placeholder="어땠나요? 다음 사람에게 도움이 될 걸 적어주세요 — 직원 반응, 자리, 물그릇…"
             style={{ ...field, resize: 'vertical', lineHeight: 1.6 }} />
           <PhotoPicker photos={photos} onChange={setPhotos} />
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="닉네임" maxLength={20} required style={{ ...field, flex: 1 }} />
-            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 (지울 때)" type="password" minLength={4} required style={{ ...field, flex: 1 }} />
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="닉네임" maxLength={20} required style={{ ...field, flex: '1 1 120px' }} />
+            {loggedIn ? (
+              <span style={{ flex: '1 1 120px', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6E5F4D' }}>
+                <ProviderMark provider={provider} /> 계정으로 남아요
+              </span>
+            ) : (
+              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 (지울 때)" type="password" minLength={4} required style={{ ...field, flex: '1 1 120px' }} />
+            )}
           </div>
           {error && <span style={{ fontSize: 12.5, color: '#C0392B' }}>{error}</span>}
           <div style={{ display: 'flex', gap: 8 }}>
@@ -219,8 +237,8 @@ export function PlaceReviews({
       {data?.reviews.map((r) => (
         <article key={r.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 0', borderTop: '1px solid #F3EEE4' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', fontSize: 12 }}>
-            <b style={{ color: '#2B2420', fontSize: 13 }}>{r.nickname}</b>
-            {r.pet_size && <span style={{ color: '#A08872' }}>{SIZE_LABEL[r.pet_size]}와</span>}
+            <Author a={{ nickname: r.nickname, author_avatar: r.author_avatar, author_provider: r.author_provider, pet_name: r.pet_name, pet_emoji: r.pet_emoji, pet_label: r.pet_size ? SIZE_LABEL[r.pet_size] : null }} size={20} fontSize={13} />
+            {!r.pet_name && r.pet_size && <span style={{ color: '#A08872' }}>{SIZE_LABEL[r.pet_size]}와</span>}
             <Stars n={r.rating} />
             {r.entry && (
               <span style={{ fontSize: 11, fontWeight: 700, color: ENTRY[r.entry].color, background: ENTRY[r.entry].bg, borderRadius: 99, padding: '2px 7px' }}>
@@ -239,7 +257,12 @@ export function PlaceReviews({
               ))}
             </div>
           )}
-          {deleting === r.id ? (
+          {r.mine ? (
+            <button onClick={() => { setDelPw(''); remove(r.id) }}
+              style={{ alignSelf: 'flex-end', fontFamily: 'inherit', fontSize: 11.5, color: '#C0392B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+              내 리뷰 지우기
+            </button>
+          ) : deleting === r.id ? (
             <form onSubmit={(e) => { e.preventDefault(); remove(r.id) }} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <input value={delPw} onChange={(e) => setDelPw(e.target.value)} type="password" placeholder="비밀번호" required autoFocus
                 style={{ ...field, width: 120, padding: '6px 10px', fontSize: 12.5 }} />

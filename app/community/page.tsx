@@ -7,6 +7,10 @@ import { useIsMobile } from '@/lib/useIsMobile'
 import { usePetsContext } from '../PetsProvider'
 import PhotoPicker from '../PhotoPicker'
 import PlacePicker, { type PlaceRef } from '../PlacePicker'
+import Author from '../Author'
+import { ProviderMark } from '../PetSwitch'
+import PetFace from '../PetFace'
+import { authHeaders } from '@/lib/authHeader'
 
 interface Post {
   id: number
@@ -19,14 +23,11 @@ interface Post {
   photos: string[]
   place_id: string | null
   place_title: string | null
-}
-
-/** 닉네임마다 같은 색 — 아바타 대신. 따뜻한 계열에서만 고른다 */
-const AVATAR_BG = ['#FFE0D3', '#FFF1C2', '#FADDE6', '#FCE9C8', '#E3ECF7', '#DDEFE3', '#EFE3F7']
-function avatarBg(nick: string) {
-  let h = 0
-  for (const ch of nick) h = (h * 31 + ch.charCodeAt(0)) >>> 0
-  return AVATAR_BG[h % AVATAR_BG.length]
+  author_avatar: string | null
+  author_provider: string | null
+  pet_name: string | null
+  pet_emoji: string | null
+  pet_label: string | null
 }
 
 /** 오늘 쓴 글은 시간만, 그 전은 날짜만 — 목록에서 눈이 덜 피곤하다 */
@@ -121,8 +122,9 @@ function Board() {
     try {
       const r = await fetch('/api/posts', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname, title, body, password, photos, place }),
+        // 로그인돼 있으면 토큰을 같이 보낸다 — 서버가 확인해 계정과 아이를 글에 남긴다
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({ nickname, title, body, password, photos, place, petKey: petStore.activeKey }),
       })
       const d = await r.json()
       if (!r.ok) {
@@ -209,12 +211,24 @@ function Board() {
           <form onSubmit={submit}
             style={{ background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <PlacePicker value={place} onChange={setPlace} />
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
               <input value={nickname} onChange={(e) => setNickname(e.target.value)}
                 placeholder="닉네임" maxLength={20} required style={{ ...field, flex: '1 1 160px' }} />
-              <input value={password} onChange={(e) => setPassword(e.target.value)}
-                placeholder="비밀번호 (지울 때 필요해요)" type="password" minLength={4} required
-                style={{ ...field, flex: '1 1 200px' }} />
+              {petStore.session ? (
+                // 로그인 글은 계정으로 지우니 비밀번호가 없다. 대신 무엇이 같이 남는지 보여준다
+                <span style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#6E5F4D', flexWrap: 'wrap' }}>
+                  <ProviderMark provider={petStore.session.user.app_metadata?.provider as string} /> 계정으로 올라가요
+                  {petStore.pet && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      · <PetFace emoji={petStore.pet.emoji} size={16} /> {petStore.pet.name} · {petStore.pet.sizeLabel}
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <input value={password} onChange={(e) => setPassword(e.target.value)}
+                  placeholder="비밀번호 (지울 때 필요해요)" type="password" minLength={4} required
+                  style={{ ...field, flex: '1 1 200px' }} />
+              )}
             </div>
             <input value={title} onChange={(e) => setTitle(e.target.value)}
               placeholder="제목" maxLength={80} required style={field} />
@@ -274,11 +288,8 @@ function Board() {
                       {p.excerpt}
                     </span>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 2, fontSize: 12, color: '#B3A78F' }}>
-                    <span aria-hidden="true" style={{ width: 20, height: 20, borderRadius: '50%', background: avatarBg(p.nickname), color: '#6E5F4D', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none' }}>
-                      {p.nickname.slice(0, 1)}
-                    </span>
-                    <span style={{ color: '#8A7A65', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>{p.nickname}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 'auto', paddingTop: 2, fontSize: 12, color: '#B3A78F', flexWrap: 'wrap' }}>
+                    <Author a={p} size={20} fontSize={12} />
                     <span>·</span>
                     <span style={{ fontVariantNumeric: 'tabular-nums' }}>{when(p.created_at)}</span>
                     <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>👁 {p.views}</span>

@@ -490,7 +490,7 @@ export default function Home() {
     <button className="hov-accent" disabled={nearBusy}
       onClick={() => (nearIds ? setNearIds(null) : findNearby())}
       title={nearIds ? '지역으로 돌아가기' : '현재 위치 20km 안에서 찾기 — 위치는 이 기기 밖으로 나가지 않아요'}
-      style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '7px 12px', borderRadius: 99, border: '1.5px solid #E85D3D', background: nearIds ? '#E85D3D' : 'rgba(255,255,255,.96)', color: nearIds ? '#FFFFFF' : '#E85D3D', cursor: nearBusy ? 'default' : 'pointer', boxShadow: '0 3px 12px rgba(43,36,32,.16)', whiteSpace: 'nowrap', opacity: nearBusy ? .7 : 1 }}>
+      style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '7px 12px', borderRadius: 99, border: `1.5px solid ${nearIds ? '#E85D3D' : '#F3C9BB'}`, background: nearIds ? '#E85D3D' : 'rgba(255,244,239,.97)', color: nearIds ? '#FFFFFF' : '#E85D3D', cursor: nearBusy ? 'default' : 'pointer', boxShadow: '0 3px 12px rgba(43,36,32,.16)', whiteSpace: 'nowrap', opacity: nearBusy ? .7 : 1 }}>
       <LocateIcon size={15} /> {nearBusy ? '확인 중…' : nearIds ? '해제' : '내 주변 탐색'}
     </button>
   )
@@ -643,7 +643,7 @@ export default function Home() {
           onClick={() => (nearIds ? setNearIds(null) : findNearby())}
           title={nearIds ? '지역으로 돌아가기' : '현재 위치 20km 안에서 찾기 — 위치는 이 기기 밖으로 나가지 않아요'}
           // 상단 바에서 유일하게 색이 있는 버튼 — 지역·검색과 같은 베이지면 묻힌다
-          style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, padding: '10px 16px', borderRadius: 13, border: '1.5px solid #E85D3D', background: nearIds ? '#E85D3D' : '#FFFFFF', color: nearIds ? '#FFFFFF' : '#E85D3D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: nearBusy ? .7 : 1 }}>
+          style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, padding: '10px 16px', borderRadius: 13, border: `1.5px solid ${nearIds ? '#E85D3D' : '#F3C9BB'}`, background: nearIds ? '#E85D3D' : '#FFF4EF', color: nearIds ? '#FFFFFF' : '#E85D3D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: nearBusy ? .7 : 1 }}>
           <LocateIcon size={17} /> {nearBusy ? '위치 확인 중…' : nearIds ? '내 주변 해제' : '내 주변 탐색'}
         </button>
 
@@ -1092,7 +1092,7 @@ export default function Home() {
                   )}
 
                   {/* 사용자 참여 — 관광공사 데이터가 아니라 우리 사용자가 남긴 것. 표제에 그렇게 적혀 있다 */}
-                  <PlaceReviews placeId={sel.contentid} placeTitle={sel.title} pet={pet} nickname={sessionNick} />
+                  <PlaceReviews placeId={sel.contentid} placeTitle={sel.title} pet={pet} nickname={sessionNick} loggedIn={Boolean(petStore.session)} provider={petStore.session?.user.app_metadata?.provider as string | undefined} />
                   <PlaceStories placeId={sel.contentid} placeTitle={sel.title} placeAddr={sel.addr1} />
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 'auto', paddingTop: 4 }}>

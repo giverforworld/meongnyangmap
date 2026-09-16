@@ -405,12 +405,12 @@ function PetForm({
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>몸무게</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <input value={kg} onChange={(e) => setKg(e.target.value.replace(/[^0-9.]/g, ''))}
-            inputMode="decimal" placeholder="4" style={{ ...field, width: 96 }} />
+            inputMode="decimal" placeholder="4" style={{ ...field, width: 92 }} />
           <span style={{ fontSize: 14.5, color: '#6E5F4D' }}>kg</span>
           {/* 강아지 / 고양이 — 크기 이름표(소형견·소형묘)와 맹견 항목이 이걸 따른다 */}
-          <div role="radiogroup" aria-label="종류" style={{ display: 'flex', border: '1.5px solid #EAE3D6', borderRadius: 99, padding: 2, background: '#FFFFFF' }}>
+          <div role="radiogroup" aria-label="종류" style={{ display: 'flex', marginLeft: 8, border: '1.5px solid #EAE3D6', borderRadius: 99, padding: 2, background: '#FFFFFF' }}>
             {([['dog', '강아지', '🐶'], ['cat', '고양이', '🐱']] as const).map(([k, label, face]) => {
               const on = species === k
               return (

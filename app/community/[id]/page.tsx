@@ -3,6 +3,8 @@
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Author from '../../Author'
+import { authHeaders } from '@/lib/authHeader'
 
 interface Post {
   id: number
@@ -15,6 +17,13 @@ interface Post {
   place_id: string | null
   place_title: string | null
   place_addr: string | null
+  author_avatar: string | null
+  author_provider: string | null
+  pet_name: string | null
+  pet_emoji: string | null
+  pet_label: string | null
+  /** 로그인한 내가 쓴 글 — 비밀번호 없이 지운다 */
+  mine?: boolean
 }
 
 export default function PostPage() {
@@ -31,7 +40,8 @@ export default function PostPage() {
   const [viewing, setViewing] = useState<number | null>(null)
 
   useEffect(() => {
-    fetch(`/api/posts/${id}`)
+    authHeaders()
+      .then((h) => fetch(`/api/posts/${id}`, { headers: h }))
       .then((r) => r.json())
       .then((d) => (d.post ? setPost(d.post) : setError(d.error ?? '글을 찾지 못했어요')))
       .catch(() => setError('글을 불러오지 못했어요'))
@@ -43,7 +53,7 @@ export default function PostPage() {
     setDelError('')
     const r = await fetch(`/api/posts/${id}`, {
       method: 'DELETE',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify({ password }),
     })
     const d = await r.json()
@@ -70,8 +80,8 @@ export default function PostPage() {
               <h1 style={{ margin: 0, fontSize: 21, fontWeight: 700, color: '#2B2420', lineHeight: 1.4, wordBreak: 'keep-all' }}>
                 {post.title}
               </h1>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: '#A08872', paddingBottom: 14, borderBottom: '1px solid #F3EEE4' }}>
-                <b style={{ color: '#6E5F4D' }}>{post.nickname}</b>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: '#A08872', paddingBottom: 14, borderBottom: '1px solid #F3EEE4', flexWrap: 'wrap' }}>
+                <Author a={post} size={24} fontSize={13} />
                 <span>{new Date(post.created_at).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })}</span>
                 <span style={{ marginLeft: 'auto' }}>조회 {post.views}</span>
               </div>
@@ -115,7 +125,16 @@ export default function PostPage() {
               </div>
             )}
 
-            {!asking ? (
+            {post.mine ? (
+              <form onSubmit={remove} style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 12.5, color: '#B3A78F' }}>내 계정으로 쓴 글이에요</span>
+                <button type="submit"
+                  style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 700, padding: '7px 14px', borderRadius: 10, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#C0392B', cursor: 'pointer' }}>
+                  글 지우기
+                </button>
+                {delError && <span style={{ fontSize: 12.5, color: '#C0392B' }}>{delError}</span>}
+              </form>
+            ) : !asking ? (
               <button onClick={() => setAsking(true)}
                 style={{ alignSelf: 'flex-end', fontFamily: 'inherit', fontSize: 13, color: '#B3A78F', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 글 지우기
