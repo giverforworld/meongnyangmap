@@ -193,7 +193,6 @@ function HotView() {
   const [loading, setLoading] = useState(true)
   /** 기본은 '조건이 확실한 순'. 방문자 순은 지역 인기를 얹어 보는 것이다 */
   const [sort, setSort] = useState<Sort>('default')
-  const [period, setPeriod] = useState<{ from: string; to: string } | null>(null)
 
   /**
    * 나와 가까운 순 — 좌표를 서버로 보내지 않는다.
@@ -254,10 +253,7 @@ function HotView() {
     })
     fetch(`/api/curated?${qs}`)
       .then((r) => r.json())
-      .then((d) => {
-        setItems(d.items ?? [])
-        setPeriod(d.visitPeriod?.from ? d.visitPeriod : null)
-      })
+      .then((d) => setItems(d.items ?? []))
       .finally(() => setLoading(false))
   }, [regnCd, serverSort])
 
@@ -324,7 +320,7 @@ function HotView() {
         )}
       </div>
 
-      {/* 정렬 — 방문자 데이터는 '지역'의 것이라 문구가 그 선을 넘지 않아야 한다 */}
+      {/* 정렬 — 방문자 순은 시군구 단위 집계라 장소 순위가 아니다. 그 설명은 화면에서 뺐고 정렬 이름('요즘 붐비는 지역 순')이 그 선을 지킨다 */}
       <div className="chip-row" style={{ display: 'flex', flexWrap: isMobile ? 'nowrap' : 'wrap', alignItems: 'center', gap: 8, marginBottom: isMobile ? 8 : 16, overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap', paddingBottom: isMobile ? 2 : 0 }}>
         {SORTS.map(({ key: k, label }) => {
           const on = k === sort
@@ -336,12 +332,6 @@ function HotView() {
             </button>
           )
         })}
-        {!isMobile && sort === 'visitors' && period && (
-          <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.5 }}>
-            장소가 아니라 <b style={{ color: '#8A7A65' }}>시군구</b> 기준 외지인 방문 수예요
-            · {period.from.slice(4, 6)}.{period.from.slice(6)}~{period.to.slice(4, 6)}.{period.to.slice(6)} 집계
-          </span>
-        )}
         {!isMobile && geoError && (
           <span style={{ fontSize: 11.5, color: '#C0392B', lineHeight: 1.5 }}>{geoError}</span>
         )}
@@ -350,8 +340,8 @@ function HotView() {
       {/* 좁은 화면 — 개수와 안내는 결과 줄로. 필터 줄에 섞이면 줄이 접힌다 */}
       {isMobile && (
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12, fontSize: 12, color: '#B3A78F' }}>
-          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: geoError ? '#C0392B' : '#B3A78F' }}>
-            {geoError ? geoError : sort === 'visitors' && period ? `시군구 기준 외지인 방문 수 · ${period.from.slice(4, 6)}.${period.from.slice(6)}~${period.to.slice(4, 6)}.${period.to.slice(6)}` : ''}
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#C0392B' }}>
+            {geoError ?? ''}
           </span>
           <span style={{ flex: 'none' }}>{loading ? '불러오는 중…' : `${matched.length.toLocaleString()}곳`}</span>
         </div>
