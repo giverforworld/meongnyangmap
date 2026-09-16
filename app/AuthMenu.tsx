@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
 import { GOOGLE_LOGIN_READY, GOOGLE_PENDING } from '@/lib/authProviders'
-import { GoogleIcon, KakaoIcon, ProviderMark } from './PetSwitch'
+import { KakaoIcon, ProviderMark } from './PetSwitch'
+import GoogleButton from './GoogleButton'
 
 /**
  * 상단 메뉴의 로그인 버튼. 프로필 등록 버튼 오른쪽에 붙는다.
@@ -134,11 +135,14 @@ export default function AuthMenu({
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
                 <KakaoIcon /> 카카오 로그인
               </button>
-              <button onClick={() => (GOOGLE_LOGIN_READY ? onSignIn('google') : setNotice(GOOGLE_PENDING))}
-                aria-describedby={notice ? 'auth-notice' : undefined}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
-                <GoogleIcon /> 구글 로그인
-              </button>
+              {GOOGLE_LOGIN_READY ? (
+                <GoogleButton onDone={() => setOpen(false)} onError={setNotice} onFallback={() => onSignIn('google')} />
+              ) : (
+                <button onClick={() => setNotice(GOOGLE_PENDING)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
+                  구글 로그인
+                </button>
+              )}
               {notice && (
                 <span id="auth-notice" role="status" style={{ fontSize: 12, fontWeight: 700, color: '#E85D3D', lineHeight: 1.5, padding: '2px 4px 0', wordBreak: 'keep-all' }}>
                   {notice}

@@ -9,6 +9,7 @@ import { sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
 import { GOOGLE_LOGIN_READY, GOOGLE_PENDING } from '@/lib/authProviders'
+import GoogleButton from './GoogleButton'
 
 /**
  * 프로필 칩과 등록 화면.
@@ -280,16 +281,20 @@ function AccountBlock({
           ? '로그인을 하면 우리 아이 정보가 저장돼요.'
           : '이미 등록한 적 있어요? 로그인하면 계정에 저장된 아이를 불러와요'}
       </span>
-      <div style={{ display: 'flex', gap: 8 }}>
-        {/* 카카오 — 노랑 바탕에 검정 말풍선, 구글 — 흰 바탕에 G. 각 사의 로그인 버튼 규격을 따른다 */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {/* 카카오 — 노랑 바탕에 검정 말풍선, 각 사의 로그인 버튼 규격을 따른다. 구글은 구글이 그리는 버튼(GIS) */}
         <button onClick={() => onSignIn('kakao')}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '11px 0', borderRadius: 99, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
           <KakaoIcon /> 카카오 로그인
         </button>
-        <button onClick={() => (GOOGLE_LOGIN_READY ? onSignIn('google') : setNotice(GOOGLE_PENDING))}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
-          <GoogleIcon /> 구글 로그인
-        </button>
+        {GOOGLE_LOGIN_READY ? (
+          <GoogleButton onError={setNotice} onFallback={() => onSignIn('google')} />
+        ) : (
+          <button onClick={() => setNotice(GOOGLE_PENDING)}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
+            <GoogleIcon /> 구글 로그인
+          </button>
+        )}
       </div>
       {notice && (
         <span role="status" style={{ fontSize: 12, fontWeight: 700, color: '#E85D3D', lineHeight: 1.5, wordBreak: 'keep-all' }}>{notice}</span>
