@@ -587,8 +587,7 @@ export default function Home() {
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
         {/* 아이콘은 글자 높이(15.5px)에 맞춘 22px, 간격은 글자와 같은 8px — 크면 셀렉트 박스가 아니라 배지처럼 보인다 */}
         <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 12px 9px 12px' }}>
-          {/* 핀은 꼬리가 아래라 상자 가운데보다 눈에 띄는 무게중심이 위다 — 1px 올려야 글자와 나란해 보인다 */}
-          <span style={{ display: 'flex', marginTop: -1 }}><PawPinIcon size={26} /></span>
+          <span style={{ display: 'flex' }}><PawPinIcon size={26} /></span>
           <select value={regnCd} onChange={(e) => { setRegnCd(e.target.value); setSignguCd('') }}
             style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 15.5, color: '#2B2420', cursor: 'pointer', outline: 'none' }}>
             {regions.map((r) => <option key={r.code} value={r.code}>{r.name}</option>)}

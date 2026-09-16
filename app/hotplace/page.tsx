@@ -48,27 +48,34 @@ const PAGE = 24
  */
 type Tab = 'hot' | 'camp'
 
-const TABS: { key: Tab; label: string; title: string; lede: React.ReactNode }[] = [
+/**
+ * 제목은 좁은 화면에서 단어 중간이 아니라 정한 자리에서 줄이 바뀌게 두 조각으로 둔다 —
+ * "핫플레 / 이스"로 갈라지면 제목이 아니라 사고처럼 보인다. 둘째 조각은 주황으로 강조.
+ * 소갯말도 좁은 화면에선 한 줄짜리 짧은 판을 쓴다.
+ */
+const TABS: { key: Tab; label: string; title: [string, string]; lede: React.ReactNode; ledeShort: string }[] = [
   {
     key: 'hot',
     label: '핫플레이스',
-    title: '우리 아이와 함께 가기 좋은 핫플레이스',
+    title: ['우리 아이와 함께 가기 좋은', '핫플레이스'],
     lede: (
       <>
         <b style={{ color: '#2B2420' }}>눈치 볼 일 없이</b>, 반려 동물과 함께 입장이 가능한 핫플레이스만을 모아놨어요.
       </>
     ),
+    ledeShort: '반려 동물과 함께 입장 가능한 곳만 모았어요',
   },
   {
     key: 'camp',
     label: '캠핑장',
-    title: '우리 아이랑 하룻밤',
+    title: ['우리 아이랑', '하룻밤'],
     lede: (
       <>
         전국 캠핑장 중 <b style={{ color: '#2B2420' }}>반려동물과 함께 묵을 수 있는 곳</b>이에요.
         크기 제한이 있는 곳은 우리 아이 기준으로 걸러서 보여드려요.
       </>
     ),
+    ledeShort: '반려동물과 함께 묵을 수 있는 캠핑장만 모았어요',
   },
 ]
 
@@ -99,17 +106,26 @@ const chip = (on: boolean): React.CSSProperties => ({
 
 export default function Hotplace() {
   const [tab, setTab] = useState<Tab>('hot')
+  const isMobile = useIsMobile()
   const meta = TABS.find((t) => t.key === tab)!
 
   return (
     <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', background: '#FAF6EF' }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '24px 20px 56px' }}>
-        <header style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
-          <h1 className="jua" style={{ margin: 0, fontSize: 26, color: '#2B2420' }}>
-            {meta.title}
+      <div style={{ maxWidth: 1120, margin: '0 auto', padding: isMobile ? '18px 16px 48px' : '24px 20px 56px' }}>
+        <header style={{ display: 'flex', flexDirection: 'column', gap: isMobile ? 6 : 8, marginBottom: 14 }}>
+          <h1 className="jua" style={{ margin: 0, fontSize: isMobile ? 24 : 26, color: '#2B2420', lineHeight: 1.25, wordBreak: 'keep-all' }}>
+            {isMobile ? (
+              <>
+                {meta.title[0]}
+                <br />
+                <span style={{ color: '#E85D3D' }}>{meta.title[1]}</span>
+              </>
+            ) : (
+              <>{meta.title[0]} {meta.title[1]}</>
+            )}
           </h1>
-          <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', lineHeight: 1.6, maxWidth: 620 }}>
-            {meta.lede}
+          <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', lineHeight: 1.6, maxWidth: 620, whiteSpace: isMobile ? 'nowrap' : 'normal', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {isMobile ? meta.ledeShort : meta.lede}
           </p>
         </header>
 
@@ -283,11 +299,12 @@ function HotView() {
           </div>
         </div>
       )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      {/* 지역 + 종류 — 좁은 화면에서는 접히지 않고 한 줄로 가로 스크롤된다. 마지막 칩이 살짝 잘려 더 있음을 알린다 */}
+      <div className="chip-row" style={{ display: 'flex', flexWrap: isMobile ? 'nowrap' : 'wrap', alignItems: 'center', gap: 8, marginBottom: 10, overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap', paddingBottom: isMobile ? 2 : 0 }}>
         <select
           value={regnCd}
           onChange={(e) => setRegnCd(e.target.value)}
-          style={{ font: 'inherit', fontSize: 14, padding: '7px 12px', borderRadius: 12, border: '1.5px solid #EAE3D6', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}
+          style={{ flex: 'none', font: 'inherit', fontSize: 14, padding: '7px 12px', borderRadius: 12, border: '1.5px solid #EAE3D6', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}
         >
           <option value="">전국</option>
           {regions.map((r) => (
@@ -295,37 +312,49 @@ function HotView() {
           ))}
         </select>
         {cats.map((c) => (
-          <button key={c} className="hov-accent" onClick={() => { setCat(c); setLimit(PAGE) }} style={chip(c === cat)}>
+          <button key={c} className="hov-accent" onClick={() => { setCat(c); setLimit(PAGE) }} style={{ ...chip(c === cat), flex: 'none' }}>
             {c}
           </button>
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: 13, color: '#B3A78F' }}>
-          {loading ? '불러오는 중…' : `${matched.length.toLocaleString()}곳`}
-        </span>
+        {!isMobile && (
+          <span style={{ marginLeft: 'auto', fontSize: 13, color: '#B3A78F' }}>
+            {loading ? '불러오는 중…' : `${matched.length.toLocaleString()}곳`}
+          </span>
+        )}
       </div>
 
       {/* 정렬 — 방문자 데이터는 '지역'의 것이라 문구가 그 선을 넘지 않아야 한다 */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      <div className="chip-row" style={{ display: 'flex', flexWrap: isMobile ? 'nowrap' : 'wrap', alignItems: 'center', gap: 8, marginBottom: isMobile ? 8 : 16, overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap', paddingBottom: isMobile ? 2 : 0 }}>
         {SORTS.map(({ key: k, label }) => {
           const on = k === sort
           const busy = k === 'near' && geoBusy
           return (
             <button key={k} className="hov-accent" onClick={() => pickSort(k)} disabled={busy}
-              style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
+              style={{ flex: 'none', fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
               {busy ? '위치 확인 중…' : label}
             </button>
           )
         })}
-        {sort === 'visitors' && period && (
+        {!isMobile && sort === 'visitors' && period && (
           <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.5 }}>
             장소가 아니라 <b style={{ color: '#8A7A65' }}>시군구</b> 기준 외지인 방문 수예요
             · {period.from.slice(4, 6)}.{period.from.slice(6)}~{period.to.slice(4, 6)}.{period.to.slice(6)} 집계
           </span>
         )}
-        {geoError && (
+        {!isMobile && geoError && (
           <span style={{ fontSize: 11.5, color: '#C0392B', lineHeight: 1.5 }}>{geoError}</span>
         )}
       </div>
+
+      {/* 좁은 화면 — 개수와 안내는 결과 줄로. 필터 줄에 섞이면 줄이 접힌다 */}
+      {isMobile && (
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 12, fontSize: 12, color: '#B3A78F' }}>
+          <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: geoError ? '#C0392B' : '#B3A78F' }}>
+            {geoError ? geoError : sort === 'visitors' && period ? `시군구 기준 외지인 방문 수 · ${period.from.slice(4, 6)}.${period.from.slice(6)}~${period.to.slice(4, 6)}.${period.to.slice(6)}` : ''}
+          </span>
+          <span style={{ flex: 'none' }}>{loading ? '불러오는 중…' : `${matched.length.toLocaleString()}곳`}</span>
+        </div>
+      )}
 
       {!loading && matched.length === 0 && (
         <p style={{ padding: 40, textAlign: 'center', color: '#A08872', fontSize: 14 }}>
@@ -407,6 +436,7 @@ const CAMP_SORTS: { key: 'default' | 'near'; label: string }[] = [
 
 function CampView() {
   const petStore = usePetsContext()
+  const isMobile = useIsMobile()
   const [region, setRegion] = useState('')
   const [tag, setTag] = useState('')
   const [limit, setLimit] = useState(PAGE)
@@ -539,14 +569,14 @@ function CampView() {
         })}
       </div>
 
-      {/* 정렬 — 거리는 브라우저에서만 잰다 */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+      {/* 정렬 — 거리는 브라우저에서만 잰다. 좁은 화면에선 접지 않고 가로 스크롤 */}
+      <div className="chip-row" style={{ display: 'flex', flexWrap: isMobile ? 'nowrap' : 'wrap', alignItems: 'center', gap: 8, marginBottom: 16, overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap', paddingBottom: isMobile ? 2 : 0 }}>
         {CAMP_SORTS.map(({ key: k, label }) => {
           const on = k === sort
           const busy = k === 'near' && geoBusy
           return (
             <button key={k} className="hov-accent" onClick={() => pickSort(k)} disabled={busy}
-              style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
+              style={{ flex: 'none', fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '5px 12px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: busy ? 'default' : 'pointer' }}>
               {busy ? '위치 확인 중…' : label}
             </button>
           )
