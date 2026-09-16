@@ -11,6 +11,7 @@ import Author from '../Author'
 import { ProviderMark } from '../PetSwitch'
 import PetFace from '../PetFace'
 import { authHeaders } from '@/lib/authHeader'
+import { PlacePinIcon } from '../icons'
 
 interface Post {
   id: number
@@ -28,6 +29,7 @@ interface Post {
   pet_name: string | null
   pet_emoji: string | null
   pet_label: string | null
+  comment_count: number
 }
 
 /** 오늘 쓴 글은 시간만, 그 전은 날짜만 — 목록에서 눈이 덜 피곤하다 */
@@ -170,7 +172,7 @@ function Board() {
             {placeFilter ? (
               <>
                 <Link href="/community" style={{ fontSize: 12.5, fontWeight: 700, color: '#8A7A65', textDecoration: 'none' }}>← 전체 커뮤니티</Link>
-                <h1 className="jua" style={{ margin: 0, fontSize: isMobile ? 23 : 26, color: '#2B2420' }}>📍 {placeFilterTitle || '이 장소'} 이야기</h1>
+                <h1 className="jua" style={{ margin: 0, fontSize: isMobile ? 23 : 26, color: '#2B2420', display: 'flex', alignItems: 'center', gap: 6 }}><span style={{ color: '#E85D3D', display: 'flex' }}><PlacePinIcon size={isMobile ? 22 : 25} /></span>{placeFilterTitle || '이 장소'} 이야기</h1>
                 <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', wordBreak: 'keep-all' }}>
                   이곳에 다녀온 이야기만 모았어요 ·{' '}
                   <Link href={`/?focus=${placeFilter}`} style={{ color: '#E85D3D', fontWeight: 700, textDecoration: 'none' }}>지도에서 보기</Link>
@@ -270,7 +272,7 @@ function Board() {
                   {thumb
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={thumb} alt="" loading="lazy" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-                    : <span aria-hidden="true">{p.place_title ? '📍' : '🐾'}</span>}
+                    : <span aria-hidden="true" style={{ color: '#E85D3D', display: 'flex' }}>{p.place_title ? <PlacePinIcon size={isMobile ? 26 : 32} /> : '🐾'}</span>}
                   {p.photos?.length > 1 && (
                     <span style={{ position: 'absolute', right: 5, bottom: 5, fontSize: 10.5, fontWeight: 700, color: '#FFFFFF', background: 'rgba(43,36,32,.62)', borderRadius: 99, padding: '2px 6px' }}>
                       +{p.photos.length - 1}
@@ -280,8 +282,8 @@ function Board() {
 
                 <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {p.place_title && !placeFilter && (
-                    <span style={{ alignSelf: 'flex-start', fontSize: 11.5, fontWeight: 700, color: '#E85D3D', background: '#FFF4EF', borderRadius: 99, padding: '2px 9px', maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      📍 {p.place_title}
+                    <span style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11.5, fontWeight: 700, color: '#E85D3D', background: '#FFF4EF', borderRadius: 99, padding: '2px 9px 2px 6px', maxWidth: '100%', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                      <PlacePinIcon size={13} /><span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.place_title}</span>
                     </span>
                   )}
                   <span style={{ fontSize: isMobile ? 15 : 16, fontWeight: 700, color: '#2B2420', lineHeight: 1.35, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -296,7 +298,10 @@ function Board() {
                     <Author a={p} size={20} fontSize={12} />
                     <span>·</span>
                     <span style={{ fontVariantNumeric: 'tabular-nums' }}>{when(p.created_at)}</span>
-                    <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>👁 {p.views}</span>
+                    <span style={{ marginLeft: 'auto', display: 'inline-flex', gap: 8, fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>
+                      {p.comment_count > 0 && <span style={{ color: '#E85D3D', fontWeight: 700 }}>💬 {p.comment_count}</span>}
+                      <span>👁 {p.views}</span>
+                    </span>
                   </div>
                 </div>
               </Link>
@@ -305,7 +310,7 @@ function Board() {
         </div>
 
         {posts.some((p) => p.place_title) && !placeFilter && (
-          <span style={{ fontSize: 11, color: '#B3A78F', textAlign: 'right' }}>📍 장소 정보 출처 ⓒ한국관광공사</span>
+          <span style={{ fontSize: 11, color: '#B3A78F', textAlign: 'right' }}>장소 정보 출처 ⓒ한국관광공사</span>
         )}
 
         {hasMore && (

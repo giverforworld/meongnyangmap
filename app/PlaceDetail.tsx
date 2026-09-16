@@ -8,6 +8,7 @@ import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
 import { restStatus, todayLabel } from '@/lib/openHours'
 import { PlaceReviews, PlaceStories } from './PlaceSocial'
 import { BADGE, CAT_EMOJI, ruleLines, splitTel } from './placeUi'
+import { PlacePinIcon } from './icons'
 
 /**
  * 장소 상세 — 지도 화면의 패널과 핫플레이스의 '상세 보기'가 같은 것을 쓴다.
@@ -91,7 +92,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
         const hero = place.firstimage || detail?.images[0]?.url || ''
         return (
           <div style={{ height: mobile ? 210 : 120, flex: 'none', background: hero ? `center/cover url(${hero})` : 'linear-gradient(135deg,#FFE0D3,#FFF4EF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38 }}>
-            {!hero && (CAT_EMOJI[place.cat] ?? '📍')}
+            {!hero && (CAT_EMOJI[place.cat] ?? <span style={{ color: '#E85D3D' }}><PlacePinIcon size={38} /></span>)}
           </div>
         )
       })()}

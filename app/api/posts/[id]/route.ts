@@ -23,7 +23,7 @@ export async function GET(req: Request, { params }: Ctx) {
     // 계정 id 는 밖으로 내지 않는다 — 내 글인지만
     const { author_id, ...post } = rows[0]
     const viewer = author_id ? await viewerOf(req) : null
-    return NextResponse.json({ post: { ...post, mine: Boolean(viewer && viewer.id === author_id) } })
+    return NextResponse.json({ post: { ...post, mine: Boolean(viewer && viewer.id === author_id), byAccount: Boolean(author_id) } })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 500 })
   }

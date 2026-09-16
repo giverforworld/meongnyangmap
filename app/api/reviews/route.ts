@@ -25,6 +25,7 @@ export interface Review {
   pet_emoji: string | null
   /** 로그인해서 보는 사람의 것인지 — 서버가 계정으로 확인 */
   mine?: boolean
+  byAccount?: boolean
 }
 
 /**
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
     )
     // 계정 id 는 밖으로 내지 않는다 — 내 것인지만
     const viewer = rows.some((r) => r.author_id) ? await viewerOf(req) : null
-    const reviews: Review[] = rows.map(({ author_id, ...r }) => ({ ...r, mine: Boolean(viewer && viewer.id === author_id) }))
+    const reviews: Review[] = rows.map(({ author_id, ...r }) => ({ ...r, mine: Boolean(viewer && viewer.id === author_id), byAccount: Boolean(author_id) }))
     const count = reviews.length
     const avg = count ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / count) * 10) / 10 : null
     const entry = { ok: 0, cond: 0, denied: 0 }

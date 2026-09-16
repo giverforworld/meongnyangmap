@@ -5,6 +5,9 @@ import { useParams, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import Author from '../../Author'
 import { authHeaders } from '@/lib/authHeader'
+import { PlacePinIcon } from '../../icons'
+import Comments from '../../Comments'
+import { usePetsContext } from '../../PetsProvider'
 
 interface Post {
   id: number
@@ -24,11 +27,16 @@ interface Post {
   pet_label: string | null
   /** 로그인한 내가 쓴 글 — 비밀번호 없이 지운다 */
   mine?: boolean
+  /** 계정으로 쓴 글 — 지우기는 쓴 사람에게만 보인다 */
+  byAccount?: boolean
 }
 
 export default function PostPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
+  const petStore = usePetsContext()
+  const m = petStore.session?.user.user_metadata ?? {}
+  const sessionNick = ((m.nickname as string) || (m.name as string) || '').slice(0, 20)
 
   const [post, setPost] = useState<Post | null>(null)
   const [error, setError] = useState('')
@@ -89,7 +97,7 @@ export default function PostPage() {
               {post.place_id && post.place_title && (
                 <Link href={`/?focus=${post.place_id}`} className="hov-accent"
                   style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '9px 13px', borderRadius: 12, border: '1.5px solid #F3C9BB', background: '#FFF4EF', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 14, flex: 'none' }}>📍</span>
+                  <span style={{ color: '#E85D3D', flex: 'none', display: 'flex' }}><PlacePinIcon size={18} /></span>
                   <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
                     <b style={{ fontSize: 13.5, color: '#2B2420' }}>{post.place_title}</b>
                     {post.place_addr && <span style={{ fontSize: 11.5, color: '#A08872' }}>{post.place_addr}</span>}
@@ -134,7 +142,7 @@ export default function PostPage() {
                 </button>
                 {delError && <span style={{ fontSize: 12.5, color: '#C0392B' }}>{delError}</span>}
               </form>
-            ) : !asking ? (
+            ) : post.byAccount ? null : !asking ? (
               <button onClick={() => setAsking(true)}
                 style={{ alignSelf: 'flex-end', fontFamily: 'inherit', fontSize: 13, color: '#B3A78F', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
                 글 지우기
@@ -156,6 +164,14 @@ export default function PostPage() {
                 {delError && <span style={{ fontSize: 12.5, color: '#C0392B', width: '100%', textAlign: 'right' }}>{delError}</span>}
               </form>
             )}
+
+            <Comments
+              postId={post.id}
+              loggedIn={Boolean(petStore.session)}
+              provider={petStore.session?.user.app_metadata?.provider as string | undefined}
+              nickname={sessionNick}
+              pet={petStore.pet}
+            />
           </>
         )}
       </div>

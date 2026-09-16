@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import PlaceMapPicker from './PlaceMapPicker'
+import { PlacePinIcon } from './icons'
 
 export interface PlaceRef {
   id: string
@@ -47,7 +48,7 @@ export default function PlacePicker({
   if (value) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', borderRadius: 12, border: '1.5px solid #F3C9BB', background: '#FFF4EF' }}>
-        <span style={{ fontSize: 14, flex: 'none' }}>📍</span>
+        <span style={{ color: '#E85D3D', flex: 'none', display: 'flex' }}><PlacePinIcon size={18} /></span>
         <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
           <b style={{ fontSize: 13.5, color: '#2B2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.title}</b>
           {value.addr && <span style={{ fontSize: 11.5, color: '#A08872', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{value.addr}</span>}
@@ -63,7 +64,7 @@ export default function PlacePicker({
   return (
     <div style={{ position: 'relative' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '0 6px 0 12px', borderRadius: 12, border: '1.5px solid #EAE3D6', background: '#FFFFFF' }}>
-        <span style={{ fontSize: 14, flex: 'none', color: '#A08872' }}>📍</span>
+        <span style={{ color: '#A08872', flex: 'none', display: 'flex' }}><PlacePinIcon size={18} /></span>
         <input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true) }} onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
           placeholder="어느 곳 이야기인가요? 이름으로 찾기 (선택)"

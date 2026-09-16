@@ -5,6 +5,7 @@ import type { Place } from '@/lib/types'
 import { useIsMobile } from '@/lib/useIsMobile'
 import KakaoMap from './KakaoMap'
 import type { PlaceRef } from './PlacePicker'
+import { PlacePinIcon } from './icons'
 
 interface Region {
   code: string
@@ -98,7 +99,7 @@ export default function PlaceMapPicker({
         <footer style={{ flex: 'none', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', borderTop: '1px solid #F1EBE0' }}>
           {sel ? (
             <>
-              <span style={{ fontSize: 14, flex: 'none' }}>📍</span>
+              <span style={{ color: '#E85D3D', flex: 'none', display: 'flex' }}><PlacePinIcon size={18} /></span>
               <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', lineHeight: 1.3 }}>
                 <b style={{ fontSize: 14, color: '#2B2420', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sel.title}</b>
                 <span style={{ fontSize: 11.5, color: '#A08872', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sel.cat} · {sel.addr1}</span>

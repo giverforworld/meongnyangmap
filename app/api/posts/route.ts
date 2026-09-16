@@ -26,6 +26,8 @@ export interface Post {
   pet_name: string | null
   pet_emoji: string | null
   pet_label: string | null
+  /** 댓글 수 — 트리거가 맞춰 둔다 */
+  comment_count: number
 }
 
 const PAGE = 20
@@ -46,7 +48,7 @@ export async function GET(req: Request) {
   try {
     // 하나 더 받아 '다음이 있는지'를 안다 — 딱 limit 개일 때 '더 있음'으로 잘못 읽지 않게
     const rows = await sbSelect<Post>(
-      `posts?select=id,nickname,title,body,views,created_at,photos,place_id,place_title,author_avatar,author_provider,pet_name,pet_emoji,pet_label&deleted_at=is.null` +
+      `posts?select=id,nickname,title,body,views,created_at,photos,place_id,place_title,author_avatar,author_provider,pet_name,pet_emoji,pet_label,comment_count&deleted_at=is.null` +
         (place ? `&place_id=eq.${place}` : '') +
         `&order=created_at.desc&offset=${from}&limit=${limit + 1}`
     )

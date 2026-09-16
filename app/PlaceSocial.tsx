@@ -33,6 +33,7 @@ interface Review {
   pet_name: string | null
   pet_emoji: string | null
   mine?: boolean
+  byAccount?: boolean
 }
 
 const ENTRY: Record<Entry, { label: string; color: string; bg: string; border: string }> = {
@@ -264,7 +265,7 @@ export function PlaceReviews({
               style={{ alignSelf: 'flex-end', fontFamily: 'inherit', fontSize: 11.5, color: '#C0392B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               내 리뷰 지우기
             </button>
-          ) : deleting === r.id ? (
+          ) : r.byAccount ? null : deleting === r.id ? (
             <form onSubmit={(e) => { e.preventDefault(); remove(r.id) }} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <input value={delPw} onChange={(e) => setDelPw(e.target.value)} type="password" placeholder="비밀번호" required autoFocus
                 style={{ ...field, width: 120, padding: '6px 10px', fontSize: 12.5 }} />
