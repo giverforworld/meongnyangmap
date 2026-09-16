@@ -3,10 +3,15 @@ import './globals.css'
 import Nav from './Nav'
 import { PetsProvider } from './PetsProvider'
 
+const TITLE = '멍냥맵 - 반려 동물과 함께 할 수 있는 관광지, 핫플레이스를 한 눈에!'
+const DESCRIPTION =
+  '반려동물 동반 조건을 우리 아이 기준으로 판별하여 헛걸음을 사전 방지해주는 핫플레이스 맵 서비스. 데이터 및 API 제공처 : ⓒ한국관광공사'
+
+/** 브라우저 탭·검색 결과·카카오톡 링크 미리보기에 뜨는 것 */
 export const metadata: Metadata = {
-  title: '멍냥맵 — 반려동물과 갈 곳을 찾는 가장 확실한 방법',
-  description:
-    '반려동물 동반 조건을 우리 아이 기준으로 판정해 헛걸음을 막아주는 지도 서비스. 출처: ⓒ한국관광공사',
+  title: TITLE,
+  description: DESCRIPTION,
+  openGraph: { title: TITLE, description: DESCRIPTION, siteName: '멍냥맵', locale: 'ko_KR', type: 'website' },
 }
 
 /** 밖에서 폰으로 쓰는 서비스라 모바일 폭에 맞춰 그린다 */
