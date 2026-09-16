@@ -68,7 +68,7 @@ export default function AuthMenu({
           flexDirection: compact && !u ? 'column' : 'row',
           gap: compact ? (u ? 6 : 1) : 10,
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
-          padding: compact ? (u ? '3px 3px' : '3px 6px') : '6px 18px 6px 9px', minWidth: compact ? undefined : 150,
+          padding: compact ? (u ? '3px 3px' : '3px 6px') : u ? '6px 18px 6px 7px' : '6px 16px', minWidth: compact ? undefined : 150,
           borderRadius: compact && !u ? 12 : 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
           background: '#FFFFFF', color: '#2B2420', cursor: 'pointer',
         }}
@@ -92,19 +92,20 @@ export default function AuthMenu({
           </>
         ) : compact ? (
           <>
-            <SocialPair size={18} />
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <SocialDot kind="kakao" size={18} />
+              <SocialDot kind="google" size={18} />
+            </span>
             <span style={{ fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: -0.2 }}>소셜 로그인</span>
           </>
         ) : (
-          <>
-            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', height: 40, flex: 'none' }}>
-              <SocialPair size={27} />
+          // 프로필 칩의 아바타(40) 높이에 맞춘 두 줄 — 아이콘은 '카카오 · 구글' 줄에 글자와 나란히
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', height: 40 }}>
+            <span style={{ whiteSpace: 'nowrap' }}>소셜 로그인</span>
+            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 3, whiteSpace: 'nowrap' }}>
+              <SocialDot kind="kakao" size={16} /> 카카오 <span style={{ margin: '0 1px' }}>·</span> <SocialDot kind="google" size={16} /> 구글 ▾
             </span>
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-              <span style={{ whiteSpace: 'nowrap' }}>소셜 로그인</span>
-              <span style={{ fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2, whiteSpace: 'nowrap' }}>카카오 · 구글 ▾</span>
-            </span>
-          </>
+          </span>
         )}
       </button>
 
@@ -148,20 +149,15 @@ export default function AuthMenu({
   )
 }
 
-/**
- * 카카오·구글 동그라미 둘을 살짝 겹쳐 놓은 것 — "어떤 로그인인지"를 글자보다 먼저 말한다.
- * 겹치는 쪽(구글)은 흰 테두리로 카카오 위에 올라앉는다.
- */
-function SocialPair({ size = 24 }: { size?: number }) {
-  const overlap = Math.round(size * 0.32)
+/** 카카오(노란 바탕 말풍선)·구글(흰 바탕 G) 동그라미 하나. 로그인 버튼에서 글자 옆에 나란히 선다 */
+function SocialDot({ kind, size = 16 }: { kind: 'kakao' | 'google'; size?: number }) {
+  const kakao = kind === 'kakao'
   return (
-    <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', flex: 'none' }}>
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, borderRadius: '50%', background: '#FEE500', flex: 'none' }}>
-        <KakaoIcon size={Math.round(size * 0.62)} />
-      </span>
-      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, marginLeft: -overlap, borderRadius: '50%', background: '#FFFFFF', boxShadow: '0 0 0 1.5px #FFFFFF, inset 0 0 0 1px #E3DCCE', flex: 'none' }}>
-        <GoogleIcon size={Math.round(size * 0.56)} />
-      </span>
+    <span aria-hidden="true" style={{
+      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, borderRadius: '50%', flex: 'none',
+      background: kakao ? '#FEE500' : '#FFFFFF', boxShadow: kakao ? undefined : 'inset 0 0 0 1px #E3DCCE',
+    }}>
+      {kakao ? <KakaoIcon size={Math.round(size * 0.66)} /> : <GoogleIcon size={Math.round(size * 0.58)} />}
     </span>
   )
 }
