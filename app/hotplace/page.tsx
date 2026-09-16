@@ -54,7 +54,7 @@ const TABS: { key: Tab; label: string; title: string; lede: React.ReactNode }[] 
     title: '우리 아이와 함께 가기 좋은 핫플레이스',
     lede: (
       <>
-        <b style={{ color: '#2B2420' }}>눈치 볼 일 없이</b>, 함께 입장이 가능한 핫플레이스만을 모아놨어요.
+        <b style={{ color: '#2B2420' }}>눈치 볼 일 없이</b>, 반려 동물과 함께 입장이 가능한 핫플레이스만을 모아놨어요.
       </>
     ),
   },
