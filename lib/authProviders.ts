@@ -1,0 +1,10 @@
+/**
+ * 어떤 소셜 로그인이 실제로 열려 있는지.
+ *
+ * 구글은 콘솔(OAuth 클라이언트)·Supabase(provider) 설정이 끝나기 전까지 닫아 둔다 —
+ * 열어 두면 눌렀을 때 구글 쪽 오류 화면으로 튕긴다. 설정이 끝나면 true 로 바꾸기만 하면 된다
+ * (순서는 supabase/google.md).
+ */
+export const GOOGLE_LOGIN_READY = false
+
+export const GOOGLE_PENDING = '구글 로그인은 아직 준비 중이에요. 지금은 카카오로 로그인해주세요.'

@@ -8,6 +8,7 @@ import PetFace from './PetFace'
 import { sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
+import { GOOGLE_LOGIN_READY, GOOGLE_PENDING } from '@/lib/authProviders'
 
 /**
  * 프로필 칩과 등록 화면.
@@ -239,6 +240,8 @@ function AccountBlock({
   onSignOut?: () => void
   hasOwnPets: boolean
 }) {
+  /** 준비 안 된 provider 를 눌렀을 때 보여줄 한 줄 */
+  const [notice, setNotice] = useState<string | null>(null)
   if (!authReady || !onSignIn) {
     return (
       <p style={{ margin: '12px 2px 0', fontSize: 11.5, lineHeight: 1.6, color: '#B3A78F' }}>
@@ -283,11 +286,14 @@ function AccountBlock({
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
           <KakaoIcon /> 카카오 로그인
         </button>
-        <button onClick={() => onSignIn('google')}
+        <button onClick={() => (GOOGLE_LOGIN_READY ? onSignIn('google') : setNotice(GOOGLE_PENDING))}
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '10px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
           <GoogleIcon /> 구글 로그인
         </button>
       </div>
+      {notice && (
+        <span role="status" style={{ fontSize: 12, fontWeight: 700, color: '#E85D3D', lineHeight: 1.5, wordBreak: 'keep-all' }}>{notice}</span>
+      )}
       <span style={{ fontSize: 11, color: '#B3A78F', lineHeight: 1.5 }}>
         로그인을 하지 않아도 서비스 이용이 가능합니다.
       </span>

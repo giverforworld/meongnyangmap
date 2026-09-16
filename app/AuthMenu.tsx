@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
+import { GOOGLE_LOGIN_READY, GOOGLE_PENDING } from '@/lib/authProviders'
 import { GoogleIcon, KakaoIcon, ProviderMark } from './PetSwitch'
 
 /**
@@ -27,6 +28,8 @@ export default function AuthMenu({
   compact?: boolean
 }) {
   const [open, setOpen] = useState(false)
+  /** 준비 안 된 provider 를 눌렀을 때 보여줄 한 줄 */
+  const [notice, setNotice] = useState<string | null>(null)
   const root = useRef<HTMLDivElement>(null)
 
   // 바깥을 누르거나 Esc 를 치면 닫는다
@@ -43,6 +46,7 @@ export default function AuthMenu({
       document.removeEventListener('keydown', onKey)
     }
   }, [open])
+  useEffect(() => { if (!open) setNotice(null) }, [open])
 
   // 환경변수가 없으면 로그인 기능 자체가 없다 — 버튼도 없다
   if (!authReady) return null
@@ -130,10 +134,16 @@ export default function AuthMenu({
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: 'none', background: '#FEE500', color: '#191919', cursor: 'pointer' }}>
                 <KakaoIcon /> 카카오 로그인
               </button>
-              <button onClick={() => onSignIn('google')}
+              <button onClick={() => (GOOGLE_LOGIN_READY ? onSignIn('google') : setNotice(GOOGLE_PENDING))}
+                aria-describedby={notice ? 'auth-notice' : undefined}
                 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '11px 0', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
                 <GoogleIcon /> 구글 로그인
               </button>
+              {notice && (
+                <span id="auth-notice" role="status" style={{ fontSize: 12, fontWeight: 700, color: '#E85D3D', lineHeight: 1.5, padding: '2px 4px 0', wordBreak: 'keep-all' }}>
+                  {notice}
+                </span>
+              )}
               <span style={{ fontSize: 11, color: '#B3A78F', lineHeight: 1.5, padding: '0 4px' }}>
                 로그인을 하지 않아도 서비스 이용이 가능합니다.
               </span>
