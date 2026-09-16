@@ -12,7 +12,7 @@ export interface PlaceRef {
 
 /**
  * 글에 장소를 붙인다. 이름으로 전국에서 찾아 고른다 — /api/places 의 q 검색을 그대로 쓴다.
- * 지도·핫플레이스에서 "이곳 이야기 쓰기"로 들어오면 이미 골라진 채로 온다.
+ * 지도·핫플레이스에서 "이 곳 이야기 쓰기"로 들어오면 이미 골라진 채로 온다.
  */
 export default function PlacePicker({
   value, onChange,

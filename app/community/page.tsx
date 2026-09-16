@@ -60,7 +60,7 @@ function Board() {
   /**
    * 주소로 들어오는 두 가지 —
    *   ?place=ID           그 장소 이야기만 본다 (지도·핫플레이스의 "이야기 N개 보기")
-   *   ?write=1&place=ID&title=…&addr=…   그 장소를 붙인 채 바로 쓴다 ("이곳 이야기 쓰기")
+   *   ?write=1&place=ID&title=…&addr=…   그 장소를 붙인 채 바로 쓴다 ("이 곳 이야기 쓰기")
    */
   const placeFilter = params.get('place') ?? ''
   const placeFilterTitle = params.get('title') ?? ''
@@ -101,7 +101,7 @@ function Board() {
   // 필터가 바뀌면 앞 목록을 비우고 새로 받는다 — 다른 장소의 글이 잠깐이라도 섞여 보이지 않게
   useEffect(() => { setPosts([]); setPage(1); load(1) }, [placeFilter]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // "이곳 이야기 쓰기"로 들어왔으면 장소를 붙인 채 폼을 연다
+  // "이 곳 이야기 쓰기"로 들어왔으면 장소를 붙인 채 폼을 연다
   useEffect(() => {
     if (params.get('write') !== '1') return
     const id = params.get('place') ?? ''
@@ -195,7 +195,7 @@ function Board() {
                 setWriting((v) => !v)
               }}
               style={{ flex: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '11px 20px', borderRadius: 12, border: 'none', background: writing ? '#8A7A65' : '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}>
-              {writing ? '접기' : placeFilter ? '이곳 이야기 쓰기' : '글쓰기'}
+              {writing ? '접기' : placeFilter ? '이 곳 이야기 쓰기' : '글쓰기'}
             </button>
           )}
         </header>
@@ -259,7 +259,7 @@ function Board() {
         )}
         {!loading && posts.length === 0 && !offline && (
           <div style={{ background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, padding: 44, textAlign: 'center', fontSize: 13.5, color: '#A08872', lineHeight: 1.7 }}>
-            {placeFilter ? <>이곳 이야기가 아직 없어요.<br />처음으로 남겨주세요 🐾</> : <>아직 글이 없어요.<br />첫 글을 남겨주세요 🐾</>}
+            {placeFilter ? <>이 곳 이야기가 아직 없어요.<br />처음으로 남겨주세요 🐾</> : <>아직 글이 없어요.<br />첫 글을 남겨주세요 🐾</>}
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

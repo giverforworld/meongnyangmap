@@ -12,8 +12,9 @@ import { authHeaders } from '@/lib/authHeader'
 /**
  * 장소 상세에 붙는 사용자 참여 두 덩이 — 방문 리뷰와 커뮤니티 이야기.
  *
- * 둘 다 **멍냥맵 사용자가 남긴 것**이지 한국관광공사 데이터가 아니다. 판정 블록과
- * 섞이지 않게 표제에 그 사실을 적는다. 없는 걸 있는 것처럼 보이게 하지 않는다 —
+ * 둘 다 **멍냥맵 사용자가 남긴 것**이지 한국관광공사 데이터가 아니다. 판정 블록과 섞이지 않게
+ * 별개 섹션으로 떼고, 작성자 줄과 '리뷰 쓰기' 버튼으로 사용자 글임을 드러낸다
+ * (머리글에 "멍냥맵 사용자가 남긴 것"이라 적었다가 뺐다). 없는 걸 있는 것처럼 보이게 하지 않는다 —
  * 리뷰가 0개면 0개라고 보여준다.
  */
 
@@ -152,7 +153,7 @@ export function PlaceReviews({
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
         <span style={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '.06em', color: '#B3A78F' }}>
           방문 리뷰 <span style={{ color: '#E85D3D' }}>{data ? `${data.count}${data.capped ? '+' : ''}` : '…'}</span>
-          <span style={{ fontWeight: 500, letterSpacing: 0 }}> · 멍냥맵 사용자가 남긴 것{data?.capped ? ' · 최근 50개 기준' : ''}</span>
+          {data?.capped && <span style={{ fontWeight: 500, letterSpacing: 0 }}> · 최근 50개 기준</span>}
         </span>
         {!writing && (
           <button onClick={() => setWriting(true)}
@@ -329,11 +330,11 @@ export function PlaceStories({ placeId, placeTitle, placeAddr }: { placeId: stri
         </span>
         <Link href={`/community?write=1&${q}&addr=${encodeURIComponent(placeAddr)}`}
           style={{ fontSize: 12.5, fontWeight: 700, color: '#E85D3D', textDecoration: 'none', whiteSpace: 'nowrap' }}>
-          + 이곳 이야기 쓰기
+          + 이 곳 이야기 쓰기
         </Link>
       </div>
       {stories.length === 0 ? (
-        <span style={{ fontSize: 12.5, color: '#B3A78F' }}>아직 이곳 이야기가 없어요</span>
+        <span style={{ fontSize: 12.5, color: '#B3A78F' }}>아직 이 곳 이야기가 없어요</span>
       ) : (
         stories.map((s) => (
           <Link key={s.id} href={`/community/${s.id}`} className="hov-row"
@@ -349,7 +350,7 @@ export function PlaceStories({ placeId, placeTitle, placeAddr }: { placeId: stri
       )}
       {(more || stories.length > 0) && (
         <Link href={`/community?${q}`} style={{ alignSelf: 'flex-start', fontSize: 12.5, fontWeight: 700, color: '#8A7A65', textDecoration: 'none' }}>
-          이곳 이야기 모두 보기 →
+          이 곳 이야기 모두 보기 →
         </Link>
       )}
     </section>
