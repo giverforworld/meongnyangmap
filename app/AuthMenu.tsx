@@ -65,7 +65,7 @@ export default function AuthMenu({
         style={{
           display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
-          padding: compact ? '3px 3px' : u ? '6px 18px 6px 7px' : '6px 18px 6px 7px',
+          padding: compact ? '3px 3px' : '6px 20px 6px 7px', minWidth: compact ? undefined : 150,
           borderRadius: 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
           background: '#FFFFFF', color: '#2B2420', cursor: 'pointer',
         }}

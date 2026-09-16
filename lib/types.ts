@@ -1,8 +1,11 @@
 export type PetSize = 'small' | 'medium' | 'large'
+export type Species = 'dog' | 'cat'
 
 export interface Pet {
   key: string
   name: string
+  /** 강아지인지 고양이인지. 크기 이름표(소형견/소형묘)와 맹견 항목 표시에 쓴다 */
+  species: Species
   kg: number
   emoji: string
   /** 프로필 사진. 파일이 없거나 못 읽으면 emoji 로 되돌아간다 */

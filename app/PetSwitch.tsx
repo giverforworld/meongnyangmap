@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import type { Pet } from '@/lib/types'
-import { AVATARS, avatarBg, type PetInput } from '@/lib/pets'
+import { AVATARS, avatarBg, sizeLabelOf, type PetInput } from '@/lib/pets'
+import type { Species } from '@/lib/types'
 import PetFace from './PetFace'
 import { sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
@@ -18,7 +19,6 @@ import { authReady } from '@/lib/supabaseBrowser'
  * 사람마다 답이 갈리는 질문이고, 틀리면 판정이 통째로 어긋난다.
  */
 
-const SIZE_LABEL = { small: '소형견', medium: '중형견', large: '대형견' } as const
 
 const field: React.CSSProperties = {
   font: 'inherit',
@@ -71,7 +71,7 @@ export default function PetSwitch({
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, cursor: 'pointer', borderRadius: 99,
           // 등록 전에는 이 서비스의 첫 단계라 주황으로 꽉 채운다. 등록 뒤에는 연하게 물러난다
           ...(pet
-            ? { background: '#FFF4EF', border: '1.5px solid #F3C9BB', color: '#2B2420', padding: compact ? '3px 11px 3px 3px' : '6px 18px 6px 7px' }
+            ? { background: '#FFF4EF', border: '1.5px solid #F3C9BB', color: '#2B2420', padding: compact ? '3px 11px 3px 3px' : '6px 20px 6px 7px', minWidth: compact ? undefined : 150 }
             : { background: '#E85D3D', border: '1.5px solid #E85D3D', color: '#FFFFFF', padding: compact ? '3px 11px 3px 3px' : '6px 20px 6px 7px', boxShadow: '0 4px 14px rgba(232,93,61,.32)' }),
         }}
       >
@@ -365,6 +365,7 @@ function PetForm({
   canCancel?: boolean
 }) {
   const [name, setName] = useState(initial?.name ?? '')
+  const [species, setSpecies] = useState<Species>(initial?.species ?? 'dog')
   const [kg, setKg] = useState(initial ? String(initial.kg) : '')
   const [emoji, setEmoji] = useState(initial?.emoji ?? '🐶')
   const [hasCage, setHasCage] = useState(initial?.hasCage ?? false)
@@ -379,6 +380,12 @@ function PetForm({
 
   useEffect(() => setError(''), [name, kg])
 
+  function pickSpecies(next: Species) {
+    setSpecies(next)
+    if (next === 'cat' && emoji === '🐶') setEmoji('🐱')
+    if (next === 'dog' && emoji === '🐱') setEmoji('🐶')
+  }
+
   return (
     <form
       onSubmit={(e) => {
@@ -386,7 +393,7 @@ function PetForm({
         if (!name.trim()) return setError('이름을 적어주세요')
         if (!Number.isFinite(weight) || weight <= 0) return setError('몸무게를 숫자로 적어주세요')
         if (weight > 120) return setError('몸무게를 다시 확인해주세요')
-        onSave({ name, kg: weight, emoji, hasCage, hasMuzzle, dangerous })
+        onSave({ name, species, kg: weight, emoji, hasCage, hasMuzzle, dangerous: species === 'dog' && dangerous })
       }}
       style={{ display: 'flex', flexDirection: 'column', gap: 14 }}
     >
@@ -398,20 +405,34 @@ function PetForm({
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>몸무게</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <input value={kg} onChange={(e) => setKg(e.target.value.replace(/[^0-9.]/g, ''))}
-            inputMode="decimal" placeholder="4" style={{ ...field, width: 110 }} />
+            inputMode="decimal" placeholder="4" style={{ ...field, width: 96 }} />
           <span style={{ fontSize: 14.5, color: '#6E5F4D' }}>kg</span>
+          {/* 강아지 / 고양이 — 크기 이름표(소형견·소형묘)와 맹견 항목이 이걸 따른다 */}
+          <div role="radiogroup" aria-label="종류" style={{ display: 'flex', border: '1.5px solid #EAE3D6', borderRadius: 99, padding: 2, background: '#FFFFFF' }}>
+            {([['dog', '강아지', '🐶'], ['cat', '고양이', '🐱']] as const).map(([k, label, face]) => {
+              const on = species === k
+              return (
+                <button key={k} type="button" role="radio" aria-checked={on} onClick={() => pickSpecies(k)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 5, fontFamily: 'inherit', fontSize: 13, fontWeight: on ? 700 : 500, padding: '5px 11px 5px 6px', borderRadius: 99, border: 'none', background: on ? '#E85D3D' : 'transparent', color: on ? '#FFFFFF' : '#6E5F4D', cursor: 'pointer', transition: 'background .12s' }}>
+                  <PetFace emoji={face} size={20} />{label}
+                </button>
+              )
+            })}
+          </div>
           {size && (
             <span style={{ marginLeft: 'auto', fontSize: 12.5, fontWeight: 700, color: '#E85D3D', background: '#FFF4EF', border: '1.5px solid #F3C9BB', borderRadius: 99, padding: '4px 12px' }}>
-              {SIZE_LABEL[size]}
+              {sizeLabelOf(species, size)}
             </span>
           )}
         </div>
         <span style={{ fontSize: 11.5, color: '#B3A78F', lineHeight: 1.6 }}>
           몸무게로 크기를 정해요
           <br />
-          10kg 미만 소형견 · 10~25kg 중형견 · 25kg 이상 대형견
+          {species === 'dog'
+            ? '10kg 미만 소형견 · 10~25kg 중형견 · 25kg 이상 대형견'
+            : '10kg 미만 소형묘 · 10~25kg 중형묘 · 25kg 이상 대형묘 (대부분 소형묘예요)'}
         </span>
       </label>
 
@@ -432,7 +453,8 @@ function PetForm({
         ))}
       </fieldset>
 
-      {/* 견종을 묻지 않으니 맹견 여부만 직접 받는다. 고양이·토끼 주인은 그냥 지나가면 된다 */}
+      {/* 견종을 묻지 않으니 맹견 여부만 직접 받는다. 고양이면 아예 묻지 않는다 */}
+      {species === 'dog' && (
       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', border: `1.5px solid ${dangerous ? '#E0A9A0' : '#EFE8DA'}`, background: dangerous ? '#FBEDEA' : '#FFFFFF', borderRadius: 12, padding: '10px 13px' }}>
         <input type="checkbox" checked={dangerous} onChange={(e) => setDangerous(e.target.checked)}
           style={{ marginTop: 3, width: 17, height: 17, accentColor: '#C0392B', flex: 'none' }} />
@@ -445,6 +467,7 @@ function PetForm({
           </span>
         </span>
       </label>
+      )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>아이콘</span>

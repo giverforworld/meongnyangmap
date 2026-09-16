@@ -15,6 +15,8 @@ create table if not exists public.pets (
   -- 브라우저가 쓰는 식별자(pet1, pet2 …). 기기에서 올린 것과 대조하는 데 쓴다
   key         text        not null,
   name        text        not null check (char_length(name) between 1 and 20),
+  -- 강아지인지 고양이인지
+  species     text        not null default 'dog' check (species in ('dog', 'cat')),
   kg          numeric(5,1) not null check (kg > 0 and kg <= 120),
   emoji       text        not null default '🐶' check (char_length(emoji) <= 4),
   has_cage    boolean     not null default false,

@@ -502,7 +502,6 @@ function CampView() {
 
       {/* 어떤 곳 — 해변·산·숲 */}
       <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, overflowX: 'auto', whiteSpace: 'nowrap' }}>
-        <span style={{ flex: 'none', fontSize: 12, color: '#B3A78F', marginRight: 2 }}>어떤 곳</span>
         {['전체', ...TAGS].map((t) => {
           const key = t === '전체' ? '' : t
           const on = key === tag

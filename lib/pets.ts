@@ -1,4 +1,4 @@
-import type { Pet, PetSize } from './types'
+import type { Pet, PetSize, Species } from './types'
 import { isDangerousBreed, sizeOf } from './petTour'
 
 /**
@@ -14,11 +14,12 @@ import { isDangerousBreed, sizeOf } from './petTour'
  * 프로필은 브라우저에 저장한다. 로그인하면 계정에도 올라가 다른 기기에서 같이 쓴다.
  */
 
-const SIZE_LABEL: Record<PetSize, string> = {
-  small: '소형견',
-  medium: '중형견',
-  large: '대형견',
+const SIZE_LABEL: Record<Species, Record<PetSize, string>> = {
+  dog: { small: '소형견', medium: '중형견', large: '대형견' },
+  cat: { small: '소형묘', medium: '중형묘', large: '대형묘' },
 }
+
+export const sizeLabelOf = (species: Species, size: PetSize) => SIZE_LABEL[species][size]
 
 /**
  * 사람이 채우는 것만 받는다. 크기는 무게에서 나온다.
@@ -29,6 +30,8 @@ const SIZE_LABEL: Record<PetSize, string> = {
 export interface PetInput {
   key: string
   name: string
+  /** 없으면 강아지 — 이 항목이 생기기 전 저장본 */
+  species?: Species
   kg: number
   emoji: string
   photo?: string
@@ -46,17 +49,20 @@ export interface PetInput {
 export function toPet(p: PetInput): Pet {
   const kg = Number.isFinite(p.kg) && p.kg > 0 ? p.kg : 1
   const size = sizeOf(kg)
+  const species: Species = p.species === 'cat' ? 'cat' : 'dog'
   return {
     key: p.key,
     name: p.name.trim() || '우리 아이',
+    species,
     kg,
-    emoji: p.emoji || '🐶',
+    emoji: p.emoji || (species === 'cat' ? '🐱' : '🐶'),
     photo: p.photo,
     size,
-    sizeLabel: SIZE_LABEL[size],
+    sizeLabel: sizeLabelOf(species, size),
     hasCage: p.hasCage,
     hasMuzzle: p.hasMuzzle,
-    isDangerous: Boolean(p.dangerous),
+    // 맹견은 개 이야기다
+    isDangerous: species === 'dog' && Boolean(p.dangerous),
   }
 }
 
