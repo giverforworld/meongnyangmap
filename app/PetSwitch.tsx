@@ -118,7 +118,7 @@ export default function PetSwitch({
           >
             <header style={{ flex: 'none', padding: '18px 20px 12px', borderBottom: '1px solid #F1EBE0', display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
               <span className="jua" style={{ fontSize: 20 }}>
-                {editing ? (editing === 'new' ? '우리 아이 등록' : '프로필 수정') : pets.length ? '누구랑 갈까요?' : '우리 아이 등록'}
+                {editing ? (editing === 'new' ? '반려 동물 등록' : '프로필 수정') : pets.length ? '누구랑 갈까요?' : '반려 동물 등록'}
               </span>
               <button
                 onClick={() => (editing && pets.length ? setEditing(null) : (setEditing(null), setOpen(false)))}
@@ -400,7 +400,7 @@ function PetForm({
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>이름</span>
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} autoFocus
-          placeholder="우리 아이 이름" style={field} />
+          placeholder="반려 동물 이름" style={field} />
       </label>
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
