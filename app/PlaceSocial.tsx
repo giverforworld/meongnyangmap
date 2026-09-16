@@ -210,7 +210,7 @@ export function PlaceReviews({
             // 로그인 리뷰 — 이름은 계정으로 고정, 비밀번호 없음
             <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#6E5F4D', padding: '7px 10px', borderRadius: 10, border: '1.5px solid #EAE3D6', background: '#FAF6EF' }}>
               <b style={{ color: '#2B2420' }}>{presetNick || '로그인 계정'}</b>
-              <ProviderMark provider={provider} /> 계정으로 남아요
+              <ProviderMark provider={provider} /> 계정
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 8 }}>

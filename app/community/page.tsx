@@ -218,7 +218,7 @@ function Board() {
                 )}
                 <b style={{ color: '#2B2420' }}>{sessionNick || '로그인 계정'}</b>
                 <ProviderMark provider={petStore.session.user.app_metadata?.provider as string} />
-                <span>계정으로 올라가요</span>
+                <span>계정</span>
                 {petStore.pet && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                     · <PetFace emoji={petStore.pet.emoji} size={16} /> {petStore.pet.name} · {petStore.pet.sizeLabel}
