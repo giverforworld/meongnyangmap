@@ -66,7 +66,7 @@ export default function AuthMenu({
         style={{
           display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
           flexDirection: compact && !u ? 'column' : 'row',
-          gap: compact ? (u ? 6 : 1) : 10,
+          gap: compact ? (u ? 6 : 3) : 10,
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
           padding: compact ? (u ? '3px 3px' : '3px 6px') : u ? '6px 18px 6px 7px' : '6px 16px', minWidth: compact ? undefined : 150,
           borderRadius: compact && !u ? 12 : 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
@@ -91,19 +91,22 @@ export default function AuthMenu({
             )}
           </>
         ) : compact ? (
+          // 좁은 화면 — 글자가 주인공(메뉴 탭 글자와 같은 11.5px), 아이콘은 그 아래 작게
           <>
+            <span style={{ fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: -0.2 }}>소셜 로그인</span>
             <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <SocialDot kind="kakao" size={18} />
-              <SocialDot kind="google" size={18} />
+              <SocialDot kind="kakao" size={15} />
+              <SocialDot kind="google" size={15} />
             </span>
-            <span style={{ fontSize: 10, fontWeight: 700, whiteSpace: 'nowrap', letterSpacing: -0.2 }}>소셜 로그인</span>
           </>
         ) : (
-          // 프로필 칩의 아바타(40) 높이에 맞춘 두 줄 — 아이콘은 '카카오 · 구글' 줄에 글자와 나란히
-          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', justifyContent: 'center', height: 40 }}>
+          // 프로필 칩의 아바타(40) 높이에 맞춘 두 줄 — 둘째 줄은 아이콘만. 글자 없이도 무슨 로그인인지 보인다
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 40 }}>
             <span style={{ whiteSpace: 'nowrap' }}>소셜 로그인</span>
-            <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 3, whiteSpace: 'nowrap' }}>
-              <SocialDot kind="kakao" size={16} /> 카카오 <span style={{ margin: '0 1px' }}>·</span> <SocialDot kind="google" size={16} /> 구글 ▾
+            <span style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 3, whiteSpace: 'nowrap' }}>
+              <SocialDot kind="kakao" size={18} />
+              <SocialDot kind="google" size={18} />
+              <span style={{ marginLeft: 1 }}>▾</span>
             </span>
           </span>
         )}

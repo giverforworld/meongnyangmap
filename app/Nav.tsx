@@ -93,7 +93,7 @@ export default function Nav() {
               gap: isMobile ? 2 : 7,
               flex: 'none',
               margin: isMobile ? '5px 0' : '8px 0',
-              padding: isMobile ? '5px 9px 4px' : '10px 17px',
+              padding: isMobile ? '5px 7px 4px' : '10px 17px',
               borderRadius: isMobile ? 12 : 99,
               fontSize: isMobile ? 11.5 : 18,
               fontWeight: on ? 700 : 500,
