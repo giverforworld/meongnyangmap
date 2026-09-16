@@ -166,7 +166,7 @@ export default function Hotplace() {
 
         {tab === 'hot' ? <HotView /> : <CampView />}
 
-        <p style={{ marginTop: 32, fontSize: 12, color: '#B3A78F' }}>출처 ⓒ한국관광공사</p>
+        <p style={{ marginTop: 32, fontSize: 12, color: '#B3A78F' }}>데이터/API 출처 ⓒ한국관광공사</p>
       </div>
     </div>
   )

@@ -552,7 +552,7 @@ export default function Home() {
       )}
 
       {isMobile && (
-        <p style={{ margin: '14px 4px 0', fontSize: 11.5, color: '#B3A78F' }}>출처 ⓒ한국관광공사</p>
+        <p style={{ margin: '14px 4px 0', fontSize: 11.5, color: '#B3A78F' }}>데이터/API 출처 ⓒ한국관광공사</p>
       )}
     </div>
     </>
@@ -814,8 +814,8 @@ export default function Home() {
           {!isMobile && (
           <div style={{ position: 'absolute', left: 16, top: 14, background: 'rgba(255,255,255,.94)', border: '1px solid #EAE3D6', borderRadius: 99, padding: '6px 14px', fontSize: 12.5, color: '#6E5F4D' }}>
             {pet
-              ? <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 3 }}><PetFace emoji={pet.emoji} size={16} /></span><b>{pet.name}</b> 기준으로 판정된 지도예요 · 출처 ⓒ한국관광공사</>
-              : <>🐶 <b>프로필을 등록</b>하면 등록한 아이 기준으로 동반 가능 여부를 필터링해요 · 출처 ⓒ한국관광공사</>}
+              ? <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 3 }}><PetFace emoji={pet.emoji} size={16} /></span><b>{pet.name}</b> 기준으로 판정된 지도예요 · 데이터/API 출처 ⓒ한국관광공사</>
+              : <>🐶 <b>프로필을 등록</b>하면 등록한 아이 기준으로 동반 가능 여부를 필터링해요 · 데이터/API 출처 ⓒ한국관광공사</>}
           </div>
           )}
 

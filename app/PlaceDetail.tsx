@@ -172,7 +172,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
             </div>
           )}
           <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11.5, color: '#A08872' }}>
-            조건 정보 충실도 {rules?.completeness ?? '—'}등급 · 출처 ⓒ한국관광공사
+            조건 정보 충실도 {rules?.completeness ?? '—'}등급 · 데이터/API 출처 ⓒ한국관광공사
           </div>
         </div>
 
@@ -228,7 +228,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
 
               <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11, color: '#A08872', lineHeight: 1.5 }}>
                 이동통신 데이터로 추정한 예측값이에요. 이 장소가 가장 붐빌 때를 100으로 본
-                상대적인 정도라, 다른 장소와 비교하는 숫자는 아니에요 · 출처 ⓒ한국관광공사
+                상대적인 정도라, 다른 장소와 비교하는 숫자는 아니에요 · 데이터/API 출처 ⓒ한국관광공사
               </div>
             </section>
           )

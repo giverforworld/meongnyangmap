@@ -106,7 +106,7 @@ export default function PostPage() {
                 </Link>
               )}
               {post.place_id && (
-                <span style={{ fontSize: 10.5, color: '#B3A78F', marginTop: -8 }}>장소 정보 출처 ⓒ한국관광공사</span>
+                <span style={{ fontSize: 10.5, color: '#B3A78F', marginTop: -8 }}>장소 정보 · 데이터/API 출처 ⓒ한국관광공사</span>
               )}
 
               {/* 사용자가 쓴 글이라 그대로 보여준다. React 가 escape 하므로 HTML 은 실행되지 않는다 */}
