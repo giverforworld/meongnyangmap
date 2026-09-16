@@ -4,20 +4,20 @@
  */
 
 /**
- * 지역 — 발자국이 곧 핀이다. 발가락 넷은 그대로 두고, 패드 끝을 길게 뾰족하게 늘여
- * 지도 핀처럼 '여기'를 가리킨다. 핀 안에 발자국을 넣으면 26px 에서 발자국이 안 읽혔고,
- * 발자국만 두면 위치 표시가 사라졌다 — 둘을 한 몸으로 만든 것.
+ * 지역 — 주황 핀 안에 흰 발자국. 핀 머리를 크게(반지름 10/24) 잡고 발자국이 머리를
+ * 거의 채우게 그린다 — 예전엔 머리가 작아 26px 에서 발자국이 안 읽혔다.
+ * 발가락 넷은 서로 떨어져 있어야 발자국으로 보인다.
  */
-export function PawPinIcon({ size = 28 }: { size?: number }) {
+export function PawPinIcon({ size = 26 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 26" width={size} height={size * 26 / 24} aria-hidden="true" style={{ flex: 'none', display: 'block' }}>
-      <g fill="#E85D3D">
-        <ellipse cx="4.6" cy="8.6" rx="2.3" ry="2.9" transform="rotate(-20 4.6 8.6)" />
-        <ellipse cx="9.2" cy="4.3" rx="2.3" ry="3" />
-        <ellipse cx="14.8" cy="4.3" rx="2.3" ry="3" />
-        <ellipse cx="19.4" cy="8.6" rx="2.3" ry="2.9" transform="rotate(20 19.4 8.6)" />
-        {/* 패드 = 핀 머리, 아래로 길게 뾰족한 꼬리 */}
-        <path d="M12 25.5C10.2 21.6 5 19.5 5 14.9c0-3.1 3.1-5.4 7-5.4s7 2.3 7 5.4c0 4.6-5.2 6.7-7 10.6Z" />
+    <svg viewBox="0 0 24 28" width={size} height={size * 28 / 24} aria-hidden="true" style={{ flex: 'none', display: 'block' }}>
+      <path d="M12 27.5c-4.6-6-10-9.6-10-16a10 10 0 1 1 20 0c0 6.4-5.4 10-10 16Z" fill="#E85D3D" />
+      <g fill="#FFFFFF">
+        <ellipse cx="6.2" cy="9.6" rx="1.6" ry="2.2" transform="rotate(-24 6.2 9.6)" />
+        <ellipse cx="9.9" cy="6.2" rx="1.6" ry="2.3" />
+        <ellipse cx="14.1" cy="6.2" rx="1.6" ry="2.3" />
+        <ellipse cx="17.8" cy="9.6" rx="1.6" ry="2.2" transform="rotate(24 17.8 9.6)" />
+        <path d="M12 18.6c-2.1-.5-5.4-2-5.4-4.6 0-2.2 2.4-3.9 5.4-3.9s5.4 1.7 5.4 3.9c0 2.6-3.3 4.1-5.4 4.6Z" />
       </g>
     </svg>
   )

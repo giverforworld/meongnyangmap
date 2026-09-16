@@ -587,7 +587,7 @@ export default function Home() {
       <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
         {/* 아이콘은 글자 높이(15.5px)에 맞춘 22px, 간격은 글자와 같은 8px — 크면 셀렉트 박스가 아니라 배지처럼 보인다 */}
         <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 12px 9px 12px' }}>
-          {/* 발자국 핀 — 발가락 넷 + 아래로 뾰족한 패드. 꼬리가 아래라 1px 올려야 글자와 나란해 보인다 */}
+          {/* 발자국 핀 — 꼬리가 아래라 1px 올려야 글자와 나란해 보인다 */}
           <span style={{ display: 'flex', marginTop: -1 }}><PawPinIcon size={26} /></span>
           <select value={regnCd} onChange={(e) => { setRegnCd(e.target.value); setSignguCd('') }}
             style={{ border: 'none', background: 'transparent', font: 'inherit', fontSize: 15.5, color: '#2B2420', cursor: 'pointer', outline: 'none' }}>
@@ -667,12 +667,12 @@ export default function Home() {
             </>
           )}
           {!isMobile && <div style={{ flex: 1 }} />}
-          <span style={{ fontSize: 12.5, color: '#B3A78F', flex: 'none', paddingLeft: isMobile ? 4 : 0 }}>
-            {q && <b style={{ color: '#E85D3D' }}>전국 검색 · </b>}
-            {nearIds && <b style={{ color: '#E85D3D' }}>내 주변 20km · </b>}
-            {total}곳 중 {shown.length}곳 확인함
-            {hiddenCount > 0 && ` · 동반 불가 ${hiddenCount}곳 숨김`}
+          {/* 몇 곳 확인했는지는 목록 제목의 숫자와 범례가 이미 말한다 — 여기선 검색·내 주변 상태만 */}
+          {(q || nearIds) && (
+          <span style={{ fontSize: 12.5, fontWeight: 700, color: '#E85D3D', flex: 'none', paddingLeft: isMobile ? 4 : 0 }}>
+            {q ? '전국 검색' : '내 주변 20km'}
           </span>
+          )}
         </div>
         )}
       </div>
