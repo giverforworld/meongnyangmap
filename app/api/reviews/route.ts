@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { boardReady, sbInsert, sbSelect } from '@/lib/supabase'
 import { hashPassword } from '@/lib/password'
 import { cleanPhotos, isContentId, resolvePlace } from '@/lib/board'
-import { petSnapshotOf, viewerOf } from '@/lib/auth'
+import { EXPIRED, petSnapshotOf, sentToken, viewerOf } from '@/lib/auth'
 import { randomBytes } from 'node:crypto'
 
 export const dynamic = 'force-dynamic'
@@ -68,6 +68,7 @@ export async function POST(req: Request) {
   try {
     const { placeId, nickname, rating, entry, body, photos, petSize, password, petKey } = await req.json()
     const viewer = await viewerOf(req)
+    if (!viewer && sentToken(req)) return NextResponse.json({ error: EXPIRED }, { status: 401 })
 
     // 장소 이름은 화면이 보낸 것이 아니라 우리 목록에서 찾는다
     const pl = await resolvePlace({ id: placeId })

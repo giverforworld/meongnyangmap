@@ -23,6 +23,11 @@ export interface Viewer {
   provider: string
 }
 
+/** 토큰을 보내긴 했는지 — 보냈는데 못 알아본 것과 안 보낸 것은 다른 오류다 */
+export const sentToken = (req: Request) => (req.headers.get('authorization') ?? '').startsWith('Bearer ')
+
+export const EXPIRED = '로그인이 만료됐어요 — 다시 로그인해주세요'
+
 export async function viewerOf(req: Request): Promise<Viewer | null> {
   const h = req.headers.get('authorization') ?? ''
   const token = h.startsWith('Bearer ') ? h.slice(7).trim() : ''

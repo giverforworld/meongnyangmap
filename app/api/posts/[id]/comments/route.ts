@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { randomBytes } from 'node:crypto'
 import { boardReady, sbInsert, sbSelect } from '@/lib/supabase'
 import { hashPassword } from '@/lib/password'
-import { petSnapshotOf, viewerOf } from '@/lib/auth'
+import { EXPIRED, petSnapshotOf, sentToken, viewerOf } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,6 +59,7 @@ export async function POST(req: Request, { params }: Ctx) {
   try {
     const { nickname, body, password, petKey } = await req.json()
     const viewer = await viewerOf(req)
+    if (!viewer && sentToken(req)) return NextResponse.json({ error: EXPIRED }, { status: 401 })
 
     const nick = (viewer?.name || String(nickname ?? '')).trim()
     const b = String(body ?? '').trim()

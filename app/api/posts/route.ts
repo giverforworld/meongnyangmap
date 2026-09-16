@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { boardReady, sbInsert, sbSelect } from '@/lib/supabase'
 import { hashPassword } from '@/lib/password'
 import { MAX_PHOTOS, cleanPhotos, resolvePlace, isContentId } from '@/lib/board'
-import { petSnapshotOf, viewerOf } from '@/lib/auth'
+import { EXPIRED, petSnapshotOf, sentToken, viewerOf } from '@/lib/auth'
 import { randomBytes } from 'node:crypto'
 
 export const dynamic = 'force-dynamic'
@@ -72,6 +72,7 @@ export async function POST(req: Request) {
     const { nickname, title, body, password, photos, place, petKey } = await req.json()
     // 로그인했으면 누구인지 서버가 확인한다. 아니면 null — 닉네임·비밀번호 글
     const viewer = await viewerOf(req)
+    if (!viewer && sentToken(req)) return NextResponse.json({ error: EXPIRED }, { status: 401 })
 
     // 화면에서도 막지만, 요청은 화면을 거치지 않고도 올 수 있다
     // 로그인 글은 계정 이름으로 고정한다 — 화면이 보낸 닉네임은 쓰지 않는다
