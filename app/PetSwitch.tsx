@@ -400,7 +400,7 @@ function PetForm({
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         <span style={{ fontSize: 13, fontWeight: 700 }}>이름</span>
         <input value={name} onChange={(e) => setName(e.target.value)} maxLength={20} autoFocus
-          placeholder="반려 동물 이름" style={field} />
+          placeholder="우리 아이 이름" style={field} />
       </label>
 
       <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
