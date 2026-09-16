@@ -4,20 +4,33 @@
  */
 
 /**
- * 지역 — 주황 핀 안에 흰 발자국. 핀 머리를 크게(반지름 10/24) 잡고 발자국이 머리를
- * 거의 채우게 그린다 — 예전엔 머리가 작아 26px 에서 발자국이 안 읽혔다.
- * 발가락 넷은 서로 떨어져 있어야 발자국으로 보인다.
+ * 지역 — 통통한 코랄 핀 안에 흰 발자국.
+ *
+ * 날카롭게 보이던 건 뾰족한 꼬리 끝과 작은 머리였다. 머리(r10.5)와 꼬리 끝(r2.2) 두 원을
+ * 접선으로 잇고, 끝을 둥글게 남겨 물방울처럼 만든다. 위는 밝고 아래는 브랜드 주황인
+ * 그라데이션에 작은 광택을 얹어 스티커 느낌을 낸다. 발가락은 동그라미, 패드는 하트.
  */
 export function PawPinIcon({ size = 26 }: { size?: number }) {
   return (
-    <svg viewBox="0 0 24 28" width={size} height={size * 28 / 24} aria-hidden="true" style={{ flex: 'none', display: 'block' }}>
-      <path d="M12 27.5c-4.6-6-10-9.6-10-16a10 10 0 1 1 20 0c0 6.4-5.4 10-10 16Z" fill="#E85D3D" />
+    <svg viewBox="0 0 24 27" width={size} height={size * 27 / 24} aria-hidden="true" style={{ flex: 'none', display: 'block' }}>
+      <defs>
+        <linearGradient id="pawpin-g" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#FA8B6D" />
+          <stop offset="1" stopColor="#E85D3D" />
+        </linearGradient>
+      </defs>
+      <path d="M4.2 18.63A10.5 10.5 0 1 1 19.8 18.63L13.63 25.47A2.2 2.2 0 0 1 10.37 25.47Z" fill="url(#pawpin-g)" />
+      {/* 광택 */}
+      <ellipse cx="7.4" cy="5.4" rx="2.3" ry="1.3" transform="rotate(-38 7.4 5.4)" fill="#FFFFFF" opacity=".42" />
       <g fill="#FFFFFF">
-        <ellipse cx="6.2" cy="9.6" rx="1.6" ry="2.2" transform="rotate(-24 6.2 9.6)" />
-        <ellipse cx="9.9" cy="6.2" rx="1.6" ry="2.3" />
-        <ellipse cx="14.1" cy="6.2" rx="1.6" ry="2.3" />
-        <ellipse cx="17.8" cy="9.6" rx="1.6" ry="2.2" transform="rotate(24 17.8 9.6)" />
-        <path d="M12 18.6c-2.1-.5-5.4-2-5.4-4.6 0-2.2 2.4-3.9 5.4-3.9s5.4 1.7 5.4 3.9c0 2.6-3.3 4.1-5.4 4.6Z" />
+        <circle cx="6.02" cy="9.75" r="2.06" />
+        <circle cx="9.75" cy="6.32" r="2.17" />
+        <circle cx="14.25" cy="6.32" r="2.17" />
+        <circle cx="17.98" cy="9.75" r="2.06" />
+        {/* 하트 모양 패드 */}
+        <g transform="translate(12 12.1) scale(0.921)">
+          <path d="M0 6.1c-.4 0-.9-.1-1.3-.3C-3.7 4.9-5.5 3.5-5.5 1.4-5.5-.1-4.3-1.3-2.8-1.3-1.6-1.3-.6-.7 0 .2.6-.7 1.6-1.3 2.8-1.3 4.3-1.3 5.5-.1 5.5 1.4c0 2.1-1.8 3.5-4.2 4.4-.4.2-.9.3-1.3.3Z" />
+        </g>
       </g>
     </svg>
   )

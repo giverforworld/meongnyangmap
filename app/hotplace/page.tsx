@@ -68,11 +68,12 @@ const TABS: { key: Tab; label: string; title: [string, string]; lede: React.Reac
   {
     key: 'camp',
     label: '캠핑장',
-    title: ['우리 아이랑', '하룻밤'],
+    title: ['우리 아이와 함께 갈 수 있는', '캠핑장'],
     lede: (
       <>
         전국 캠핑장 중 <b style={{ color: '#2B2420' }}>반려동물과 함께 묵을 수 있는 곳</b>이에요.
-        크기 제한이 있는 곳은 우리 아이 기준으로 걸러서 보여드려요.
+        <br />
+        체중 제한이 있는 장소는 우리 아이 기준으로 필터링 후 보여드려요.
       </>
     ),
     ledeShort: '반려동물과 함께 묵을 수 있는 캠핑장만 모았어요',
