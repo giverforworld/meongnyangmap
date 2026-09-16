@@ -4,25 +4,6 @@
  */
 
 /**
- * 지역 — 발자국 자체가 핀이다. 발가락 넷에 패드 끝이 아래로 뾰족해 '여기'를 가리킨다.
- * 핀 안에 발자국을 넣던 것은 26px 에서 발자국이 안 읽혔다. 발자국이 곧 아이콘이어야 한눈에 보인다.
- */
-export function PawPinIcon({ size = 26 }: { size?: number }) {
-  return (
-    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" style={{ flex: 'none', display: 'block' }}>
-      <g fill="#E85D3D">
-        {/* 가운데 둘은 서로 떨어져 있어야 발가락으로 읽힌다 — 붙으면 한 덩어리가 된다 */}
-        <ellipse cx="4.6" cy="9.6" rx="2.3" ry="2.9" transform="rotate(-20 4.6 9.6)" />
-        <ellipse cx="9.2" cy="5.3" rx="2.3" ry="3" />
-        <ellipse cx="14.8" cy="5.3" rx="2.3" ry="3" />
-        <ellipse cx="19.4" cy="9.6" rx="2.3" ry="2.9" transform="rotate(20 19.4 9.6)" />
-        <path d="M12 22.6C9.2 20.2 5.4 18.9 5.4 15.6c0-2.9 2.9-5 6.6-5s6.6 2.1 6.6 5c0 3.3-3.8 4.6-6.6 7Z" />
-      </g>
-    </svg>
-  )
-}
-
-/**
  * 장소 핀 — 대메뉴 '멍냥맵'과 같은 선 핀. 글에 붙은 장소, 장소 고르기, 사진 없는 자리 등
  * '장소'를 뜻하는 곳은 전부 이걸 쓴다. currentColor 라 글자색을 따라간다.
  */
