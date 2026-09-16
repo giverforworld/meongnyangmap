@@ -365,9 +365,11 @@ function HotView() {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(248px, 1fr))', gap: 14 }}>
         {shown.map((p) => (
           <article key={p.contentid} style={{ background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ height: 132, background: p.firstimage ? `center/cover url(${p.firstimage})` : 'linear-gradient(135deg,#FFE0D3,#FFF4EF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
+            {/* 사진을 눌러도 상세가 열린다 — 버튼까지 내려가지 않아도 되게 */}
+            <button type="button" onClick={() => setOpen(p)} aria-label={`${p.title} 상세 보기`} className="hov-photo"
+              style={{ height: 132, padding: 0, border: 'none', cursor: 'pointer', background: p.firstimage ? `center/cover url(${p.firstimage})` : 'linear-gradient(135deg,#FFE0D3,#FFF4EF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 34 }}>
               {!p.firstimage && (CAT_EMOJI[p.cat] ?? <span style={{ color: '#E85D3D' }}><PlacePinIcon size={34} /></span>)}
-            </div>
+            </button>
             <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
               <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#2B2420', wordBreak: 'keep-all' }}>{p.title}</h2>
               <p style={{ margin: 0, fontSize: 12, color: '#A08872' }}>

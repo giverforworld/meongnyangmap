@@ -233,3 +233,7 @@ textarea::placeholder {
   box-shadow: 0 8px 22px rgba(43, 36, 32, .09);
   border-color: #E3DCCE;
 }
+
+/* 카드 사진 — 누를 수 있다는 걸 살짝 알린다 */
+.hov-photo { transition: filter .15s ease; }
+.hov-photo:hover { filter: brightness(1.06); }
