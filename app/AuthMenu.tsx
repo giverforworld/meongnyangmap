@@ -61,17 +61,13 @@ export default function AuthMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         title={u ? `${who} · 로그아웃` : '소셜 로그인 — 안 해도 전부 쓸 수 있어요'}
-        // 옆의 프로필 칩과 같은 키(아바타 40)로 맞춘다 — 둘이 높이가 다르면 나란히 서지 않는다.
-        // 로그인 전에는 글자 한 줄('소셜 로그인')만. 어느 계정인지는 눌러서 나오는 메뉴가 말한다
+        // 옆의 프로필 칩과 같은 키(아바타 40 · 두 줄)로 맞춘다 — 둘이 높이가 다르면 나란히 서지 않는다
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 'none',
-          gap: compact ? 6 : 10,
-          fontFamily: 'inherit', fontSize: compact ? 12 : 15, fontWeight: 700, lineHeight: 1.15,
-          padding: compact ? (u ? '3px 3px' : '0 8px') : u ? '6px 18px 6px 7px' : '6px 16px', minWidth: compact ? undefined : 150,
-          // 좁은 화면 프로필 칩(아바타 28 + 여백)과 같은 37px
-          height: compact && !u ? 37 : undefined,
+          display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
+          fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
+          padding: compact ? '3px 3px' : '6px 20px 6px 7px', minWidth: compact ? undefined : 150,
           borderRadius: 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
-          background: '#FFFFFF', color: '#2B2420', cursor: 'pointer', whiteSpace: 'nowrap',
+          background: '#FFFFFF', color: '#2B2420', cursor: 'pointer',
         }}
       >
         {u ? (
@@ -92,8 +88,17 @@ export default function AuthMenu({
             )}
           </>
         ) : (
-          // 프로필 칩의 아바타(40) 높이에 맞춘 한 줄
-          <span style={{ display: 'flex', alignItems: 'center', height: compact ? undefined : 40 }}>소셜 로그인</span>
+          <>
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, borderRadius: '50%', background: '#F6F1E7', flex: 'none', color: '#8A7A65' }}>
+              <PersonIcon size={compact ? 16 : 22} />
+            </span>
+            {!compact && (
+              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <span>소셜 로그인</span>
+                <span style={{ fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2 }}>카카오 · 구글 ▾</span>
+              </span>
+            )}
+          </>
         )}
       </button>
 
@@ -137,7 +142,7 @@ export default function AuthMenu({
   )
 }
 
-/** 사람 실루엣 — 로그인 뒤에 사진이 없을 때 */
+/** 사람 실루엣 — 로그인 전에는 이것만, 로그인 뒤에는 사진이 없을 때 */
 function PersonIcon({ size = 18 }: { size?: number }) {
   return (
     <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor"
