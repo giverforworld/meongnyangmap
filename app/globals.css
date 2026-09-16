@@ -237,3 +237,7 @@ textarea::placeholder {
 /* 카드 사진 — 누를 수 있다는 걸 살짝 알린다 */
 .hov-photo { transition: filter .15s ease; }
 .hov-photo:hover { filter: brightness(1.06); }
+
+/* 개인정보처리방침 — 본문 p·ul 의 기본 여백을 섹션 간격에 맞춘다 */
+.privacy-body p { margin: 0; }
+.privacy-body ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
