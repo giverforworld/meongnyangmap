@@ -65,9 +65,11 @@ export default function AuthMenu({
         style={{
           display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
-          padding: compact ? '3px 3px' : '6px 20px 6px 7px', minWidth: compact ? undefined : 150,
+          // 좁은 화면 로그인 전은 글자 한 줄 — 높이는 옆 프로필 칩(아바타 28 + 여백 + 테두리)과 같은 37
+          padding: compact ? (u ? '3px 3px' : '0 10px') : '6px 20px 6px 7px', minWidth: compact ? undefined : 150,
+          height: compact && !u ? 37 : undefined,
           borderRadius: 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
-          background: '#FFFFFF', color: '#2B2420', cursor: 'pointer',
+          background: '#FFFFFF', color: '#2B2420', cursor: 'pointer', whiteSpace: 'nowrap',
         }}
       >
         {u ? (
@@ -87,17 +89,18 @@ export default function AuthMenu({
               </span>
             )}
           </>
+        ) : compact ? (
+          // 좁은 화면 — 사람 아이콘만 두면 로그인 버튼인 줄 모른다. 글자로
+          <span style={{ fontSize: 12 }}>로그인</span>
         ) : (
           <>
-            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, borderRadius: '50%', background: '#F6F1E7', flex: 'none', color: '#8A7A65' }}>
-              <PersonIcon size={compact ? 16 : 22} />
+            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 40, height: 40, borderRadius: '50%', background: '#F6F1E7', flex: 'none', color: '#8A7A65' }}>
+              <PersonIcon size={22} />
             </span>
-            {!compact && (
-              <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <span>소셜 로그인</span>
-                <span style={{ fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2 }}>카카오 · 구글 ▾</span>
-              </span>
-            )}
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+              <span>소셜 로그인</span>
+              <span style={{ fontSize: 12.5, fontWeight: 500, color: '#A08872', marginTop: 2 }}>카카오 · 구글 ▾</span>
+            </span>
           </>
         )}
       </button>
