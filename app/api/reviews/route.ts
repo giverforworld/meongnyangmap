@@ -73,7 +73,8 @@ export async function POST(req: Request) {
     if (!pl?.place_id) return bad('어느 장소의 리뷰인지 알 수 없어요')
     const pid = pl.place_id
     const ptitle = pl.place_title!
-    const nick = String(nickname ?? '').trim()
+    // 로그인 리뷰는 계정 이름으로 고정한다
+    const nick = (viewer?.name || String(nickname ?? '')).trim()
     const b = String(body ?? '').trim()
     const pw = viewer ? randomBytes(24).toString('hex') : String(password ?? '')
     const rt = Number(rating)

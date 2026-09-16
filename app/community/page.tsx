@@ -108,12 +108,10 @@ function Board() {
     setWriting(true)
   }, [params])
 
-  // 로그인돼 있으면 닉네임을 미리 채운다. 지울 수는 있다
-  useEffect(() => {
-    const m = petStore.session?.user.user_metadata ?? {}
-    const nick = (m.nickname as string) || (m.name as string) || ''
-    if (nick) setNickname((v) => v || nick.slice(0, 20))
-  }, [petStore.session])
+  // 로그인돼 있으면 이름은 계정 것으로 고정된다 — 서버도 화면이 보낸 닉네임을 쓰지 않는다
+  const m = petStore.session?.user.user_metadata ?? {}
+  const sessionNick = ((m.nickname as string) || (m.name as string) || '').slice(0, 20)
+  useEffect(() => { if (sessionNick) setNickname(sessionNick) }, [sessionNick])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -211,25 +209,31 @@ function Board() {
           <form onSubmit={submit}
             style={{ background: '#FFFFFF', border: '1px solid #EFE8DA', borderRadius: 16, padding: 18, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <PlacePicker value={place} onChange={setPlace} />
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-              <input value={nickname} onChange={(e) => setNickname(e.target.value)}
-                placeholder="닉네임" maxLength={20} required style={{ ...field, flex: '1 1 160px' }} />
-              {petStore.session ? (
-                // 로그인 글은 계정으로 지우니 비밀번호가 없다. 대신 무엇이 같이 남는지 보여준다
-                <span style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#6E5F4D', flexWrap: 'wrap' }}>
-                  <ProviderMark provider={petStore.session.user.app_metadata?.provider as string} /> 계정으로 올라가요
-                  {petStore.pet && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                      · <PetFace emoji={petStore.pet.emoji} size={16} /> {petStore.pet.name} · {petStore.pet.sizeLabel}
-                    </span>
-                  )}
-                </span>
-              ) : (
+            {petStore.session ? (
+              // 로그인 글 — 이름은 계정으로 고정, 비밀번호 없음(계정으로 지운다). 무엇이 같이 남는지 보여준다
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 12px', borderRadius: 12, border: '1.5px solid #EAE3D6', background: '#FAF6EF', fontSize: 13, color: '#6E5F4D' }}>
+                {(petStore.session.user.user_metadata?.picture as string) && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={petStore.session.user.user_metadata.picture} alt="" referrerPolicy="no-referrer" style={{ width: 24, height: 24, borderRadius: '50%', objectFit: 'cover' }} />
+                )}
+                <b style={{ color: '#2B2420' }}>{sessionNick || '로그인 계정'}</b>
+                <ProviderMark provider={petStore.session.user.app_metadata?.provider as string} />
+                <span>계정으로 올라가요</span>
+                {petStore.pet && (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    · <PetFace emoji={petStore.pet.emoji} size={16} /> {petStore.pet.name} · {petStore.pet.sizeLabel}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                <input value={nickname} onChange={(e) => setNickname(e.target.value)}
+                  placeholder="닉네임" maxLength={20} required style={{ ...field, flex: '1 1 160px' }} />
                 <input value={password} onChange={(e) => setPassword(e.target.value)}
                   placeholder="비밀번호 (지울 때 필요해요)" type="password" minLength={4} required
                   style={{ ...field, flex: '1 1 200px' }} />
-              )}
-            </div>
+              </div>
+            )}
             <input value={title} onChange={(e) => setTitle(e.target.value)}
               placeholder="제목" maxLength={80} required style={field} />
             <textarea value={body} onChange={(e) => setBody(e.target.value)}

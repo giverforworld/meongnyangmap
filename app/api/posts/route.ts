@@ -72,7 +72,8 @@ export async function POST(req: Request) {
     const viewer = await viewerOf(req)
 
     // 화면에서도 막지만, 요청은 화면을 거치지 않고도 올 수 있다
-    const nick = String(nickname ?? '').trim()
+    // 로그인 글은 계정 이름으로 고정한다 — 화면이 보낸 닉네임은 쓰지 않는다
+    const nick = (viewer?.name || String(nickname ?? '')).trim()
     const t = String(title ?? '').trim()
     const b = String(body ?? '').trim()
     // 로그인 글은 계정으로 지우므로 비밀번호를 받지 않는다. 표의 not null 은 아무도 모르는 값으로 채운다

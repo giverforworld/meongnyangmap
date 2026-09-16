@@ -206,16 +206,18 @@ export function PlaceReviews({
             placeholder="어땠나요? 다음 사람에게 도움이 될 걸 적어주세요 — 직원 반응, 자리, 물그릇…"
             style={{ ...field, resize: 'vertical', lineHeight: 1.6 }} />
           <PhotoPicker photos={photos} onChange={setPhotos} />
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="닉네임" maxLength={20} required style={{ ...field, flex: '1 1 120px' }} />
-            {loggedIn ? (
-              <span style={{ flex: '1 1 120px', display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: '#6E5F4D' }}>
-                <ProviderMark provider={provider} /> 계정으로 남아요
-              </span>
-            ) : (
-              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 (지울 때)" type="password" minLength={4} required style={{ ...field, flex: '1 1 120px' }} />
-            )}
-          </div>
+          {loggedIn ? (
+            // 로그인 리뷰 — 이름은 계정으로 고정, 비밀번호 없음
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, color: '#6E5F4D', padding: '7px 10px', borderRadius: 10, border: '1.5px solid #EAE3D6', background: '#FAF6EF' }}>
+              <b style={{ color: '#2B2420' }}>{presetNick || '로그인 계정'}</b>
+              <ProviderMark provider={provider} /> 계정으로 남아요
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input value={nickname} onChange={(e) => setNickname(e.target.value)} placeholder="닉네임" maxLength={20} required style={{ ...field, flex: 1 }} />
+              <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="비밀번호 (지울 때)" type="password" minLength={4} required style={{ ...field, flex: 1 }} />
+            </div>
+          )}
           {error && <span style={{ fontSize: 12.5, color: '#C0392B' }}>{error}</span>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button type="button" onClick={() => { setWriting(false); setError('') }}
