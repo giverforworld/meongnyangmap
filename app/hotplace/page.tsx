@@ -511,9 +511,6 @@ function CampView() {
 
         <span style={{ marginLeft: 'auto', fontSize: 13, color: '#B3A78F' }}>
           {loading && !data ? '불러오는 중…' : `${(data?.total ?? 0).toLocaleString()}곳`}
-          {data && data.hidden > 0 && (
-            <span style={{ color: '#C4B8A4' }}> · 동반 불가 {data.hidden.toLocaleString()}곳 숨김</span>
-          )}
         </span>
       </div>
 
