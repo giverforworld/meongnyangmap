@@ -329,8 +329,8 @@ export default function Home() {
 
   const sel = visible.find((p) => p.contentid === selectedId) ?? null
 
-  /** 시트 단계별 높이. peek 은 손잡이와 머리글만 남긴다 */
-  const SHEET_H = { peek: '86px', half: '46%', full: '88%' } as const
+  /** 시트 단계별 높이. peek 은 손잡이와 머리글만 남긴다. full 은 검색창 바로 아래까지 — 지도를 다 덮는다 */
+  const SHEET_H = { peek: '86px', half: '46%', full: '100%' } as const
   /** 지도에서 시트에 가려지는 비율 — 핀을 그 위로 올리는 데 쓴다 */
   const mapInset = !isMobile ? 0 : sheet === 'peek' ? 0.14 : 0.5
 
@@ -347,7 +347,7 @@ export default function Home() {
     const d = dragRef.current
     const el = sheetRef.current
     if (!d || !el) return
-    const max = (el.parentElement?.clientHeight ?? 0) * 0.92
+    const max = el.parentElement?.clientHeight ?? 0
     setSheetPx(Math.max(72, Math.min(max, d.h - (e.clientY - d.y))))
   }
   const dragEnd = () => {
@@ -401,7 +401,7 @@ export default function Home() {
       const dt = Math.max(1, e.timeStamp - lastT)
       vy = (t.clientY - lastY) / dt // px/ms, 아래가 +
       lastY = t.clientY; lastT = e.timeStamp
-      const max = (el.parentElement?.clientHeight ?? 0) * 0.92
+      const max = el.parentElement?.clientHeight ?? 0
       curH = Math.max(72, Math.min(max, startH - dy))
       setSheetPx(curH)
     }
@@ -833,10 +833,12 @@ export default function Home() {
                 position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 20,
                 height: sheetPx !== null ? sheetPx : SHEET_H[sheet],
                 background: '#FFFFFF', borderTop: '1px solid #EAE3D6',
-                borderRadius: '18px 18px 0 0', boxShadow: '0 -6px 24px rgba(43,36,32,.14)',
+                // 다 올라오면 검색창 아래에 딱 붙으므로 모서리를 편다
+                borderRadius: sheet === 'full' && sheetPx === null ? 0 : '18px 18px 0 0',
+                boxShadow: '0 -6px 24px rgba(43,36,32,.14)',
                 display: 'flex', flexDirection: 'column', minHeight: 0,
                 // 놓으면 가장 가까운 단계로 '샤샤샥' — 끄는 동안엔 손가락을 그대로 따른다
-                transition: sheetPx !== null ? 'none' : 'height .3s cubic-bezier(.2,.8,.2,1)',
+                transition: sheetPx !== null ? 'none' : 'height .3s cubic-bezier(.2,.8,.2,1), border-radius .3s',
                 // 시트 자체는 브라우저 제스처를 안 받는다(손가락 끌기는 위 터치 핸들러가). 목록만 세로 스크롤
                 touchAction: sheet === 'full' ? 'pan-y' : 'none',
               }}>
