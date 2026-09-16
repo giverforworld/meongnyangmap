@@ -143,8 +143,10 @@ export function usePets() {
       options: {
         redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}`,
         // 카카오는 브라우저에 카카오 세션이 남아 있으면 묻지 않고 바로 통과시킨다.
-        // 로그아웃했다가 다시 누른 사람은 다시 물어봐 주기를 기대하므로 매번 로그인 화면을 띄운다
-        ...(provider === 'kakao' ? { queryParams: { prompt: 'login' } } : {}),
+        // 로그아웃했다가 다시 누른 사람은 다시 물어봐 주기를 기대하므로 매번 로그인 화면을 띄운다.
+        // 구글도 같은 이유로 매번 계정 선택창 — 계정이 여럿인 사람이 다른 계정으로 들어갈 길이 그것뿐이다.
+        // 구글 쪽 설정(콘솔·Supabase)은 supabase/google.md
+        queryParams: provider === 'kakao' ? { prompt: 'login' } : { prompt: 'select_account' },
       },
     })
   }, [])
