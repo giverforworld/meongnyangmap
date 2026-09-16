@@ -490,7 +490,7 @@ export default function Home() {
     <button className="hov-accent" disabled={nearBusy}
       onClick={() => (nearIds ? setNearIds(null) : findNearby())}
       title={nearIds ? '지역으로 돌아가기' : '현재 위치 20km 안에서 찾기 — 위치는 이 기기 밖으로 나가지 않아요'}
-      style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 12.5, fontWeight: nearIds ? 700 : 500, padding: '7px 12px', borderRadius: 99, border: `1.5px solid ${nearIds ? '#E85D3D' : '#EAE3D6'}`, background: 'rgba(255,255,255,.96)', color: nearIds ? '#E85D3D' : '#6E5F4D', cursor: nearBusy ? 'default' : 'pointer', boxShadow: '0 3px 12px rgba(43,36,32,.16)', whiteSpace: 'nowrap' }}>
+      style={{ display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '7px 12px', borderRadius: 99, border: '1.5px solid #E85D3D', background: nearIds ? '#E85D3D' : 'rgba(255,255,255,.96)', color: nearIds ? '#FFFFFF' : '#E85D3D', cursor: nearBusy ? 'default' : 'pointer', boxShadow: '0 3px 12px rgba(43,36,32,.16)', whiteSpace: 'nowrap', opacity: nearBusy ? .7 : 1 }}>
       <LocateIcon size={15} /> {nearBusy ? '확인 중…' : nearIds ? '해제' : '내 주변 탐색'}
     </button>
   )
@@ -642,7 +642,8 @@ export default function Home() {
         <button className="hov-accent" disabled={nearBusy}
           onClick={() => (nearIds ? setNearIds(null) : findNearby())}
           title={nearIds ? '지역으로 돌아가기' : '현재 위치 20km 안에서 찾기 — 위치는 이 기기 밖으로 나가지 않아요'}
-          style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit', fontSize: 15, fontWeight: nearIds ? 700 : 500, padding: '10px 16px', borderRadius: 13, border: `1.5px solid ${nearIds ? '#E85D3D' : '#EAE3D6'}`, background: nearIds ? '#FFF4EF' : '#F6F1E7', color: nearIds ? '#E85D3D' : '#6E5F4D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>
+          // 상단 바에서 유일하게 색이 있는 버튼 — 지역·검색과 같은 베이지면 묻힌다
+          style={{ display: 'flex', alignItems: 'center', gap: 7, fontFamily: 'inherit', fontSize: 15, fontWeight: 700, padding: '10px 16px', borderRadius: 13, border: '1.5px solid #E85D3D', background: nearIds ? '#E85D3D' : '#FFFFFF', color: nearIds ? '#FFFFFF' : '#E85D3D', cursor: nearBusy ? 'default' : 'pointer', whiteSpace: 'nowrap', opacity: nearBusy ? .7 : 1 }}>
           <LocateIcon size={17} /> {nearBusy ? '위치 확인 중…' : nearIds ? '내 주변 해제' : '내 주변 탐색'}
         </button>
 
