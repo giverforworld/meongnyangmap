@@ -8,7 +8,7 @@ import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
 import { restStatus, todayLabel } from '@/lib/openHours'
 import { phoneScript } from '@/lib/phoneScript'
 import { recentChange, shortDate } from '@/lib/ruleText'
-import { PlaceReviews, PlaceStories } from './PlaceSocial'
+import { PlaceReviews, PlaceStories, type CheckSummary } from './PlaceSocial'
 import { BADGE, CAT_EMOJI, ruleLines, siteNotes, splitTel } from './placeUi'
 import { PhoneIcon, PlacePinIcon } from './icons'
 import PetFace from './PetFace'
@@ -42,12 +42,15 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
   const [detailLoading, setDetailLoading] = useState(false)
   const [overviewOpen, setOverviewOpen] = useState(false)
   const [ownRules, setOwnRules] = useState<RulesEntry | null>(null)
+  /** 사용자 현장 확인 요약 — 리뷰 섹션이 받아서 올려준다. 출발 전 체크에 '최근 거부' 경고를 붙인다 */
+  const [checks, setChecks] = useState<CheckSummary | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
 
   // 상세·집중률 — 장소가 바뀌면 앞 장소 것을 남기지 않는다
   useEffect(() => {
     setDetail(null)
     setCrowd(null)
+    setChecks(null)
     setOverviewOpen(false)
     scroller.current?.scrollTo({ top: 0 })
     let alive = true
@@ -110,7 +113,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
 
         {/* ── 출발 전 체크 — 헛걸음의 세 원인(오늘 닫힘 · 우리 아이 조건 · 모호함)을 한 블록에.
             오늘 문 여는지 → 아이 기준 조건 → 확인 전화 순서로, 위에서 아래로 읽으면 출발 준비가 끝난다 */}
-        <Preflight pet={pet} detail={detail} detailLoading={detailLoading} rules={rules} j={sel.j} state={sel.state} />
+        <Preflight pet={pet} detail={detail} detailLoading={detailLoading} rules={rules} j={sel.j} state={sel.state} checks={checks} />
 
         {/* 영업시간·휴무·주차 원문 — 체크 첫 줄이 요약이고, 여기는 원문 그대로 */}
         {detail && (detail.usetime || detail.restdate || detail.parking) && (() => {
@@ -285,7 +288,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
         )}
 
         {/* 사용자 참여 — 관광공사 데이터가 아니라 우리 사용자가 남긴 것. 표제에 그렇게 적혀 있다 */}
-        <PlaceReviews placeId={place.contentid} placeTitle={place.title} pet={pet} nickname={nickname} loggedIn={loggedIn} provider={provider} />
+        <PlaceReviews placeId={place.contentid} placeTitle={place.title} pet={pet} nickname={nickname} loggedIn={loggedIn} provider={provider} onSummary={setChecks} />
         <PlaceStories placeId={place.contentid} placeTitle={place.title} placeAddr={place.addr1} />
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 'auto', paddingTop: 4 }}>
@@ -340,14 +343,22 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
  * 마지막은 확인 전화 — 번호와 함께 "뭘 물어봐야 하는지" 문장까지 만들어 준다.
  * 프로필이 없으면 원문 조건을 그대로 늘어놓고 등록을 권한다.
  */
-function Preflight({ pet, detail, detailLoading, rules, j, state }: {
+function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
   pet: Pet | null
   detail: Detail | null
   detailLoading: boolean
   rules: PetRules | null
   j: Judgement | null
   state: CardState | 'no'
+  checks: CheckSummary | null
 }) {
+  // 사용자 현장 확인 — 최근 60일 안에 거부 보고가 있으면 판정 옆에 알린다. 공사 데이터와 섞지 않고 '사용자 보고'라고 말한다
+  const recentDenied = (() => {
+    if (!checks?.lastDenied) return null
+    const age = Date.now() - Date.parse(checks.lastDenied)
+    if (!Number.isFinite(age) || age > 60 * 24 * 60 * 60 * 1000) return null
+    return { n: checks.entry.denied, at: checks.lastDenied }
+  })()
   const b = BADGE[state === 'no' ? 'cond' : state]
   const [askOpen, setAskOpen] = useState(false)
   const [copied, setCopied] = useState(false)
@@ -397,6 +408,7 @@ function Preflight({ pet, detail, detailLoading, rules, j, state }: {
       </div>
 
       {today && row(today.icon, today.color, today.text, 'today', today.icon === '✕' || today.icon === '!')}
+      {recentDenied && row('!', '#C0392B', `최근 입장 거부 보고 ${recentDenied.n}건 (${shortDate(recentDenied.at)}, 멍냥맵 사용자) — 아래 현장 확인을 보세요`, 'denied', true)}
 
       {j ? (
         j.checks.map((ck, i) => row(ck.icon, ck.color, ck.text, i))

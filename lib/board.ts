@@ -39,3 +39,6 @@ export async function resolvePlace(v: unknown): Promise<{ place_id: string | nul
   if (!p) return null
   return { place_id: p.contentid, place_title: p.title.slice(0, 100), place_addr: p.addr1?.slice(0, 200) || null }
 }
+
+/** 현장 확인의 '요구된 것' 칩 — 화면(PlaceSocial)과 서버가 같은 목록을 본다. 그 밖의 값은 직접 입력(20자) */
+export const NEED_OPTIONS = ['목줄', '입마개', '이동장', '체중 제한', '실내 불가', '유모차', '매너벨트', '배변봉투'] as const

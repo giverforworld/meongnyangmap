@@ -8,6 +8,7 @@ import PetFace from './PetFace'
 import Author from './Author'
 import { ProviderMark } from './PetSwitch'
 import { authHeaders } from '@/lib/authHeader'
+import { NEED_OPTIONS } from '@/lib/board'
 
 /**
  * 장소 상세에 붙는 사용자 참여 두 덩이 — 방문 리뷰와 커뮤니티 이야기.
@@ -23,9 +24,11 @@ type Entry = 'ok' | 'cond' | 'denied'
 interface Review {
   id: number
   nickname: string
-  rating: number
+  rating: number | null
   entry: Entry | null
   body: string
+  needs: string[]
+  visited_on: string | null
   photos: string[]
   pet_size: 'small' | 'medium' | 'large' | null
   created_at: string
@@ -37,11 +40,25 @@ interface Review {
   byAccount?: boolean
 }
 
-const ENTRY: Record<Entry, { label: string; color: string; bg: string; border: string }> = {
-  ok: { label: '문제없이 입장', color: '#2F8F4E', bg: '#EAF6EA', border: '#2F8F4E' },
-  cond: { label: '조건 붙어서 입장', color: '#9A7300', bg: '#FFF7D6', border: '#E8B400' },
-  denied: { label: '입장 거부', color: '#C0392B', bg: '#FBEDEA', border: '#E0A9A0' },
+const ENTRY: Record<Entry, { label: string; short: string; icon: string; color: string; bg: string; border: string }> = {
+  ok: { label: '문제없이 입장', short: '입장됨', icon: '✓', color: '#2F8F4E', bg: '#EAF6EA', border: '#2F8F4E' },
+  cond: { label: '조건 붙어서 입장', short: '조건부', icon: '!', color: '#9A7300', bg: '#FFF7D6', border: '#E8B400' },
+  denied: { label: '입장 거부', short: '거부됨', icon: '✕', color: '#C0392B', bg: '#FBEDEA', border: '#E0A9A0' },
 }
+
+/** 현장 확인 요약 — 서버가 최근 50개로 센 것. 상세 패널 위쪽(출발 전 체크)도 이걸 받아 경고를 붙인다 */
+export interface CheckSummary {
+  entry: Record<Entry, number>
+  needs: Record<string, number>
+  lastDenied: string | null
+  last: string | null
+}
+
+const today = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+const md = (ymd: string) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`
 const SIZE_LABEL = { small: '소형견', medium: '중형견', large: '대형견' } as const
 
 const field: React.CSSProperties = {
@@ -65,7 +82,7 @@ function when(iso: string) {
 /* ── 방문 리뷰 ─────────────────────────────────────────── */
 
 export function PlaceReviews({
-  placeId, placeTitle, pet, nickname: presetNick, loggedIn = false, provider,
+  placeId, placeTitle, pet, nickname: presetNick, loggedIn = false, provider, onSummary,
 }: {
   placeId: string
   placeTitle: string
@@ -76,12 +93,24 @@ export function PlaceReviews({
   /** 로그인 상태 — 비밀번호 대신 계정으로 남긴다. 확인은 서버가 토큰으로 한다 */
   loggedIn?: boolean
   provider?: string
+  /** 현장 확인 요약을 위로 올린다 — 출발 전 체크가 '최근 거부 보고' 경고를 붙이는 데 쓴다 */
+  onSummary?: (s: CheckSummary | null) => void
 }) {
-  const [data, setData] = useState<{ reviews: Review[]; count: number; avg: number | null; entry: Record<Entry, number>; capped?: boolean; offline?: boolean } | null>(null)
+  const [data, setData] = useState<{ reviews: Review[]; count: number; avg: number | null; entry: Record<Entry, number>; summary?: CheckSummary; capped?: boolean; offline?: boolean } | null>(null)
   const [writing, setWriting] = useState(false)
   const [rating, setRating] = useState(0)
   const [entry, setEntry] = useState<Entry | null>(null)
   const [body, setBody] = useState('')
+  // 현장 확인(30초) — 입장 결과 하나 고르면 펼쳐진다
+  const [quick, setQuick] = useState<Entry | null>(null)
+  const [needs, setNeeds] = useState<string[]>([])
+  const [needOther, setNeedOther] = useState('')
+  const [visitedOn, setVisitedOn] = useState(today())
+  const [quickNote, setQuickNote] = useState('')
+  const [quickNick, setQuickNick] = useState('')
+  const [quickError, setQuickError] = useState('')
+  const [quickSaving, setQuickSaving] = useState(false)
+  const [thanks, setThanks] = useState(false)
   const [photos, setPhotos] = useState<string[]>([])
   const [nickname, setNickname] = useState(presetNick ?? '')
   const [password, setPassword] = useState('')
@@ -99,8 +128,34 @@ export function PlaceReviews({
     authHeaders()
       .then((h) => fetch(`/api/reviews?place=${placeId}`, { headers: h }))
       .then((r) => r.json())
-      .then((d) => { if (my === seq.current) setData(d) })
-      .catch(() => { if (my === seq.current) setData({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 } }) })
+      .then((d) => { if (my === seq.current) { setData(d); onSummary?.(d.summary ?? null) } })
+      .catch(() => { if (my === seq.current) { setData({ reviews: [], count: 0, avg: null, entry: { ok: 0, cond: 0, denied: 0 } }); onSummary?.(null) } })
+  }
+
+  /** 현장 확인만 남기기 — 별점·글 없이 */
+  async function submitQuick() {
+    if (!quick) return
+    setQuickError('')
+    setQuickSaving(true)
+    try {
+      const extra = needOther.trim()
+      const nd = extra && !needs.includes(extra) ? [...needs, extra] : needs
+      const r = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({ placeId, placeTitle, nickname: loggedIn ? presetNick : quickNick, entry: quick, needs: nd, visitedOn, body: quickNote, petSize: pet?.size ?? null, petKey: pet?.key ?? null }),
+      })
+      const d = await r.json()
+      if (!r.ok) return setQuickError(d.error ?? '남기지 못했어요')
+      setQuick(null); setNeeds([]); setNeedOther(''); setQuickNote(''); setVisitedOn(today())
+      setThanks(true)
+      setTimeout(() => setThanks(false), 2500)
+      load()
+    } catch {
+      setQuickError('남기지 못했어요. 잠시 후 다시 시도해주세요')
+    } finally {
+      setQuickSaving(false)
+    }
   }
 
   // 장소가 바뀌면 앞 장소의 리뷰와 쓰던 폼을 남기지 않는다
@@ -108,6 +163,7 @@ export function PlaceReviews({
     setData(null)
     setWriting(false)
     setRating(0); setEntry(null); setBody(''); setPhotos([]); setError('')
+    setQuick(null); setNeeds([]); setNeedOther(''); setQuickNote(''); setQuickError(''); setVisitedOn(today())
     setDeleting(null); setDelPw(''); setDelError('')
     load()
   }, [placeId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -163,16 +219,114 @@ export function PlaceReviews({
         )}
       </div>
 
-      {/* 요약 — 별점 평균과 입장 결과. 숫자가 있을 때만 */}
-      {data && data.count > 0 && (
+      {/* 현장 확인 요약 — 들어갔나·조건이 있었나·거부됐나. 공사 데이터가 아니라 멍냥맵 사용자가 남긴 것 */}
+      {data && (() => {
+        const sm = data.summary
+        const n = sm ? sm.entry.ok + sm.entry.cond + sm.entry.denied : 0
+        if (!sm || n === 0) return null
+        const topNeeds = Object.entries(sm.needs).sort((a, b) => b[1] - a[1]).slice(0, 4)
+        return (
+          <div style={{ border: '1.5px solid #EAE3D6', background: '#FFFFFF', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+              <b style={{ fontSize: 12.5 }}>사용자 현장 확인 {n}건</b>
+              {sm.last && <span style={{ fontSize: 11, color: '#A08872' }}>최근 {md(sm.last)}</span>}
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+              {(['ok', 'cond', 'denied'] as Entry[]).map((k) => (
+                <div key={k} style={{ border: `1px solid ${sm.entry[k] > 0 ? ENTRY[k].border : '#EFE8DA'}`, background: sm.entry[k] > 0 ? ENTRY[k].bg : '#FAF8F3', borderRadius: 10, padding: '6px 8px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 18, fontWeight: 700, lineHeight: 1.1, color: sm.entry[k] > 0 ? ENTRY[k].color : '#C4B8A4', fontVariantNumeric: 'tabular-nums' }}>{sm.entry[k]}</div>
+                  <div style={{ fontSize: 11, color: sm.entry[k] > 0 ? ENTRY[k].color : '#B3A78F', fontWeight: 700 }}>{ENTRY[k].short}</div>
+                </div>
+              ))}
+            </div>
+            {topNeeds.length > 0 && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, fontSize: 11.5 }}>
+                <span style={{ color: '#A08872' }}>현장에서 요구된 것</span>
+                {topNeeds.map(([k, v]) => (
+                  <span key={k} style={{ fontWeight: 700, padding: '1px 8px', borderRadius: 99, background: '#F6F1E7', color: '#6E5F4D', border: '1px solid #EAE3D6' }}>{k} {v}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })()}
+
+      {/* 현장 확인 남기기 — 30초. 입장 결과 하나 → 요구된 것 칩 → 남기기 */}
+      {!writing && (
+        <div style={{ border: `1.5px solid ${quick ? '#F3C9BB' : '#EFE8DA'}`, background: quick ? '#FFFBF9' : '#FAF8F3', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+            <b style={{ fontSize: 12.5 }}>{thanks ? '고마워요 — 다음 사람이 헛걸음을 덜어요 🐾' : '다녀오셨나요? 30초면 돼요'}</b>
+            {pet && !thanks && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#A08872' }}><PetFace emoji={pet.emoji} size={14} />{pet.name} 기준</span>}
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
+            {(['ok', 'cond', 'denied'] as Entry[]).map((k) => {
+              const on = quick === k
+              return (
+                <button key={k} type="button" onClick={() => { setQuick(on ? null : k); setQuickError('') }}
+                  style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, padding: '8px 4px', borderRadius: 10, border: `1.5px solid ${on ? ENTRY[k].border : '#EAE3D6'}`, background: on ? ENTRY[k].bg : '#FFFFFF', color: on ? ENTRY[k].color : '#6E5F4D', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  {ENTRY[k].icon} {ENTRY[k].short}
+                </button>
+              )
+            })}
+          </div>
+          {quick && (
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                <span style={{ fontSize: 12, color: '#6E5F4D' }}>{quick === 'denied' ? '왜 안 됐나요? 해당하는 걸 골라주세요' : '현장에서 요구한 게 있었나요?'}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {NEED_OPTIONS.map((k) => {
+                    const on = needs.includes(k)
+                    return (
+                      <button key={k} type="button" onClick={() => setNeeds(on ? needs.filter((x) => x !== k) : needs.length >= 6 ? needs : [...needs, k])}
+                        style={{ fontFamily: 'inherit', fontSize: 12, fontWeight: on ? 700 : 500, padding: '4px 10px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EAE3D6'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#6E5F4D', cursor: 'pointer' }}>
+                        {k}
+                      </button>
+                    )
+                  })}
+                  <input value={needOther} onChange={(e) => setNeedOther(e.target.value)} maxLength={20} placeholder="그 밖에 (직접 입력)"
+                    style={{ ...field, width: 150, padding: '4px 10px', fontSize: 12, borderRadius: 99 }} />
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6E5F4D' }}>
+                  다녀온 날
+                  <input type="date" value={visitedOn} max={today()} min="2020-01-01" onChange={(e) => setVisitedOn(e.target.value)}
+                    style={{ ...field, width: 'auto', padding: '5px 8px', fontSize: 12.5 }} />
+                </label>
+                {!loggedIn && (
+                  <input value={quickNick} onChange={(e) => setQuickNick(e.target.value)} maxLength={20} placeholder="닉네임 (선택)"
+                    style={{ ...field, flex: 1, minWidth: 110, padding: '6px 10px', fontSize: 12.5 }} />
+                )}
+              </div>
+              <input value={quickNote} onChange={(e) => setQuickNote(e.target.value)} maxLength={200} placeholder="한 줄 메모 (선택) — 예: 테라스만 됐어요"
+                style={{ ...field, padding: '7px 10px', fontSize: 12.5 }} />
+              {quickError && <span style={{ fontSize: 12.5, color: '#C0392B' }}>{quickError}</span>}
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <button type="button" onClick={submitQuick} disabled={quickSaving} className="btn-primary"
+                  style={{ flex: 1, fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '9px 0', borderRadius: 10, border: 'none', background: quickSaving ? '#C4B8A4' : '#E85D3D', color: '#FFFFFF', cursor: quickSaving ? 'default' : 'pointer' }}>
+                  {quickSaving ? '남기는 중…' : '현장 확인 남기기'}
+                </button>
+                <button type="button" onClick={() => { setEntry(quick); setWriting(true); setQuick(null) }}
+                  style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: '#E85D3D', background: 'none', border: 'none', padding: '0 4px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  별점·사진까지 →
+                </button>
+              </div>
+              {loggedIn ? (
+                <span style={{ fontSize: 11.5, color: '#A08872', display: 'flex', alignItems: 'center', gap: 4 }}><b style={{ color: '#6E5F4D' }}>{presetNick}</b> <ProviderMark provider={provider} /> 계정으로 남겨요</span>
+              ) : (
+                <span style={{ fontSize: 11.5, color: '#A08872' }}>비로그인 현장 확인은 나중에 지울 수 없어요. 지우고 싶다면 로그인하거나 '별점·사진까지'에서 비밀번호를 정해주세요</span>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* 별점 요약 — 별점을 남긴 리뷰가 있을 때만 */}
+      {data && data.avg !== null && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#5C5347' }}>
           <Stars n={Math.round(data.avg ?? 0)} size={14} />
           <b>{data.avg}</b>
-          {(['ok', 'cond', 'denied'] as Entry[]).filter((k) => data.entry[k] > 0).map((k) => (
-            <span key={k} style={{ fontSize: 11.5, fontWeight: 700, color: ENTRY[k].color, background: ENTRY[k].bg, borderRadius: 99, padding: '2px 8px' }}>
-              {ENTRY[k].label} {data.entry[k]}
-            </span>
-          ))}
+          <span style={{ color: '#A08872' }}>별점 남긴 리뷰 평균</span>
         </div>
       )}
 
@@ -234,8 +388,8 @@ export function PlaceReviews({
         </form>
       )}
 
-      {data && data.count === 0 && !writing && (
-        <span style={{ fontSize: 12.5, color: '#B3A78F' }}>아직 리뷰가 없어요. 다녀오셨다면 첫 리뷰를 남겨주세요</span>
+      {data && data.count === 0 && !writing && !quick && (
+        <span style={{ fontSize: 12.5, color: '#B3A78F' }}>아직 남긴 사람이 없어요. 다녀오셨다면 첫 확인을 남겨주세요</span>
       )}
 
       {data?.reviews.map((r) => (
@@ -243,15 +397,20 @@ export function PlaceReviews({
           <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', fontSize: 12 }}>
             <Author a={{ nickname: r.nickname, author_avatar: r.author_avatar, author_provider: r.author_provider, pet_name: r.pet_name, pet_emoji: r.pet_emoji, pet_label: r.pet_size ? SIZE_LABEL[r.pet_size] : null }} size={20} fontSize={13} />
             {!r.pet_name && r.pet_size && <span style={{ color: '#A08872' }}>{SIZE_LABEL[r.pet_size]}와</span>}
-            <Stars n={r.rating} />
+            {r.rating !== null && <Stars n={r.rating} />}
             {r.entry && (
               <span style={{ fontSize: 11, fontWeight: 700, color: ENTRY[r.entry].color, background: ENTRY[r.entry].bg, borderRadius: 99, padding: '2px 7px' }}>
                 {ENTRY[r.entry].label}
               </span>
             )}
-            <span style={{ marginLeft: 'auto', color: '#B3A78F', fontSize: 11.5 }}>{when(r.created_at)}</span>
+            <span style={{ marginLeft: 'auto', color: '#B3A78F', fontSize: 11.5 }}>{r.visited_on ? `${md(r.visited_on)} 방문` : when(r.created_at)}</span>
           </div>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: '#3E3830', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.body}</p>
+          {r.needs?.length > 0 && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {r.needs.map((n) => <span key={n} style={{ fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: '#F6F1E7', color: '#6E5F4D', border: '1px solid #EAE3D6' }}>{n}</span>)}
+            </div>
+          )}
+          {r.body && <p style={{ margin: 0, fontSize: 13, lineHeight: 1.65, color: '#3E3830', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{r.body}</p>}
           {r.photos?.length > 0 && (
             <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
               {r.photos.map((u) => (
