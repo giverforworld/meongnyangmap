@@ -25,13 +25,29 @@ const MENUS = [
 export default function Nav() {
   const path = usePathname()
   const isMobile = useIsMobile()
+  /**
+   * 넓은 화면이지만 빡빡한 폭(821~1099px — 태블릿 가로, 창을 반으로 나눈 노트북).
+   * 프로필 칩의 두 줄 설명(299px)과 로그인 칩(156px)까지 놓으면 메뉴 셋이 밀려 나가므로
+   * 칩만 좁은 화면 모양으로 줄인다. 메뉴는 그대로.
+   */
+  const dense = useIsMobile(1100)
+  const compactChips = isMobile || dense
   const active = useRef<HTMLAnchorElement>(null)
   const petStore = usePetsContext()
 
-  // 좁은 화면에서 메뉴가 넘칠 때, 지금 보고 있는 메뉴가 화면 밖에 있으면 안 된다
+  /**
+   * 메뉴가 넘칠 때, 지금 보고 있는 메뉴가 화면 밖에 있으면 안 된다.
+   * 경로가 바뀔 때만 맞추면 부족하다 — 처음엔 넓은 화면 모양으로 그렸다가 마운트 뒤에 좁은 화면
+   * 모양으로 바뀌고(useIsMobile), 글꼴이 내려오면 글자 폭도 바뀐다. 그때마다 다시 맞춘다.
+   * 'nearest' — 가운데로 끌어오면 왼쪽 메뉴까지 괜히 밀려난다. 보이게만 한다.
+   */
   useEffect(() => {
-    active.current?.scrollIntoView({ block: 'nearest', inline: 'center' })
-  }, [path])
+    const show = () => active.current?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
+    show()
+    document.fonts?.ready.then(show)
+    window.addEventListener('resize', show)
+    return () => window.removeEventListener('resize', show)
+  }, [path, isMobile, dense])
 
   return (
     <nav
@@ -39,7 +55,7 @@ export default function Nav() {
         display: 'flex',
         alignItems: 'center',
         gap: isMobile ? 6 : 12,
-        padding: isMobile ? '0 8px 0 6px' : '0 20px 0 24px',
+        padding: isMobile ? '0 6px 0 4px' : dense ? '0 14px 0 16px' : '0 20px 0 24px',
         background: '#FFFFFF',
         borderBottom: '1px solid #EAE3D6',
         flex: 'none',
@@ -93,7 +109,7 @@ export default function Nav() {
               gap: isMobile ? 2 : 7,
               flex: 'none',
               margin: isMobile ? '5px 0' : '8px 0',
-              padding: isMobile ? '5px 9px 4px' : '10px 17px',
+              padding: isMobile ? '5px 7px 4px' : '10px 17px',
               borderRadius: isMobile ? 12 : 99,
               fontSize: isMobile ? 11.5 : 18,
               fontWeight: on ? 700 : 500,
@@ -127,7 +143,7 @@ export default function Nav() {
         syncing={petStore.syncing}
         onSignIn={petStore.signIn}
         onSignOut={petStore.signOut}
-        compact={isMobile}
+        compact={compactChips}
       />
 
       {/* 로그인 — 선택이라 프로필 버튼보다 조용하게, 그 오른쪽에 */}
@@ -136,7 +152,7 @@ export default function Nav() {
         syncing={petStore.syncing}
         onSignIn={petStore.signIn}
         onSignOut={petStore.signOut}
-        compact={isMobile}
+        compact={compactChips}
       />
     </nav>
   )

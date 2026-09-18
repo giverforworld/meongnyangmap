@@ -569,8 +569,9 @@ export default function Home() {
     </>
   )
 
+  // minWidth 를 두지 않는다 — 예전엔 넓은 화면에 1100 을 걸어 821~1099px(태블릿 가로·작은 창)에서 가로 스크롤이 생겼다
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: isMobile ? 0 : 1100, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' }}>
       {/* ── 상단 바 */}
       {/* 좁은 화면에서는 지역·종류·검색을 요약한 바 한 줄. 누르면 시트에서 고른다 */}
       {isMobile ? (
