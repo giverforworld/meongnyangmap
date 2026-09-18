@@ -92,7 +92,7 @@ export default function PlaceMapPicker({
         <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
           <KakaoMap places={judged} selectedId={selectedId} onSelect={setSelectedId} narrow={isMobile} />
           <div style={{ position: 'absolute', left: 10, bottom: 10, fontSize: 11, color: '#6E5F4D', background: 'rgba(255,255,255,.9)', borderRadius: 99, padding: '3px 9px' }}>
-            데이터/API 출처 ⓒ한국관광공사
+            데이터/API 출처: ⓒ한국관광공사
           </div>
         </div>
 

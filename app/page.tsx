@@ -563,7 +563,7 @@ export default function Home() {
       )}
 
       {isMobile && (
-        <p style={{ margin: '14px 4px 0', fontSize: 11.5, color: '#B3A78F' }}>데이터/API 출처 ⓒ한국관광공사</p>
+        <p style={{ margin: '14px 4px 0', fontSize: 11.5, color: '#B3A78F' }}>데이터/API 출처: ⓒ한국관광공사</p>
       )}
     </div>
     </>

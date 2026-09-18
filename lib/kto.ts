@@ -27,6 +27,13 @@ export const CONTENT_TYPES = {
 
 export type ContentTypeId = keyof typeof CONTENT_TYPES
 
+/**
+ * 이 프로세스가 지금까지 공사 API 를 부른 횟수(서비스/오퍼레이션별).
+ * 배치가 끝날 때 찍어 GitHub Actions 로그에 남기고, 서버에서는 KTO_LOG=1 이면 호출마다 한 줄 남긴다.
+ * 공식 호출 내역은 공공데이터포털(마이페이지 → 활용신청 현황 → 트래픽)이 갖는다 — 이건 우리 쪽 대조용.
+ */
+export const stats = { total: 0, byOp: {} as Record<string, number> }
+
 function serviceKey() {
   const k = process.env.KTO_SERVICE_KEY
   if (!k) throw new Error('KTO_SERVICE_KEY 가 .env.local 에 없습니다')
@@ -51,6 +58,10 @@ export async function call<T = any>(
     _type: 'json',
     ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
   })
+
+  stats.total++
+  stats.byOp[`${service}/${op}`] = (stats.byOp[`${service}/${op}`] ?? 0) + 1
+  if (process.env.KTO_LOG === '1') console.log(`[kto] ${service}/${op}`)
 
   const res = await fetch(`${BASE}/${service}/${op}?${qs}`, { cache: 'no-store' })
   const text = await res.text()

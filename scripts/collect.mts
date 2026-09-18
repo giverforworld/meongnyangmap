@@ -345,7 +345,17 @@ async function main() {
   }
 }
 
-main().catch((e) => {
-  console.error(`\n실패: ${(e as Error).message}`)
-  process.exit(1)
-})
+/** 이번 실행이 공사 API 를 몇 번 불렀는지 — 포털 트래픽 통계와 맞춰 볼 수 있게 남긴다 */
+async function report() {
+  const { stats } = await import('../lib/kto.js')
+  const rows = Object.entries(stats.byOp).sort((a, b) => b[1] - a[1]).map(([k, v]) => `    ${k}: ${v.toLocaleString()}`)
+  console.log(`\n공사 API 호출: 총 ${stats.total.toLocaleString()}건\n${rows.join('\n')}`)
+}
+
+main()
+  .then(report)
+  .catch(async (e) => {
+    await report().catch(() => {})
+    console.error(`\n실패: ${(e as Error).message}`)
+    process.exit(1)
+  })

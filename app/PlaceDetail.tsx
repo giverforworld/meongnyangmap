@@ -88,8 +88,9 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
           제목·판정이 화면 밖으로 나가는 것을 막는다 */}
       <div ref={scroller} style={{ flex: 1, overflowY: 'auto', overflowAnchor: 'none', display: 'flex', flexDirection: 'column' }}>
       {(() => {
-        // 대표 사진이 없는 곳이 많다(숙박 32%·음식점 58%만 보유). detailImage2 로 메운다
-        const hero = place.firstimage || detail?.images[0]?.url || ''
+        // 대표 사진이 없는 곳이 많다(숙박 32%·음식점 58%만 보유). detailImage2 로 메우되
+        // Type3(변경 금지)은 배경 cover 로 잘리므로 쓰지 않는다 — Type1 만 대표 자리에 올린다
+        const hero = place.firstimage || detail?.images.find((im) => im.copyright !== 'Type3')?.url || ''
         return (
           <div style={{ height: mobile ? 210 : 120, flex: 'none', background: hero ? `center/cover url(${hero})` : 'linear-gradient(135deg,#FFE0D3,#FFF4EF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 38 }}>
             {!hero && (CAT_EMOJI[place.cat] ?? <span style={{ color: '#E85D3D' }}><PlacePinIcon size={38} /></span>)}
@@ -172,7 +173,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
             </div>
           )}
           <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11.5, color: '#A08872' }}>
-            조건 정보 충실도 {rules?.completeness ?? '—'}등급 · 데이터/API 출처 ⓒ한국관광공사
+            조건 정보 충실도 {rules?.completeness ?? '—'}등급 · 데이터/API 출처: ⓒ한국관광공사
           </div>
         </div>
 
@@ -228,7 +229,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
 
               <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11, color: '#A08872', lineHeight: 1.5 }}>
                 이동통신 데이터로 추정한 예측값이에요. 이 장소가 가장 붐빌 때를 100으로 본
-                상대적인 정도라, 다른 장소와 비교하는 숫자는 아니에요 · 데이터/API 출처 ⓒ한국관광공사
+                상대적인 정도라, 다른 장소와 비교하는 숫자는 아니에요 · 데이터/API 출처: ⓒ한국관광공사
               </div>
             </section>
           )
@@ -281,12 +282,12 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
           )
         })()}
 
-        {/* 사진이 더 있으면 — Type3 은 변경 금지라 자르거나 덧씌우지 않는다 */}
+        {/* 사진이 더 있으면 — Type3 은 변경 금지라 자르지 않는다(contain). Type1 은 출처만 밝히면 되므로 채워 보인다 */}
         {detail && detail.images.length > 1 && (
           <div style={{ display: 'flex', gap: 6, overflowX: 'auto' }}>
             {detail.images.slice(0, 6).map((im) => (
               <img key={im.url} src={im.url} alt="" loading="lazy"
-                style={{ width: 84, height: 64, objectFit: 'cover', borderRadius: 8, flex: 'none' }} />
+                style={{ width: 84, height: 64, objectFit: im.copyright === 'Type3' ? 'contain' : 'cover', background: '#F6F1E7', borderRadius: 8, flex: 'none' }} />
             ))}
           </div>
         )}

@@ -91,7 +91,7 @@ export default function PlacePicker({
               </button>
             </li>
           ))}
-          <li style={{ padding: '4px 10px 2px', fontSize: 10.5, color: '#B3A78F' }}>데이터/API 출처 ⓒ한국관광공사</li>
+          <li style={{ padding: '4px 10px 2px', fontSize: 10.5, color: '#B3A78F' }}>데이터/API 출처: ⓒ한국관광공사</li>
         </ul>
       )}
     </div>
