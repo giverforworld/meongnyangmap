@@ -141,7 +141,7 @@ test('partial 인데 zoneHint 오탐으로 \'일부구역\' 경고가 배변 안
 
 // contentid 1845517 실데이터. 동반구분 하나뿐이면 zone 이 'all' 이어도 초록불이 되면 안 된다(정보 부족 → 조건부). completeness 'C' 는 코퍼스 958건 중 75건. 현재 코드 통과.
 test('completeness \'C\' 면 조건부 + 전화 확인 권유', () => {
-  assert.deepEqual(judge(parseRules({ contentid: '1845517', acmpyTypeCd: '전구역 동반가능', acmpyPsblCpam: '', acmpyNeedMtr: '', etcAcmpyInfo: '' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '✓', color: '#2F8F4E', text: '전 구역 동반 가능' }, { icon: '!', color: '#D4A000', text: '등록된 조건 정보가 적어요 — 방문 전 전화 확인을 권해요' }] })
+  assert.deepEqual(judge(parseRules({ contentid: '1845517', acmpyTypeCd: '전구역 동반가능', acmpyPsblCpam: '', acmpyNeedMtr: '', etcAcmpyInfo: '' }), { key: 'choco', name: '초코', breed: '푸들', kg: 3.2, emoji: '🐩', size: 'small', sizeLabel: '소형견', hasCage: true, hasMuzzle: false, isDangerous: false }), { status: 'cond', checks: [{ icon: '✓', color: '#2F8F4E', text: '전 구역 동반 가능' }, { icon: '!', color: '#D4A000', text: '어떤 아이가 되는지·준비물이 등록되지 않았어요 — 방문 전 전화 확인을 권해요' }] })
 })
 
 // 코드 버그 의심. contentid 3443614 실데이터. 실제 정보는 바로 위 1845517 과 똑같이 동반구분 하나뿐인데, acmpyNeedMtr 값이 '기타' 라서 completeness 가 'C' 가 아닌 'B' 로 올라가고 C 분기를 건너뛴다. needs 는 '기타'를 걸러 빈 배열이라 체크에 아무 근거도 없이

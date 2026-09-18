@@ -28,6 +28,17 @@ function save(file: string, data: unknown) {
   console.log(`  → data/${file} (${kb.toLocaleString()}KB)`)
 }
 
+/**
+ * 조건이 같은지 — 판정에 쓰는 필드만 본다. raw 원문 전체를 비교하면 공백·줄바꿈 수정에도
+ * '바뀜'이 찍혀 변경 표시가 흔해지고, 흔해지면 아무도 안 본다.
+ */
+function sameRules(a: PetRules | null, b: PetRules | null) {
+  if (!a || !b) return a === b
+  const key = (r: PetRules) =>
+    JSON.stringify([r.zone, r.noPets, r.serviceDogOnly, r.maxKg, r.maxKgInclusive ?? null, r.allowedSizes ?? null, r.excludeDangerous ?? false, r.needs, r.zoneHint, r.notes])
+  return key(a) === key(b)
+}
+
 /** 한도 초과는 여기서 멈춰야 한다 — 계속 두드려봐야 실패만 쌓인다 */
 const isQuota = (e: unknown) =>
   /LIMITED_NUMBER_OF_SERVICE_REQUESTS|요청제한/.test(String(e))
@@ -74,11 +85,13 @@ async function fetchDetail(call: any, contentId: string, contentTypeId: string) 
 }
 
 type PetRules = import('../lib/types.js').PetRules
+type RuleChange = import('../lib/types.js').RuleChange
 type PetTourRaw = import('../lib/types.js').PetTourRaw
 
 async function main() {
   const { call } = await import('../lib/kto.js')
   const { parseRules } = await import('../lib/petTour.js')
+  const { ruleLines } = await import('../lib/ruleText.js')
 
   // ── ① 전국 목록
   console.log('전국 목록을 받는 중… (약 7초)')
@@ -103,24 +116,41 @@ async function main() {
     lclsSystm3: r.lclsSystm3 ?? '',
     regnCd: String(r.lDongRegnCd ?? ''),
     signguCd: String(r.lDongSignguCd ?? ''),
+    // 동반 조건을 다시 받을지 정하는 기준. 이 값이 움직인 장소만 detailPetTour2 를 다시 부른다
+    modifiedtime: String(r.modifiedtime ?? ''),
   }))
   console.log(`  ${places.length.toLocaleString()}건`)
   save('places.json', { collectedAt: new Date().toISOString(), places })
 
   // ── ② 동반 조건 — 전 타입. 개발계정(일 1,000건) 때는 쇼핑 8,647건을 뒤로 미뤘지만,
   //    2026-09-08 운영계정 승인으로 한도가 10만 건이 되어 그럴 이유가 없어졌다.
-  const prev = readJson<any>('petRules.json', { rules: {} })
+  const prev = readJson<any>('petRules.json', { rules: {}, mod: {} })
   const rules: Record<string, PetRules | null> = prev.rules ?? {}
+  /** 장소별로 어느 modifiedtime 의 조건을 갖고 있는지. 목록의 값과 다르면 다시 받는다 */
+  const mod: Record<string, string> = prev.mod ?? {}
+  /**
+   * 조건 변경 기록 — 다시 받은 조건이 갖고 있던 것과 다르면 전후를 적는다.
+   * 장소당 마지막 변경 하나만 둔다. 화면은 60일 지난 것은 보여주지 않는다.
+   * '바뀐 날'이 아니라 '알아챈 날'이다 — 원문이 언제 바뀌었는지는 API 가 알려주지 않는다.
+   */
+  const changes: Record<string, RuleChange> = readJson<any>('changes.json', { changes: {} }).changes ?? {}
 
-  const targets = places.map((p) => p.contentid).filter((id) => !(id in rules))
+  const fresh = places.filter((p) => !(p.contentid in rules))
+  const moved = places.filter((p) => p.contentid in rules && p.modifiedtime && mod[p.contentid] !== p.modifiedtime)
+  const targets = [...fresh, ...moved].map((p) => p.contentid)
 
   console.log(
     `\n동반 조건: 대상 ${places.length.toLocaleString()}건 ` +
-      `· 이미 받은 것 ${Object.keys(rules).length.toLocaleString()}건 · 이번에 받을 것 ${targets.length.toLocaleString()}건`
+      `· 새 장소 ${fresh.length.toLocaleString()}건 · 수정된 장소 ${moved.length.toLocaleString()}건 → 이번에 받을 것 ${targets.length.toLocaleString()}건`
   )
+  if (moved.length > 0 && Object.keys(mod).length === 0) {
+    console.log('  (첫 실행 — 기준 modifiedtime 이 없어 전부 다시 받습니다. 운영계정 한도 안입니다)')
+  }
 
   let done = 0
+  let changed = 0
   let stopped = false
+  const byId = new Map(places.map((p) => [p.contentid, p]))
 
   for (let i = 0; i < targets.length && !stopped; i += POOL) {
     const batch = targets.slice(i, i + POOL)
@@ -146,7 +176,21 @@ async function main() {
 
     for (const g of got) {
       if (!g) continue
-      rules[g.id] = g.rules
+      const before = rules[g.id]
+      // 조건이 실제로 달라졌을 때만 기록한다 — 원문이 그대로면 modifiedtime 만 움직인 것
+      if (g.id in rules && !sameRules(before, g.rules)) {
+        const beforeLines = ruleLines(before)
+        const afterLines = ruleLines(g.rules)
+        if (beforeLines.join('|') !== afterLines.join('|')) {
+          changes[g.id] = { at: new Date().toISOString().slice(0, 10), before: beforeLines, after: afterLines }
+          changed++
+        }
+      }
+      // 최근 변경 기록은 조건 객체에 함께 실어 화면이 따로 묻지 않게 한다
+      const change = changes[g.id]
+      rules[g.id] = g.rules ? { ...g.rules, ...(change ? { change } : {}) } : g.rules
+      const m = byId.get(g.id)?.modifiedtime
+      if (m) mod[g.id] = m
       done++
     }
 
@@ -160,8 +204,9 @@ async function main() {
   if (stopped) {
     console.log(`  일일 한도에 걸려 여기까지 받았어요. 내일 다시 실행하면 이어서 받습니다.`)
   }
-  console.log(`  이번에 ${done.toLocaleString()}건 · 누적 ${total.toLocaleString()}건 (조건 있는 곳 ${withData.toLocaleString()}건)`)
-  save('petRules.json', { collectedAt: new Date().toISOString(), rules })
+  console.log(`  이번에 ${done.toLocaleString()}건 · 누적 ${total.toLocaleString()}건 (조건 있는 곳 ${withData.toLocaleString()}건) · 조건이 바뀐 곳 ${changed.toLocaleString()}건`)
+  save('petRules.json', { collectedAt: new Date().toISOString(), rules, mod })
+  save('changes.json', { collectedAt: new Date().toISOString(), changes })
 
   const left = targets.length - done
   console.log(left > 0 ? `  남은 것 ${left.toLocaleString()}건 — 다시 실행하면 이어서 받아요.` : '  전부 받았어요.')

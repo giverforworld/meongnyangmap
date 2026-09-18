@@ -60,21 +60,54 @@ export function describeRules(r: PetRules | null): string {
   return '동반 조건이 등록돼 있어요'
 }
 
-/** 등록 전 상세 패널 — 원문 조건을 줄로 늘어놓는다 */
-export function ruleLines(r: PetRules | null): string[] {
-  if (!r) return ['동반 조건 정보가 등록되지 않은 장소예요']
-  const out: string[] = []
-  if (r.noPets) out.push('반려동물 동반 불가')
-  else if (r.serviceDogOnly) out.push('안내견만 동반 가능')
-  else {
-    if (r.zone === 'all') out.push('전 구역 동반 가능')
-    else if (r.zone === 'partial') out.push(r.zoneHint ?? '일부 구역만 동반 가능')
-    if (r.allowedSizes) out.push(`${r.allowedSizes.map((x) => ({ small: '소형견', medium: '중형견', large: '대형견' })[x]).join('·')}만 가능`)
-    if (r.maxKg !== null) out.push(`${r.maxKg}kg ${r.maxKgInclusive === false ? '미만' : '이하'}`)
-    if (r.excludeDangerous) out.push('맹견 동반 불가')
-    if (r.needs.length) out.push(`준비물: ${r.needs.join(', ')}`)
+export { ruleLines } from '@/lib/ruleText'
+
+/**
+ * 카드에 붙는 조건 칩 — 구역·체중·준비물을 글 대신 한 단어씩.
+ * 값이 있는 것만 만든다. 등록 전(info)에도 같은 칩을 쓴다 — 판정이 아니라 원문 요약이라서.
+ */
+export interface RuleChip {
+  icon: string
+  text: string
+  /** warn = 걸릴 수 있는 것(일부 구역·체중·맹견 불가), plain = 챙길 것 */
+  tone: 'plain' | 'warn'
+}
+const NEED_SHORT: [RegExp, string][] = [
+  [/목줄/, '목줄'], [/입마개/, '입마개'], [/이동장|켄넬/, '이동장'], [/유모차/, '유모차'], [/매너\s*벨트/, '매너벨트'],
+]
+export function ruleChips(r: PetRules | null): RuleChip[] {
+  if (!r || r.noPets || r.serviceDogOnly) return []
+  const out: RuleChip[] = []
+  if (r.zone === 'all') out.push({ icon: '●', text: '전 구역', tone: 'plain' })
+  else if (r.zone === 'partial') out.push({ icon: '◐', text: '일부 구역', tone: 'warn' })
+  if (r.allowedSizes) out.push({ icon: '↔', text: `${r.allowedSizes.map((x) => ({ small: '소형', medium: '중형', large: '대형' })[x]).join('·')}만`, tone: 'warn' })
+  else if (r.maxKg !== null) out.push({ icon: '⚖', text: `${r.maxKg}kg ${r.maxKgInclusive === false ? '미만' : '이하'}`, tone: 'warn' })
+  if (r.excludeDangerous) out.push({ icon: '✕', text: '맹견 불가', tone: 'warn' })
+  const seen = new Set<string>()
+  for (const n of r.needs) {
+    const hit = NEED_SHORT.find(([re]) => re.test(n))
+    const label = hit ? hit[1] : n
+    if (seen.has(label)) continue
+    seen.add(label)
+    out.push({ icon: '', text: label, tone: 'plain' })
   }
-  if (out.length === 0) out.push('등록된 조건이 적어요 — 방문 전 확인을 권해요')
   return out
 }
 
+/**
+ * 현장 참고 — 받아 놓고 안 쓰던 원문 필드. 사고 위험 요소(527곳)·구비 시설(140)·비치·대여·구매 품목.
+ * 판정에는 넣지 않는다(있고 없고가 조건이 아니다). 있는 것만 줄로 보여준다.
+ */
+export function siteNotes(r: PetRules | null): { label: string; text: string; warn: boolean }[] {
+  if (!r) return []
+  const raw = r.raw
+  const pick = (v: string | undefined) => (v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+  const rows: { label: string; text: string; warn: boolean }[] = [
+    { label: '사고 위험 요소', text: pick(raw.relaAcdntRiskMtr), warn: true },
+    { label: '구비 시설', text: pick(raw.relaPosesFclty), warn: false },
+    { label: '비치 품목', text: pick(raw.relaFrnshPrdlst), warn: false },
+    { label: '대여 가능', text: pick(raw.relaRntlPrdlst), warn: false },
+    { label: '구매 가능', text: pick(raw.relaPurcPrdlst), warn: false },
+  ]
+  return rows.filter((x) => x.text.length > 0 && !/^(없음|해당\s*없음|-)$/.test(x.text))
+}

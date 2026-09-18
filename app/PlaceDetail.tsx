@@ -6,9 +6,12 @@ import type { Pet } from '@/lib/types'
 import { judge } from '@/lib/petTour'
 import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
 import { restStatus, todayLabel } from '@/lib/openHours'
+import { phoneScript } from '@/lib/phoneScript'
+import { recentChange, shortDate } from '@/lib/ruleText'
 import { PlaceReviews, PlaceStories } from './PlaceSocial'
-import { BADGE, CAT_EMOJI, ruleLines, splitTel } from './placeUi'
-import { PlacePinIcon } from './icons'
+import { BADGE, CAT_EMOJI, ruleLines, siteNotes, splitTel } from './placeUi'
+import { PhoneIcon, PlacePinIcon } from './icons'
+import PetFace from './PetFace'
 
 /**
  * 장소 상세 — 지도 화면의 패널과 핫플레이스의 '상세 보기'가 같은 것을 쓴다.
@@ -105,35 +108,18 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
 
         <div style={{ fontSize: 12.5, color: '#A08872' }}>{place.cat} · {place.addr1}</div>
 
-        {/* 오늘 휴무 — 동반 가능해도 문이 닫혀 있으면 똑같이 헛걸음이다.
-            '오늘 쉰다'가 확실할 때만 알리고, 규칙을 못 읽으면 원문을 그대로 보여준다 */}
-        {(() => {
-          if (!detail) return null
+        {/* ── 출발 전 체크 — 헛걸음의 세 원인(오늘 닫힘 · 우리 아이 조건 · 모호함)을 한 블록에.
+            오늘 문 여는지 → 아이 기준 조건 → 확인 전화 순서로, 위에서 아래로 읽으면 출발 준비가 끝난다 */}
+        <Preflight pet={pet} detail={detail} detailLoading={detailLoading} rules={rules} j={sel.j} state={sel.state} />
+
+        {/* 영업시간·휴무·주차 원문 — 체크 첫 줄이 요약이고, 여기는 원문 그대로 */}
+        {detail && (detail.usetime || detail.restdate || detail.parking) && (() => {
           const st = restStatus(detail.restdate)
-          if (st.kind === 'closed') {
-            return (
-              <div style={{ border: '1.5px solid #E0A9A0', background: '#FBEDEA', borderRadius: 12, padding: '10px 13px', fontSize: 13, fontWeight: 700, color: '#C0392B' }}>
-                🔴 오늘({todayLabel()}) 휴무 — {st.label}
-              </div>
-            )
-          }
-          // 요일은 쉬는 날이지만 "단, 공휴일이면 개관" 같은 예외가 붙은 경우.
-          // 단정하면 열린 곳을 막게 되므로 원문을 함께 보여주고 확인을 권한다
-          if (st.kind === 'maybe') {
-            return (
-              <div style={{ border: '1.5px solid #F0D9A0', background: '#FBF3DD', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#8A6208', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <b style={{ fontSize: 13 }}>🟡 오늘({todayLabel()}) 휴무일 수 있어요 — {st.label}</b>
-                <span>{st.note}</span>
-                <span style={{ color: '#A08872' }}>예외 규정이 있어 방문 전 확인을 권해요</span>
-              </div>
-            )
-          }
-          if (!detail.usetime && !detail.restdate) return null
           return (
-            <div style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#6E5F4D', display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <div style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#6E5F4D', display: 'flex', flexDirection: 'column', gap: 4, whiteSpace: 'pre-line' }}>
               {detail.usetime && <div>🕘 {detail.usetime}</div>}
               {detail.restdate && (
-                <div style={{ color: st.kind === 'always' ? '#2F8F4E' : '#8A6208' }}>
+                <div style={{ color: st.kind === 'always' ? '#2F8F4E' : st.kind === 'closed' ? '#C0392B' : '#8A6208' }}>
                   📅 {detail.restdate}
                 </div>
               )}
@@ -142,40 +128,26 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
           )
         })()}
 
-        <div style={{ border: `1.5px solid ${b.border}`, background: b.checkBg, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span style={{ fontSize: 13.5, fontWeight: 700 }}>
-            {pet ? `입장 조건 체크리스트 — ${pet.name} 기준` : '동반 조건'}
-          </span>
-          {sel.j ? (
-            sel.j.checks.map((ck, i) => (
-              <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
-                <span style={{ fontWeight: 700, color: ck.color }}>{ck.icon}</span>
-                <span>{ck.text}</span>
+        {/* 최근 바뀐 조건 — 배치가 어제 스냅샷과 비교해 적은 것. 전후를 나란히 놓는다 */}
+        {(() => {
+          const c = recentChange(rules)
+          if (!c) return null
+          const gone = c.before.filter((l) => !c.after.includes(l))
+          const came = c.after.filter((l) => !c.before.includes(l))
+          return (
+            <div style={{ border: '1.5px solid #F3C9BB', background: '#FFF4EF', borderRadius: 12, padding: '10px 13px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+                <b style={{ fontSize: 12.5, color: '#E85D3D' }}>최근 바뀐 조건</b>
+                <span style={{ fontSize: 11, color: '#A08872' }}>{shortDate(c.at)} 감지</span>
               </div>
-            ))
-          ) : sel.state === 'info' ? (
-            // 등록 전 — 판정 없이 원문 조건을 그대로 늘어놓는다. ✓/! 를 찍지 않는다
-            <>
-              {ruleLines(rules).map((line, i) => (
-                <div key={i} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
-                  <span style={{ color: '#B3A78F' }}>•</span>
-                  <span>{line}</span>
-                </div>
-              ))}
-              <div style={{ fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>
-                🐶 프로필을 등록하면 우리 아이가 갈 수 있는지 바로 판정해요
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, fontSize: 12.5 }}>
+                {gone.map((l) => <span key={'-' + l} style={{ color: '#A08872', textDecoration: 'line-through' }}>{l}</span>)}
+                {came.map((l) => <span key={'+' + l} style={{ color: '#2B2420', fontWeight: 700 }}>+ {l}</span>)}
               </div>
-            </>
-          ) : (
-            <div style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.4 }}>
-              <span style={{ fontWeight: 700, color: '#A08872' }}>!</span>
-              <span>{b.text}</span>
+              <span style={{ fontSize: 11, color: '#A08872' }}>바뀐 걸 알아챈 날짜예요. 현장 규정은 그 전에 바뀌었을 수 있어요</span>
             </div>
-          )}
-          <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11.5, color: '#A08872' }}>
-            조건 정보 충실도 {rules?.completeness ?? '—'}등급 · 데이터 출처: ⓒ한국관광공사
-          </div>
-        </div>
+          )
+        })()}
 
         {rules && rules!.notes.length > 0 && (
           <div style={{ border: '1.5px solid #F0D9A0', background: '#FBF3DD', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#8A6208', display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -183,6 +155,26 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
             {rules!.notes.map((n, i) => <div key={i}>• {n}</div>)}
           </div>
         )}
+
+        {/* 현장 참고 — 사고 위험 요소·구비 시설·비치/대여/구매 품목. 조건은 아니지만 현장에서 알아야 할 것 */}
+        {(() => {
+          const rows = siteNotes(rules)
+          if (rows.length === 0) return null
+          return (
+            <div style={{ border: '1.5px solid #EFE8DA', background: '#FFFFFF', borderRadius: 12, padding: '10px 13px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+              <b style={{ fontSize: 12.5, color: '#6E5F4D' }}>현장 참고</b>
+              <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 12, rowGap: 5, fontSize: 12.5, alignItems: 'baseline' }}>
+                {rows.map((x) => (
+                  <Fragment key={x.label}>
+                    <span style={{ color: x.warn ? '#C0392B' : '#A08872', fontWeight: x.warn ? 700 : 500, whiteSpace: 'nowrap' }}>{x.warn ? '⚠ ' : ''}{x.label}</span>
+                    <span style={{ color: '#2B2420', wordBreak: 'keep-all' }}>{x.text}</span>
+                  </Fragment>
+                ))}
+              </div>
+              <span style={{ fontSize: 11, color: '#B3A78F' }}>데이터 출처: ⓒ한국관광공사</span>
+            </div>
+          )
+        })()}
 
         {/* 언제 가면 좋을까 — 붐비는 곳은 리드줄이 엉키고 아이가 스트레스를 받는다.
             숫자는 그 장소가 가장 붐빌 때를 100 으로 본 상대값이라, 다른 장소와
@@ -320,7 +312,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
               return (
                 <a key={t} className="hov-accent" href={`tel:${num.replace(/[^0-9+]/g, '')}`}
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 13px', borderRadius: 12, border: '1.5px solid #E3DCCE', background: '#FFFFFF', textDecoration: 'none' }}>
-                  <span style={{ fontSize: 13, flex: 'none', color: '#A08872' }}>☎</span>
+                  <span style={{ fontSize: 13, flex: 'none', color: '#A08872', display: 'flex' }}><PhoneIcon size={15} /></span>
                   <span style={{ fontSize: 14, fontWeight: 700, color: '#2B2420', whiteSpace: 'nowrap' }}>
                     {num}
                   </span>
@@ -338,5 +330,125 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
       </div>
 
     </>
+  )
+}
+
+/**
+ * 출발 전 체크.
+ *
+ * 첫 줄은 오늘 문 여는지(휴무 규칙을 읽어서), 가운데는 우리 아이 기준 판정 근거(judge 의 ✓/!),
+ * 마지막은 확인 전화 — 번호와 함께 "뭘 물어봐야 하는지" 문장까지 만들어 준다.
+ * 프로필이 없으면 원문 조건을 그대로 늘어놓고 등록을 권한다.
+ */
+function Preflight({ pet, detail, detailLoading, rules, j, state }: {
+  pet: Pet | null
+  detail: Detail | null
+  detailLoading: boolean
+  rules: PetRules | null
+  j: Judgement | null
+  state: CardState | 'no'
+}) {
+  const b = BADGE[state === 'no' ? 'cond' : state]
+  const [askOpen, setAskOpen] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  // 오늘 문 여는지 — 확실할 때만 단정한다. 규칙을 못 읽으면 영업시간만 보여준다
+  const today = (() => {
+    if (!detail) return detailLoading ? { icon: '…', color: '#B3A78F', text: '영업시간 확인 중' } : null
+    const st = restStatus(detail.restdate)
+    // 원문 첫 줄만, 글머리표('- ')는 떼고. 전체는 아래 영업시간 블록에 그대로 있다
+    const hours = (detail.usetime ?? '').split('\n').map((l) => l.replace(/^[-*·•]\s*/, '').trim()).filter(Boolean)[0] ?? ''
+    const short = (v: string) => (v.length > 34 ? v.slice(0, 33) + '…' : v)
+    if (st.kind === 'closed') return { icon: '✕', color: '#C0392B', text: `오늘(${todayLabel()}) 휴무 — ${st.label}` }
+    if (st.kind === 'maybe') return { icon: '!', color: '#D4A000', text: `오늘(${todayLabel()}) 휴무일 수 있어요 — ${st.label}. ${st.note}` }
+    if (st.kind === 'always') return { icon: '✓', color: '#2F8F4E', text: `오늘 문 여는 날 · 연중무휴${hours ? ` · ${short(hours)}` : ''}` }
+    if (st.kind === 'open') return { icon: '✓', color: '#2F8F4E', text: `오늘 문 여는 날${hours ? ` · ${short(hours)}` : ''}${st.label ? ` (${st.label})` : ''}` }
+    if (hours) return { icon: '🕘', color: '#6E5F4D', text: `${short(hours)}${detail.restdate ? ` · 휴무 ${short(detail.restdate.split('\n')[0])}` : ''}` }
+    return null
+  })()
+
+  const tel = detail?.tels[0] ? splitTel(detail.tels[0]) : null
+  const script = phoneScript(pet, rules)
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(script) } catch {
+      const ta = document.createElement('textarea'); ta.value = script; document.body.appendChild(ta); ta.select()
+      try { document.execCommand('copy') } catch {}
+      ta.remove()
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  const row = (icon: string, color: string, text: string, key: string | number, bold = false) => (
+    <div key={key} style={{ display: 'flex', gap: 8, fontSize: 13, lineHeight: 1.45 }}>
+      <span style={{ fontWeight: 700, color, flex: 'none', width: 14, textAlign: 'center' }}>{icon}</span>
+      <span style={{ fontWeight: bold ? 700 : 500, color: bold ? color : '#2B2420', wordBreak: 'keep-all' }}>{text}</span>
+    </div>
+  )
+
+  return (
+    <div style={{ border: `1.5px solid ${b.border}`, background: b.checkBg, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700 }}>
+          {pet && <PetFace emoji={pet.emoji} size={18} />}
+          {pet ? `${pet.name}와 출발 전 체크` : '출발 전 체크'}
+        </span>
+        <span style={{ fontSize: 11.5, color: '#A08872', whiteSpace: 'nowrap' }}>{todayLabel()}요일 기준</span>
+      </div>
+
+      {today && row(today.icon, today.color, today.text, 'today', today.icon === '✕' || today.icon === '!')}
+
+      {j ? (
+        j.checks.map((ck, i) => row(ck.icon, ck.color, ck.text, i))
+      ) : state === 'info' ? (
+        // 등록 전 — 판정 없이 원문 조건을 그대로 늘어놓는다. ✓/! 를 찍지 않는다
+        <>
+          {ruleLines(rules).map((line, i) => row('•', '#B3A78F', line, i))}
+          <div style={{ fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>
+            🐶 프로필을 등록하면 우리 아이 기준으로 체크리스트를 만들어요
+          </div>
+        </>
+      ) : (
+        row('!', '#A08872', b.text, 'state')
+      )}
+
+      {/* 확인 전화 — 조건이 모호할수록 마지막 관문은 전화다. 물어볼 말까지 만들어 둔다 */}
+      {tel && (
+        <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+            <a href={`tel:${tel.num.replace(/[^0-9+]/g, '')}`} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: '#2B2420', textDecoration: 'none' }}>
+              <span style={{ color: '#A08872', display: 'flex' }}><PhoneIcon size={14} /></span>
+              <span>애매하면 전화로 확인 · {tel.num}</span>
+            </a>
+            <button onClick={() => setAskOpen((v) => !v)} aria-expanded={askOpen}
+              style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: '#E85D3D', background: 'none', border: 'none', padding: 0, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+              물어볼 말 {askOpen ? '접기 ▴' : '보기 ▾'}
+            </button>
+          </div>
+          {askOpen && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div style={{ fontSize: 13, lineHeight: 1.65, background: '#FFFFFF', border: '1px dashed #E3DCCE', borderRadius: 10, padding: '9px 12px', color: '#2B2420', wordBreak: 'keep-all' }}>
+                “{script}”
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <a className="btn-primary" href={`tel:${tel.num.replace(/[^0-9+]/g, '')}`}
+                  style={{ flex: 1, textAlign: 'center', fontSize: 13, fontWeight: 700, padding: '9px 0', borderRadius: 10, background: '#E85D3D', color: '#FFFFFF', textDecoration: 'none' }}>
+                  <PhoneIcon size={14} style={{ marginRight: 5 }} />전화 걸기
+                </a>
+                <button onClick={copy}
+                  style={{ flex: 1, fontFamily: 'inherit', fontSize: 13, fontWeight: 700, padding: '9px 0', borderRadius: 10, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
+                  {copied ? '복사됐어요 ✓' : '문장 복사'}
+                </button>
+              </div>
+              {tel.label && <span style={{ fontSize: 11.5, color: '#A08872' }}>{tel.label}</span>}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11.5, color: '#A08872' }}>
+        조건 정보 충실도 {rules?.completeness ?? '—'}등급 · 데이터 출처: ⓒ한국관광공사
+      </div>
+    </div>
   )
 }

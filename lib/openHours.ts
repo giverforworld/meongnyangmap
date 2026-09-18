@@ -33,6 +33,8 @@ export type RestStatus =
   | { kind: 'maybe'; label: string; note: string }
   /** 쉬는 날이 없다고 명시돼 있다 */
   | { kind: 'always'; label: string }
+  /** 매주 쉬는 요일을 읽었고 오늘은 그 요일이 아니다 — '오늘 문 여는 날'이라고 말해도 된다 */
+  | { kind: 'open'; label: string }
   /** 규칙을 읽어내지 못했다 — 원문을 보여주고 판단은 사용자에게 맡긴다 */
   | { kind: 'unknown' }
 
@@ -137,6 +139,16 @@ export function restStatus(restdate?: string, now = new Date()): RestStatus {
       if (holiday !== false) return { kind: 'maybe', label, note: line }
     }
     return { kind: 'closed', label }
+  }
+
+  // 매주 규칙이 있고 오늘이 거기 없다 — 격주·n째주 규칙(NTH)은 걸러냈으므로 단정해도 된다.
+  // 다만 그 줄 밖에 다른 휴무 문구가 더 있으면(명절·임시휴무) 모른다고 둔다
+  if (weekly.length > 0) {
+    const rest = t.replace(/매주[^\n]*/g, '')
+    if (!/휴무|휴관|휴점|휴원|쉼/.test(rest)) {
+      const days = [...new Set(weekly.flatMap(restDays))].map((d) => DAYS[d]).join('·')
+      return { kind: 'open', label: days ? `매주 ${days}요일 휴무` : '' }
+    }
   }
 
   return { kind: 'unknown' }

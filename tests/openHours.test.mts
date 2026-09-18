@@ -59,7 +59,8 @@ test('\'매주 월요일\' + 월요일 — closed', () => {
 
 // 가장 위험한 오판(열려 있는데 오늘 휴무)의 최소 회귀 가드. 2026-09-08은 화요일이라 이 장소는 정상 영업 중이다.
 test('\'매주 월요일\' + 화요일 — closed 로 막으면 안 된다', () => {
-  assert.deepEqual(restStatus('매주 월요일', new Date('2026-09-08T10:00:00+09:00')), { kind: 'unknown' })
+  // 2026-09-18 부터 '매주 규칙이 있고 오늘이 아님'은 unknown 이 아니라 open — 출발 전 체크가 "오늘 문 여는 날"이라 말할 근거다
+  assert.deepEqual(restStatus('매주 월요일', new Date('2026-09-08T10:00:00+09:00')), { kind: 'open', label: '매주 월요일 휴무' })
 })
 
 // 실제 값. 2026-09-09은 수요일. 범위의 시작 요일이 인식돼야 한다.
@@ -169,5 +170,5 @@ test('\'매주 금요일\' + 금요일 — closed', () => {
 
 // 코드 버그 의심 — 실전 false-closed. now.getDay() 가 실행 환경 로컬 TZ 를 쓴다. TZ=UTC 서버에서 이 시각은 2026-09-07T15:30Z 라 getDay()=1(월)이 되어 closed 를 반환한다(KST 로 돌리면 unknown). 화요일 새벽에 앱을 켠 사용자에게 열려 있는 장소가 
 test('KST 새벽 00:30 — 서버 TZ 가 UTC 여도 화요일로 계산돼야 한다', () => {
-  assert.equal(restStatus('매주 월요일', new Date('2026-09-08T00:30:00+09:00')).kind, 'unknown')
+  assert.equal(restStatus('매주 월요일', new Date('2026-09-08T00:30:00+09:00')).kind, 'open')
 })

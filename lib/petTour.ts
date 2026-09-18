@@ -354,7 +354,7 @@ export function judge(rules: PetRules | null, pet: Pet): Judgement {
     checks.push({
       icon: '!',
       color: WARN,
-      text: '등록된 조건 정보가 적어요 — 방문 전 전화 확인을 권해요',
+      text: '어떤 아이가 되는지·준비물이 등록되지 않았어요 — 방문 전 전화 확인을 권해요',
     })
   }
 
@@ -366,7 +366,7 @@ export function judge(rules: PetRules | null, pet: Pet): Judgement {
     checks.push({
       icon: '!',
       color: WARN,
-      text: '등록된 조건 정보가 적어요 — 방문 전 전화 확인을 권해요',
+      text: '어떤 아이가 되는지·준비물이 등록되지 않았어요 — 방문 전 전화 확인을 권해요',
     })
   }
 

@@ -60,3 +60,13 @@ export function SearchIcon({ size = 18 }: { size?: number }) {
     </svg>
   )
 }
+
+/** 전화 — 글자색을 따르는 수화기. '☎' 글자는 기기에 따라 팩스 이모지로 그려져 쓰지 않는다 */
+export function PhoneIcon({ size = 14, style }: { size?: number; style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} aria-hidden="true" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flex: 'none', display: 'inline-block', verticalAlign: '-2px', ...style }}>
+      <path d="M5.5 3.5h3.2l1.6 4-2 1.3a11.5 11.5 0 0 0 6.9 6.9l1.3-2 4 1.6v3.2a2 2 0 0 1-2.1 2A16.5 16.5 0 0 1 3.5 5.6a2 2 0 0 1 2-2.1Z" />
+    </svg>
+  )
+}

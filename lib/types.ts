@@ -31,6 +31,14 @@ export interface PetTourRaw {
   relaPurcPrdlst?: string
 }
 
+/** 조건 변경 기록 — 감지한 날짜와 그 전후의 조건 요약 줄 */
+export interface RuleChange {
+  /** YYYY-MM-DD, 배치가 차이를 발견한 날(원문이 실제로 바뀐 날은 알 수 없다) */
+  at: string
+  before: string[]
+  after: string[]
+}
+
 /** 자연어 조건을 구조화한 결과 */
 export interface PetRules {
   zone: 'all' | 'partial' | 'unknown'
@@ -50,6 +58,11 @@ export interface PetRules {
   zoneHint: string | null
   /** A: 4개 핵심 필드 모두 · B: 일부 결손 · C: 동반구분만 */
   completeness: 'A' | 'B' | 'C'
+  /**
+   * 조건이 최근에 바뀐 기록 — 배치가 어제 스냅샷과 비교해 적는다(scripts/collect.mts).
+   * "지난달엔 됐는데"를 막는 표시용. 실시간으로 받은 조건에는 없다.
+   */
+  change?: RuleChange
   /**
    * 나이·체고·마리수·계절처럼 구조로 옮길 수 없는 조건이 원문에 남아 있을 때의 안내문.
    * 판정을 느슨하게 만드는 대신 화면에서 직접 확인을 권한다.

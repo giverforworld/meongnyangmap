@@ -10,6 +10,8 @@ import KakaoMap from './KakaoMap'
 import PetFace from './PetFace'
 import { PawPinIcon, SearchIcon } from './icons'
 import { BADGE, CAT_EMOJI, describeRules } from './placeUi'
+import RuleChips from './RuleChips'
+import { recentChange, shortDate } from '@/lib/ruleText'
 import PlaceDetail from './PlaceDetail'
 
 const CAT_ORDER = ['관광지', '음식점', '숙박', '문화시설', '레포츠', '행사']
@@ -535,8 +537,12 @@ export default function Home() {
             onClick={() => { setSelectedId(p.contentid); if (isMobile) setSheet('peek') }}
             style={{ border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF6F2' : '#FFFFFF', borderRadius: 14, padding: '11px 13px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 5 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <span style={{ fontWeight: 700, fontSize: 15 }}>{p.title}</span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 99, border: `1.5px solid ${b.border}`, color: b.color, background: b.bg, whiteSpace: 'nowrap' }}>{b.text}</span>
+              <span style={{ fontWeight: 700, fontSize: 15, display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.title}</span>
+                {/* 조건이 최근 바뀐 곳 — "지난달엔 됐는데"를 막는 표시. 상세에 전후가 있다 */}
+                {(() => { const c = recentChange(rules(p)); return c ? <span title={`조건 변경 감지 ${c.at}`} style={{ flex: 'none', fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99, background: '#FFF4EF', color: '#E85D3D', border: '1px solid #F3C9BB', whiteSpace: 'nowrap' }}>조건 변경 {shortDate(c.at)}</span> : null })()}
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11.5, fontWeight: 700, padding: '2px 9px', borderRadius: 99, border: `1.5px solid ${b.border}`, color: b.color, background: b.bg, whiteSpace: 'nowrap', flex: 'none' }}>{b.text}</span>
             </div>
             <div style={{ fontSize: 12, color: '#A08872' }}>
               {p.cat} · {p.addr1.split(' ').slice(1, 3).join(' ')}
@@ -551,6 +557,8 @@ export default function Home() {
             <div style={{ fontSize: 12.5, color: p.j ? (condCheck ? '#9A7300' : '#2F8F4E') : '#A08872' }}>
               {p.j ? (condCheck ? condCheck.text : p.j.checks[0]?.text) : p.state === 'info' ? describeRules(rules(p)) : b.text}
             </div>
+            {/* 조건 칩 — 구역·체중·준비물을 글 대신 한 단어씩. 판정과 별개로 원문 요약 */}
+            <RuleChips rules={rules(p)} />
           </div>
         )
       })}
