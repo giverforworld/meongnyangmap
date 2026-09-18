@@ -5,7 +5,7 @@ import { PetsProvider } from './PetsProvider'
 
 const TITLE = '멍냥맵 - 반려 동물과 함께 할 수 있는 관광지, 핫플레이스를 한 눈에!'
 const DESCRIPTION =
-  '반려동물 동반 조건을 우리 아이 기준으로 판별하여 헛걸음을 사전 방지해주는 핫플레이스 맵 서비스. 데이터/API 출처: ⓒ한국관광공사'
+  '반려동물 동반 조건을 우리 아이 기준으로 판별하여 헛걸음을 사전 방지해주는 핫플레이스 맵 서비스. 데이터 출처: ⓒ한국관광공사'
 
 /** 브라우저 탭·검색 결과·카카오톡 링크 미리보기에 뜨는 것 */
 export const metadata: Metadata = {

@@ -176,7 +176,7 @@ function Board() {
                 <p style={{ margin: 0, fontSize: 13.5, color: '#8A7A65', wordBreak: 'keep-all' }}>
                   이곳에 다녀온 이야기만 모았어요 ·{' '}
                   <Link href={`/?focus=${placeFilter}`} style={{ color: '#E85D3D', fontWeight: 700, textDecoration: 'none' }}>지도에서 보기</Link>
-                  <span style={{ fontSize: 11.5, color: '#B3A78F' }}> · 장소 정보 · 데이터/API 출처: ⓒ한국관광공사</span>
+                  <span style={{ fontSize: 11.5, color: '#B3A78F' }}> · 장소 정보 · 데이터 출처: ⓒ한국관광공사</span>
                 </p>
               </>
             ) : (
@@ -310,7 +310,7 @@ function Board() {
         </div>
 
         {posts.some((p) => p.place_title) && !placeFilter && (
-          <span style={{ fontSize: 11, color: '#B3A78F', textAlign: 'right' }}>장소 정보 · 데이터/API 출처: ⓒ한국관광공사</span>
+          <span style={{ fontSize: 11, color: '#B3A78F', textAlign: 'right' }}>장소 정보 · 데이터 출처: ⓒ한국관광공사</span>
         )}
 
         {hasMore && (
