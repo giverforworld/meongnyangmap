@@ -8,6 +8,7 @@ import PetFace from './PetFace'
 import { sizeOf } from '@/lib/petTour'
 import type { Session } from '@supabase/supabase-js'
 import { authReady } from '@/lib/supabaseBrowser'
+import { useIsMobile } from '@/lib/useIsMobile'
 import { GOOGLE_LOGIN_READY, GOOGLE_PENDING } from '@/lib/authProviders'
 import GoogleButton from './GoogleButton'
 
@@ -61,6 +62,8 @@ export default function PetSwitch({
   const [open, setOpen] = useState(false)
   /** 편집 중인 아이의 key. 'new' 면 새로 등록 */
   const [editing, setEditing] = useState<string | null>(null)
+  /** 아주 좁은 폰(320px 급) — 등록 전 칩에서 얼굴을 빼야 대메뉴 셋과 로그인이 한 줄에 든다 */
+  const tight = useIsMobile(359)
 
   return (
     <>
@@ -74,17 +77,19 @@ export default function PetSwitch({
           // 등록 전에는 이 서비스의 첫 단계라 주황으로 꽉 채운다. 등록 뒤에는 연하게 물러난다
           ...(pet
             ? { background: '#FFF4EF', border: '1.5px solid #F3C9BB', color: '#2B2420', padding: compact ? '3px 11px 3px 3px' : '6px 20px 6px 7px', minWidth: compact ? undefined : 150 }
-            : { background: '#E85D3D', border: '1.5px solid #E85D3D', color: '#FFFFFF', padding: compact ? '3px 11px 3px 3px' : '6px 20px 6px 7px', boxShadow: '0 4px 14px rgba(232,93,61,.32)' }),
+            : { background: '#E85D3D', border: '1.5px solid #E85D3D', color: '#FFFFFF', padding: compact ? (tight ? '0 9px' : '3px 11px 3px 3px') : '6px 20px 6px 7px', height: compact && tight ? 37 : undefined, boxShadow: '0 4px 14px rgba(232,93,61,.32)' }),
         }}
       >
         {!pet ? (
           // 등록 전 — 아직 누구 기준으로도 거르지 않는다. 칩은 등록을 권하는 자리다
           <>
-            <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, background: '#FFFFFF', borderRadius: '50%', flex: 'none' }}>
-              <PetFace emoji="🐶" size={compact ? 24 : 34} />
-            </span>
+            {!(compact && tight) && (
+              <span aria-hidden="true" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: compact ? 28 : 40, height: compact ? 28 : 40, background: '#FFFFFF', borderRadius: '50%', flex: 'none' }}>
+                <PetFace emoji="🐶" size={compact ? 24 : 34} />
+              </span>
+            )}
             <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.15 }}>
-              <span style={{ fontWeight: 700 }}>프로필 등록</span>
+              <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>프로필 등록</span>
               {!compact && (
                 <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,.88)', marginTop: 2 }}>
                   등록한 아이 기준으로 동반 가능 여부 필터링

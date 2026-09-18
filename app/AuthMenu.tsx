@@ -71,7 +71,7 @@ export default function AuthMenu({
           display: 'flex', alignItems: 'center', gap: compact ? 6 : 11, flex: 'none',
           fontFamily: 'inherit', fontSize: compact ? 13 : 16, fontWeight: 700, lineHeight: 1.15,
           // 좁은 화면 로그인 전은 글자 한 줄 — 높이는 옆 프로필 칩(아바타 28 + 여백 + 테두리)과 같은 37
-          padding: compact ? (u ? '3px 3px' : '0 10px') : '6px 20px 6px 7px', minWidth: compact ? undefined : 150,
+          padding: compact ? (u ? '3px 3px' : '0 8px') : '6px 20px 6px 7px', minWidth: compact ? undefined : 150,
           height: compact && !u ? 37 : undefined,
           borderRadius: 99, border: `1.5px solid ${open ? '#E85D3D' : '#E3DCCE'}`,
           background: '#FFFFFF', color: '#2B2420', cursor: 'pointer', whiteSpace: 'nowrap',
