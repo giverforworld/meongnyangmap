@@ -425,7 +425,8 @@ export function PlaceReviews({
               style={{ alignSelf: 'flex-end', fontFamily: 'inherit', fontSize: 11.5, color: '#C0392B', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
               내 리뷰 지우기
             </button>
-          ) : r.byAccount ? null : deleting === r.id ? (
+          ) : r.byAccount || r.rating === null ? null : deleting === r.id ? (
+            // 비로그인 현장 확인(별점 없음)은 비밀번호 없이 남겨 지울 수 없다 — 버튼을 두면 헛수고만 시킨다
             <form onSubmit={(e) => { e.preventDefault(); remove(r.id) }} style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
               <input value={delPw} onChange={(e) => setDelPw(e.target.value)} type="password" placeholder="비밀번호" required autoFocus
                 style={{ ...field, width: 120, padding: '6px 10px', fontSize: 12.5 }} />

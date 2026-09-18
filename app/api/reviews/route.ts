@@ -105,10 +105,10 @@ export async function POST(req: Request) {
 
     /**
      * 두 가지 모양이 온다.
-     *   현장 확인만: entry 필수, 별점·글 없어도 됨. 30초에 남기는 것이라 비로그인이면 닉네임·비밀번호도 선택
-     *   리뷰:      별점·글 필수 (종전 규칙 그대로)
+     *   현장 확인: entry 필수, 별점 없음. 한 줄 메모는 붙어도 된다. 30초에 남기는 것이라 비로그인이면 닉네임·비밀번호도 선택
+     *   리뷰:     별점·글 필수 (종전 규칙 그대로)
      */
-    const quick = entry != null && (rating == null || rating === 0) && !String(body ?? '').trim()
+    const quick = entry != null && (rating == null || rating === 0)
     // 로그인 리뷰는 계정 이름으로 고정한다
     const nick = (viewer?.name || String(nickname ?? '')).trim() || (quick ? '방문자' : '')
     const b = String(body ?? '').trim()
