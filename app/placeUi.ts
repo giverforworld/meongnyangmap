@@ -102,12 +102,26 @@ export function siteNotes(r: PetRules | null): { label: string; text: string; wa
   if (!r) return []
   const raw = r.raw
   const pick = (v: string | undefined) => (v ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
-  const rows: { label: string; text: string; warn: boolean }[] = [
-    { label: '사고 위험 요소', text: pick(raw.relaAcdntRiskMtr), warn: true },
+  const rows: { label: string; text: string; warn: boolean }[] = []
+
+  /**
+   * '사고 위험 요소'(relaAcdntRiskMtr) 필드는 원천 데이터에서 대부분 잘못 채워져 있다 —
+   * 545곳 중 394곳이 "전 견종 동반 가능"처럼 '동반 가능 동물' 내용이다. 그대로 '사고 위험 요소'라
+   * 붙이면 말이 안 되므로 내용을 보고 이름표를 고른다: 위험·책임 문장만 경고로, 동반 가능 동물
+   * 문장은 그 이름으로(가능동물 필드에 이미 같은 말이 있으면 생략), 나머지는 '참고'로.
+   */
+  const risk = pick(raw.relaAcdntRiskMtr)
+  if (risk) {
+    const cpam = pick(raw.acmpyPsblCpam)
+    if (/사고|위험|책임|주의|금지|불가|입수|절벽|낙상|미끄|차량|계단|물살|급류/.test(risk)) rows.push({ label: '사고 위험 요소', text: risk, warn: true })
+    else if (/동반|견종|출입|입장|kg|소형|중형|대형/.test(risk)) { if (!cpam || cpam !== risk) rows.push({ label: '동반 가능 동물', text: risk, warn: false }) }
+    else if (!/^(반려동물|반려견|안내판 고지)$/.test(risk)) rows.push({ label: '안전·운영 참고', text: risk, warn: false }) // 직원 상시대기·응급키트·서약서 같은 안전 대비가 대부분
+  }
+  rows.push(
     { label: '구비 시설', text: pick(raw.relaPosesFclty), warn: false },
     { label: '비치 품목', text: pick(raw.relaFrnshPrdlst), warn: false },
     { label: '대여 가능', text: pick(raw.relaRntlPrdlst), warn: false },
     { label: '구매 가능', text: pick(raw.relaPurcPrdlst), warn: false },
-  ]
+  )
   return rows.filter((x) => x.text.length > 0 && !/^(없음|해당\s*없음|-)$/.test(x.text))
 }
