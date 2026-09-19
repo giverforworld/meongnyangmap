@@ -463,7 +463,7 @@ export default function Home() {
     return (
       <button key={label} className="hov-accent"
         onClick={() => { setCat(label); setSub('전체'); setLimit(PAGE); setSelectedId(null) }}
-        style={{ flex: 'none', fontFamily: 'inherit', fontSize: 14.5, fontWeight: on ? 700 : 500, padding: '8px 16px', borderRadius: 99, border: `1.5px solid ${on ? '#2B2420' : '#E3DCCE'}`, background: on ? '#2B2420' : '#FFFFFF', color: on ? '#FFFFFF' : '#6E5F4D', cursor: 'pointer' }}>
+        style={{ flex: 'none', fontFamily: 'inherit', fontSize: 14, fontWeight: on ? 700 : 500, padding: '6px 14px', borderRadius: 99, border: `1.5px solid ${on ? '#2B2420' : '#E3DCCE'}`, background: on ? '#2B2420' : '#FFFFFF', color: on ? '#FFFFFF' : '#6E5F4D', cursor: 'pointer' }}>
         {label} <span style={{ opacity: .65, fontWeight: 500 }}>{count.toLocaleString()}</span>
       </button>
     )
@@ -649,7 +649,7 @@ export default function Home() {
       {/* ── 필터 바 (넓은 화면 전용) */}
       {!isMobile && (
       <div style={{ background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
-        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '7px 12px 0' : '10px 20px 0', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: isMobile ? '7px 12px 0' : '8px 20px 0', overflowX: 'auto', whiteSpace: 'nowrap' }}>
           {cats.map((label) => catChip(label, label === ALL ? allCount : catCounts[label]))}
           {/* 쇼핑은 개별 상점이라 수가 압도적이다. 구분선 뒤로 물려 따로 볼 수 있게만 둔다 */}
           {(catCounts[ASIDE_CAT] ?? 0) > 0 && (
@@ -668,13 +668,14 @@ export default function Home() {
 
         {/* 세분류 — 쇼핑처럼 한 타입에 수천 곳이 몰릴 때 좁혀 보기 위한 2차 필터 */}
         {(!isMobile || subs.length > 0) && (
-        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '5px 12px 7px' : '8px 20px 10px', flexWrap: isMobile ? 'nowrap' : 'wrap', overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap' }}>
+        <div className="chip-row" style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '5px 12px 7px' : '7px 20px 8px', flexWrap: isMobile ? 'nowrap' : 'wrap', overflowX: isMobile ? 'auto' : 'visible', whiteSpace: 'nowrap' }}>
           {subs.length > 0 && (
             <>
               <span style={{ fontSize: 12, color: '#B3A78F', marginRight: 2 }}>세부</span>
               {['전체', ...subs].map((code) => {
                 const on = code === sub
-                const label = code === '전체' ? '전체' : (catNames[code] ?? code)
+                // 이름표가 아직 안 왔으면 코드(AC01)를 보이지 않고 자리만 둔다
+                const label = code === '전체' ? '전체' : (catNames[code] ?? '···')
                 const n = code === '전체' ? inCatCount : subCounts[code]
                 return (
                   <button key={code} className="hov-accent"
@@ -762,7 +763,7 @@ export default function Home() {
                         <button key={code} className="hov-accent"
                           onClick={() => { setSub(code); setLimit(PAGE); setSelectedId(null) }}
                           style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: on ? 700 : 500, padding: '4px 11px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EFE8DA'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#8A7A65', cursor: 'pointer' }}>
-                          {code === '전체' ? '전체' : (catNames[code] ?? code)} <span style={{ opacity: .6, fontWeight: 500 }}>{code === '전체' ? inCatCount : subCounts[code]}</span>
+                          {code === '전체' ? '전체' : (catNames[code] ?? '···')} <span style={{ opacity: .6, fontWeight: 500 }}>{code === '전체' ? inCatCount : subCounts[code]}</span>
                         </button>
                       )
                     })}

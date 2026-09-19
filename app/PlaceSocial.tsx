@@ -52,6 +52,7 @@ export interface CheckSummary {
   needs: Record<string, number>
   lastDenied: string | null
   last: string | null
+  deniedRecent: number
 }
 
 const today = () => {
@@ -276,14 +277,17 @@ export function PlaceReviews({
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {NEED_OPTIONS.map((k) => {
                     const on = needs.includes(k)
+                    // 서버 한도 6개에 직접 입력 한 칸을 셈한다 — 칩 6개 + 직접 입력이면 7개라 거부된다
+                    const cap = needOther.trim() ? 5 : 6
                     return (
-                      <button key={k} type="button" onClick={() => setNeeds(on ? needs.filter((x) => x !== k) : needs.length >= 6 ? needs : [...needs, k])}
+                      <button key={k} type="button" onClick={() => setNeeds(on ? needs.filter((x) => x !== k) : needs.length >= cap ? needs : [...needs, k])}
                         style={{ fontFamily: 'inherit', fontSize: 12, fontWeight: on ? 700 : 500, padding: '4px 10px', borderRadius: 99, border: `1.5px solid ${on ? '#E85D3D' : '#EAE3D6'}`, background: on ? '#FFF4EF' : '#FFFFFF', color: on ? '#E85D3D' : '#6E5F4D', cursor: 'pointer' }}>
                         {k}
                       </button>
                     )
                   })}
-                  <input value={needOther} onChange={(e) => setNeedOther(e.target.value)} maxLength={20} placeholder="그 밖에 (직접 입력)"
+                  <input value={needOther} onChange={(e) => setNeedOther(e.target.value)} maxLength={20} disabled={needs.length >= 6}
+                    placeholder={needs.length >= 6 ? '6개까지예요' : '그 밖에 (직접 입력)'}
                     style={{ ...field, width: 150, padding: '4px 10px', fontSize: 12, borderRadius: 99 }} />
                 </div>
               </div>

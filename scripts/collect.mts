@@ -248,6 +248,23 @@ async function main() {
   console.log(`  이번에 ${dDone.toLocaleString()}건 · 누적 ${Object.keys(details).length.toLocaleString()}건`)
   save('details.json', { collectedAt: new Date().toISOString(), details })
 
+  // ── ③-1 분류체계 이름표 — 화면 세부 필터가 코드 대신 이름을 쓴다. 1depth 1콜 + 2depth 콜.
+  //    실시간 라우트는 서버가 새로 뜰 때마다 이걸 다시 불렀고, 그 사이 화면엔 코드가 보였다.
+  //    하루 한 번 받아 두면 화면은 처음부터 이름을 안다
+  try {
+    console.log('\n분류 이름을 받는 중…')
+    const { ALL } = await import('../lib/kto.js')
+    const names: Record<string, string> = {}
+    const { items: depth1 } = await call<any>('lclsSystmCode2', { numOfRows: ALL, pageNo: 1 })
+    depth1.forEach((d: any) => (names[d.code] = d.name))
+    const depth2 = await Promise.all(depth1.map((d: any) => call<any>('lclsSystmCode2', { lclsSystm1: d.code, numOfRows: ALL, pageNo: 1 })))
+    depth2.flatMap((r: any) => r.items).forEach((d: any) => (names[d.code] = d.name))
+    console.log(`  ${Object.keys(names).length}개`)
+    save('categories.json', { collectedAt: new Date().toISOString(), names })
+  } catch (e) {
+    console.log(`  분류 이름을 못 받았어요 — 지난 파일을 그대로 둡니다 (${(e as Error).message})`)
+  }
+
   // ── ④ 캠핑장 — 고캠핑 서비스(GoCamping)는 전국 3,115곳을 1콜에 준다.
   //    반려동물 동반 여부(animalCmgCl)가 이미 필드로 들어 있어 따로 조회할 게 없다.
   //    반려동물 동반여행 서비스의 숙박은 107곳뿐이라, 캠핑이 그 빈자리를 메운다.

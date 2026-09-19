@@ -72,9 +72,12 @@ const EMPTY: Detail = {
   tels: [], extras: [], images: [],
 }
 
-/** 개요·홈페이지에 <a> 나 <br> 이 섞여 온다 */
+/**
+ * 개요·홈페이지에 <a> 나 <br> 이 섞여 온다. <br> 은 개행으로 먼저 바꾼다 — 휴무 규칙(restStatus)이
+ * '매주 줄'과 그 밖의 줄을 개행으로 가르기 때문에, 공백으로 눌러 버리면 배치(collect.mts)와 판정이 달라진다
+ */
 function text(s?: string) {
-  return clean((s ?? '').replace(/<[^>]+>/g, ' ')).replace(/[ \t]+/g, ' ')
+  return clean((s ?? '').replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, ' ')).replace(/[ \t]+/g, ' ')
 }
 
 /** 홈페이지 필드는 <a href="..."> 형태로 오는 경우가 많다 */

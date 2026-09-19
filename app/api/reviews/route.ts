@@ -4,6 +4,7 @@ import { hashPassword } from '@/lib/password'
 import { cleanPhotos, isContentId, resolvePlace } from '@/lib/board'
 import { EXPIRED, petSnapshotOf, sentToken, viewerOf } from '@/lib/auth'
 import { randomBytes } from 'node:crypto'
+import { allow, ipOf, todayKST } from '@/lib/rateLimit'
 
 export const dynamic = 'force-dynamic'
 
@@ -47,6 +48,8 @@ export interface Summary {
   needs: Record<string, number>
   lastDenied: string | null
   last: string | null
+  /** 최근 60일 안의 거부 보고 수 — 화면의 '최근 입장 거부 보고 N건'은 이 숫자를 쓴다 */
+  deniedRecent: number
 }
 
 /** 한 장소의 리뷰 — 최신순, 요약 숫자와 함께 */
@@ -71,16 +74,21 @@ export async function GET(req: Request) {
     const needs: Record<string, number> = {}
     let lastDenied: string | null = null
     let last: string | null = null
+    let deniedRecent = 0
+    const cutoff = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
     for (const r of reviews) {
       const day = (r.visited_on ?? r.created_at).slice(0, 10)
       if (r.entry) {
         entry[r.entry]++
         if (!last || day > last) last = day
-        if (r.entry === 'denied' && (!lastDenied || day > lastDenied)) lastDenied = day
+        if (r.entry === 'denied') {
+          if (!lastDenied || day > lastDenied) lastDenied = day
+          if (day >= cutoff) deniedRecent++
+        }
       }
       for (const n of r.needs) needs[n] = (needs[n] ?? 0) + 1
     }
-    const summary: Summary = { entry, needs, lastDenied, last }
+    const summary: Summary = { entry, needs, lastDenied, last, deniedRecent }
     // 요약은 받아온 만큼(최근 MAX 개)으로 센다. 그보다 많으면 화면이 '최근 N개 기준'이라고 적는다
     return NextResponse.json({ reviews, count, avg, entry, summary, capped: count >= MAX })
   } catch (e) {
@@ -95,6 +103,10 @@ export async function POST(req: Request) {
     const { placeId, nickname, rating, entry, body, needs, visitedOn, photos, petSize, password, petKey } = await req.json()
     const viewer = await viewerOf(req)
     if (!viewer && sentToken(req)) return NextResponse.json({ error: EXPIRED }, { status: 401 })
+
+    // 남용 방지 — IP 당 10분에 10건. 현장 확인은 닉네임·비밀번호 없이도 들어가므로 이게 유일한 문턱이다
+    const ip = ipOf(req)
+    if (!allow(`reviews:${ip}`, 10, 10 * 60 * 1000)) return NextResponse.json({ error: '잠시 후 다시 남겨주세요' }, { status: 429 })
 
     // 장소 이름은 화면이 보낸 것이 아니라 우리 목록에서 찾는다
     const pl = await resolvePlace({ id: placeId })
@@ -129,6 +141,8 @@ export async function POST(req: Request) {
     if (nd === null) return bad('요구된 것은 6개까지, 항목당 20자까지예요')
     const day = cleanDay(visitedOn)
     if (day === undefined) return bad('다녀온 날짜가 올바르지 않아요')
+    // 같은 IP 가 같은 장소에 현장 확인을 하루에 여러 번 — 한 사람의 한 방문은 하나면 된다
+    if (quick && !allow(`quick:${ip}:${pid}`, 1, 24 * 60 * 60 * 1000)) return NextResponse.json({ error: '이 장소엔 오늘 이미 남겼어요' }, { status: 429 })
 
     const pet = viewer ? await petSnapshotOf(viewer.id, typeof petKey === 'string' ? petKey : null) : null
     const saved = await sbInsert<{ id: number }>('reviews', {
@@ -173,13 +187,16 @@ function cleanNeeds(v: unknown): string[] | null {
   return out.length > 6 ? null : out
 }
 
-/** 다녀온 날 — 없으면 null, 있으면 2020년 이후 ~ 오늘까지의 YYYY-MM-DD. 틀리면 undefined */
+/**
+ * 다녀온 날 — 없으면 null, 있으면 2020년 이후 ~ 오늘(한국 시간)까지의 YYYY-MM-DD. 틀리면 undefined.
+ * '오늘'은 한국 시간이다 — 서버(UTC)의 오늘로 재면 새벽 0~9시에 화면 기본값(오늘)이 미래가 돼 거부된다.
+ * 2월 30일처럼 달력에 없는 날은 Date 가 다음 달로 굴리므로 되돌려 같은지 본다.
+ */
 function cleanDay(v: unknown): string | null | undefined {
   if (v == null || v === '') return null
   if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return undefined
   const t = Date.parse(v)
-  if (!Number.isFinite(t)) return undefined
-  const today = new Date().toISOString().slice(0, 10)
-  if (v > today || v < '2020-01-01') return undefined
+  if (!Number.isFinite(t) || new Date(t).toISOString().slice(0, 10) !== v) return undefined
+  if (v > todayKST() || v < '2020-01-01') return undefined
   return v
 }

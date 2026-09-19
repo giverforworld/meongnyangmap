@@ -80,6 +80,8 @@ const NTH = /첫째|둘째|셋째|넷째|다섯째|마지막|\d+\s*번째|\d+\s*
  * "매주 월요일 / 공휴일" 은 휴무가 늘어나는 것이지 예외가 아니므로 걸리면 안 된다.
  */
 const EXCEPTION = /단\s*[,、]|단서|다만/
+/** "그 다음날 휴관", "익일 휴관", "다음 평일에 휴관", "공휴일 다음날" — 휴무일이 하루 밀리는 문구 */
+const SHIFTED = /다음\s*날|익일|다음\s*(?:첫\s*(?:번째\s*)?)?(?:비공휴일|평일)|공휴일\s*다음/
 
 /** "매주 월요일~금요일" 같은 요일 범위 */
 const RANGE = /([월화수목금토일])요일?\s*[~\-–〜]\s*([월화수목금토일])요일?/g
@@ -114,9 +116,12 @@ export function restStatus(restdate?: string, now = new Date()): RestStatus {
   const t = clean(restdate)
   if (!t) return { kind: 'unknown' }
 
-  // 연중무휴라도 "(명절 당일 휴무)" 처럼 쉬는 날이 함께 적혀 있으면 단정할 수 없다
+  // 연중무휴라도 "(명절 당일 휴무)" 처럼 쉬는 날이 함께 적혀 있으면 단정할 수 없다.
+  // 시설별로 나뉜 문구("- 본관 연중무휴 - 박물관 매주 월요일 / 설·추석")는 '휴무' 단어 없이
+  // 요일·명절만 적히기도 하므로 그 토큰들도 예외로 본다
   if (/연중\s*무휴|휴무일?\s*없음|연중\s*개방|상시\s*개방/.test(t)) {
-    const hasExceptionDay = /휴무|휴관|휴점|쉼|정기\s*휴/.test(t.replace(/연중\s*무휴|휴무일?\s*없음/g, ''))
+    const rest = t.replace(/연중\s*무휴|휴무일?\s*없음|연중\s*개방|상시\s*개방/g, '')
+    const hasExceptionDay = /휴무|휴관|휴점|휴원|쉼|정기\s*휴|매주|매월|요일|공휴일|명절|설\s*[·,/]|추석|\d+\s*월\s*\d+\s*일/.test(rest)
     return hasExceptionDay ? { kind: 'unknown' } : { kind: 'always', label: '연중무휴' }
   }
 
@@ -142,12 +147,23 @@ export function restStatus(restdate?: string, now = new Date()): RestStatus {
   }
 
   // 매주 규칙이 있고 오늘이 거기 없다 — 격주·n째주 규칙(NTH)은 걸러냈으므로 단정해도 된다.
-  // 다만 그 줄 밖에 다른 휴무 문구가 더 있으면(명절·임시휴무) 모른다고 둔다
+  // 단정하지 않는 경우 셋: ① 매주 줄 자체에 요일 말고 다른 휴무일이 덧붙어 있다("매주 월요일 / 1월 1일 / 설·추석")
+  // ② 휴무일이 하루 밀리는 문구("공휴일이면 그 다음날 휴관")가 있고 어제가 공휴일이다 ③ 매주 줄 밖에 다른 휴무 문구가 있다.
+  // 그리고 요일을 하나도 못 읽은 매주 줄("매주 월,화 미운영")은 읽은 게 아니다 — unknown 으로 둔다
   if (weekly.length > 0) {
+    const tail = weekly.join('\n').replace(/매주|주말|[월화수목금토일]요일?/g, '')
+    const extraDay = /공휴일|휴일|명절|설|추석|\d+\s*월\s*\d+\s*일|다음\s*날|익일|전날|당일|연휴|우천|임시|촬영|휴무|휴관|휴점|휴원|쉼|미운영/.test(tail)
+    const yesterday = new Date(now)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const shifted = SHIFTED.test(t) && isHoliday(yesterday) !== false
     const rest = t.replace(/매주[^\n]*/g, '')
-    if (!/휴무|휴관|휴점|휴원|쉼/.test(rest)) {
-      const days = [...new Set(weekly.flatMap(restDays))].map((d) => DAYS[d]).join('·')
-      return { kind: 'open', label: days ? `매주 ${days}요일 휴무` : '' }
+    if (!extraDay && !shifted && !/휴무|휴관|휴점|휴원|쉼/.test(rest)) {
+      const set = new Set(weekly.flatMap(restDays))
+      const ordered = [1, 2, 3, 4, 5, 6, 0].filter((d) => set.has(d))
+      const weekend = ordered.length === 2 && set.has(6) && set.has(0)
+      if (ordered.length > 0) {
+        return { kind: 'open', label: weekend ? '매주 주말 휴무' : `매주 ${ordered.map((d) => DAYS[d]).join('·')}요일 휴무` }
+      }
     }
   }
 

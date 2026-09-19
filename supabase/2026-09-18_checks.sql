@@ -5,7 +5,7 @@
 --   needs    → 현장에서 요구된 것(목줄·입마개·이동장·체중 제한·실내 불가 …)
 --   visited_on → 다녀온 날
 -- 무엇이든 하나는 있어야 한다: entry 가 있거나, 별점+글이 있거나.
--- Supabase SQL Editor 에서 그대로 실행.
+-- Supabase SQL Editor 에서 그대로 실행. 여러 번 실행해도 안전하다.
 
 -- ① 기존 check 제약 제거 — 인라인 check 의 자동 이름은 보통 reviews_rating_check / reviews_body_check 이지만
 --    확실하지 않아 컬럼을 참조하는 check 를 찾아 지운다
@@ -15,7 +15,7 @@ begin
   for c in
     select conname from pg_constraint
     where conrelid = 'public.reviews'::regclass and contype = 'c'
-      and (pg_get_constraintdef(oid) ilike '%rating%' or pg_get_constraintdef(oid) ilike '%body%')
+      and (pg_get_constraintdef(oid) ilike '%rating%' or pg_get_constraintdef(oid) ilike '%body%' or pg_get_constraintdef(oid) ilike '%needs%')
   loop
     execute format('alter table public.reviews drop constraint %I', c.conname);
   end loop;

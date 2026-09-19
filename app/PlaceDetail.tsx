@@ -357,7 +357,7 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
     if (!checks?.lastDenied) return null
     const age = Date.now() - Date.parse(checks.lastDenied)
     if (!Number.isFinite(age) || age > 60 * 24 * 60 * 60 * 1000) return null
-    return { n: checks.entry.denied, at: checks.lastDenied }
+    return { n: checks.deniedRecent, at: checks.lastDenied }
   })()
   const b = BADGE[state === 'no' ? 'cond' : state]
   const [askOpen, setAskOpen] = useState(false)
