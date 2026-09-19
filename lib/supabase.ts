@@ -43,14 +43,15 @@ export async function sbUpdate(table: string, filter: string, patch: unknown) {
   if (!res.ok) throw new Error(`수정 실패 (${res.status}): ${(await res.text()).slice(0, 200)}`)
 }
 
-/** Postgres 함수 호출. 결과는 쓰지 않는다 */
-export async function sbRpc(fn: string, args: Record<string, unknown>) {
-  const res = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
+/** 여러 행을 한 번에 넣는다. 결과는 돌려받지 않는다 */
+export async function sbInsertMany(table: string, rows: unknown[]) {
+  if (rows.length === 0) return
+  const res = await fetch(`${URL_}/rest/v1/${table}`, {
     method: 'POST',
-    headers: headers(),
-    body: JSON.stringify(args),
+    headers: headers({ Prefer: 'return=minimal' }),
+    body: JSON.stringify(rows),
   })
-  if (!res.ok) throw new Error(`RPC 실패 (${fn} ${res.status}): ${(await res.text()).slice(0, 200)}`)
+  if (!res.ok) throw new Error(`저장 실패 (${table} ${res.status}): ${(await res.text()).slice(0, 200)}`)
 }
 
 // ── Storage — 사진 ─────────────────────────────────────────────

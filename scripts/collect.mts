@@ -94,7 +94,7 @@ type PetTourRaw = import('../lib/types.js').PetTourRaw
 
 async function main() {
   const { call, bufferStats } = await import('../lib/kto.js')
-  bufferStats() // 호출 수는 모아서 끝날 때 Supabase 에 더한다 (report)
+  bufferStats() // 호출 기록은 모아서 500건마다·끝날 때 Supabase 에 넣는다 (report)
   const { parseRules } = await import('../lib/petTour.js')
   const { ruleLines } = await import('../lib/ruleText.js')
 
@@ -413,7 +413,7 @@ async function main() {
 }
 
 /**
- * 이번 실행이 공사 API 를 몇 번 불렀는지 — 로그에 남기고 Supabase kto_calls 에 더한다.
+ * 이번 실행이 공사 API 를 몇 번 불렀는지 — 로그에 남기고 Supabase kto_calls 에 남은 기록을 넣는다.
  * 포털 마이페이지에 호출 통계가 없어서 이 표가 유일한 누적 기록이다.
  */
 async function report() {

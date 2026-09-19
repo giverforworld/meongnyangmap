@@ -1,5 +1,5 @@
 /** 한국관광공사 OpenAPI 클라이언트 — 서버 전용 */
-import { boardReady, sbRpc } from './supabase'
+import { boardReady, sbInsertMany } from './supabase'
 
 const BASE = 'https://apis.data.go.kr/B551011'
 
@@ -31,19 +31,53 @@ export type ContentTypeId = keyof typeof CONTENT_TYPES
 /**
  * 이 프로세스가 지금까지 공사 API 를 부른 횟수(서비스/오퍼레이션별).
  * 배치가 끝날 때 찍어 GitHub Actions 로그에 남기고, 서버에서는 KTO_LOG=1 이면 호출마다 한 줄 남긴다.
- * 공공데이터포털 마이페이지에는 호출 통계가 없다(한도만 보인다) — 그래서 아래 카운터가 Supabase
- * `kto_calls` 에 날짜×오퍼레이션으로 누적한다. 배치·Vercel·로컬이 같은 키를 쓰니 거기가 유일한 합계다.
+ * 공공데이터포털 마이페이지에는 호출 통계가 없다(한도만 보인다) — 그래서 아래 기록기가 Supabase
+ * `kto_calls` 에 호출 1건을 1행으로 남긴다. 배치·Vercel·로컬이 같은 키를 쓰니 거기가 유일한 합계다.
  */
 export const stats = { total: 0, byOp: {} as Record<string, number> }
 
+/** 포털 활용신청 상세기능 이름. 표에 코드 대신 이 이름이 찍힌다 */
+export const OP_NAMES: Record<string, string> = {
+  petTourSyncList2: '반려동물 동반여행 정보 동기화 목록 조회',
+  detailPetTour2: '반려동물 동반여행 조회',
+  detailCommon2: '공통 정보 조회',
+  detailIntro2: '소개 정보 조회',
+  detailInfo2: '반복 정보 조회',
+  detailImage2: '이미지정보조회',
+  areaBasedList2: '지역기반 관광정보조회',
+  locationBasedList2: '위치기반 관광정보 조회',
+  searchKeyword2: '키워드 조회',
+  areaCode2: '지역코드 조회',
+  categoryCode2: '서비스분류코드조회',
+  ldongCode2: '법정동 코드 조회',
+  lclsSystmCode2: '분류체계 코드 조회',
+  basedList: '고캠핑 기본 정보 목록 조회',
+  locgoRegnVisitrDDList: '지역별 방문자수 일별 집계',
+  tatsCnctrRatedList: '관광지 집중률 조회',
+}
+
+/** 어디서 부른 호출인지 — 환경변수로 자동 판별 */
+const SOURCE = process.env.GITHUB_ACTIONS ? 'batch' : process.env.VERCEL ? 'server' : 'local'
+
+type CallRow = {
+  at: string
+  source: string
+  service: string
+  op: string
+  op_name: string
+  rows: number
+  ok: boolean
+  error: string | null
+  ms: number
+}
+
 /**
- * 아직 Supabase 에 더하지 않은 호출 수. 호출마다 RPC 를 날리면 배치(하루 최대 1만 콜)가 두 배로
- * 느려지므로 모아서 보낸다 — 서버는 응답 직전에 기다리고(호출 끝마다 flush), 배치는
- * `bufferStats()` 로 모아 두다가 500건마다·끝날 때 보낸다.
- * 카운터가 실패해도 공사 API 호출은 성공으로 친다. 통계가 빠지는 쪽이 화면이 죽는 쪽보다 낫다.
+ * 아직 Supabase 에 넣지 않은 호출 행. 호출마다 INSERT 를 날리면 배치(하루 최대 1만 콜)가 두 배로
+ * 느려지므로 모아서 보낸다 — 서버는 호출 끝마다 `flushStats()` 를 기다리고(Vercel 은 응답 뒤
+ * 프로세스가 멈출 수 있어서), 배치는 `bufferStats()` 로 모아 두다가 500건마다·끝날 때 보낸다.
+ * 기록이 실패해도 공사 API 호출은 성공으로 친다. 통계가 빠지는 쪽이 화면이 죽는 쪽보다 낫다.
  */
-const pending: Record<string, number> = {}
-let pendingN = 0
+let pending: CallRow[] = []
 let buffered = false
 let flushing: Promise<void> | null = null
 
@@ -52,31 +86,22 @@ export function bufferStats() {
   buffered = true
 }
 
-/** KST 날짜 — 포털 한도가 자정(KST)에 초기화된다 */
-function todayKST() {
-  return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
-}
-
 async function drain() {
-  while (pendingN > 0) {
-    const counts = { ...pending }
-    for (const k of Object.keys(pending)) delete pending[k]
-    pendingN = 0
+  while (pending.length > 0) {
+    const rows = pending
+    pending = []
     try {
-      if (boardReady) await sbRpc('kto_count', { p_day: todayKST(), p_counts: counts })
+      if (boardReady) await sbInsertMany('kto_calls', rows)
     } catch (e) {
       // 되돌려 놓는다 — 다음 flush 가 다시 시도한다
-      for (const [k, v] of Object.entries(counts)) {
-        pending[k] = (pending[k] ?? 0) + v
-        pendingN += v
-      }
-      if (process.env.KTO_LOG === '1') console.log(`[kto] 카운터 저장 실패: ${(e as Error).message}`)
+      pending = rows.concat(pending)
+      if (process.env.KTO_LOG === '1') console.log(`[kto] 호출 기록 저장 실패: ${(e as Error).message}`)
       return
     }
   }
 }
 
-/** 모아 둔 호출 수를 Supabase 에 더한다. 동시에 여러 번 불려도 RPC 는 한 번씩만 나간다 */
+/** 모아 둔 호출 행을 Supabase 에 넣는다. 동시에 여러 번 불려도 INSERT 는 한 번씩만 나간다 */
 export function flushStats(): Promise<void> {
   if (!flushing) flushing = drain().finally(() => { flushing = null })
   return flushing
@@ -110,16 +135,34 @@ export async function call<T = any>(
   const key = `${service}/${op}`
   stats.total++
   stats.byOp[key] = (stats.byOp[key] ?? 0) + 1
-  pending[key] = (pending[key] ?? 0) + 1
-  pendingN++
   if (process.env.KTO_LOG === '1') console.log(`[kto] ${key}`)
 
+  const row: CallRow = {
+    at: new Date().toISOString(),
+    source: SOURCE,
+    service,
+    op,
+    op_name: OP_NAMES[op] ?? op,
+    rows: 0,
+    ok: true,
+    error: null,
+    ms: 0,
+  }
+  const t0 = Date.now()
   try {
-    return await request<T>(op, `${BASE}/${service}/${op}?${qs}`)
+    const out = await request<T>(op, `${BASE}/${service}/${op}?${qs}`)
+    row.rows = out.items.length
+    return out
+  } catch (e) {
+    row.ok = false
+    row.error = (e as Error).message.slice(0, 300)
+    throw e
   } finally {
+    row.ms = Date.now() - t0
+    pending.push(row)
     // 서버(Vercel)는 응답 뒤 프로세스가 멈출 수 있어 여기서 기다린다. 배치는 500건마다 흘려 보낸다
     if (!buffered) await flushStats()
-    else if (pendingN >= 500) void flushStats()
+    else if (pending.length >= 500) void flushStats()
   }
 }
 

@@ -265,5 +265,5 @@ main()
     console.error(`\n실패: ${(e as Error).message}`)
     process.exitCode = 1
   })
-  // 성공이든 실패든 부른 횟수는 kto_calls 에 남긴다
+  // 성공이든 실패든 부른 기록은 kto_calls 에 남긴다
   .finally(async () => (await import('../lib/kto.js')).flushStats())
