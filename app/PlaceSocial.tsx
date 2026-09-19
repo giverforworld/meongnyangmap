@@ -42,7 +42,7 @@ interface Review {
 
 const ENTRY: Record<Entry, { label: string; short: string; icon: string; color: string; bg: string; border: string }> = {
   ok: { label: '문제없이 입장', short: '입장됨', icon: '✓', color: '#2F8F4E', bg: '#EAF6EA', border: '#2F8F4E' },
-  cond: { label: '조건 붙어서 입장', short: '조건부', icon: '!', color: '#9A7300', bg: '#FFF7D6', border: '#E8B400' },
+  cond: { label: '조건부 입장', short: '조건부', icon: '!', color: '#9A7300', bg: '#FFF7D6', border: '#E8B400' },
   denied: { label: '입장 거부', short: '거부됨', icon: '✕', color: '#C0392B', bg: '#FBEDEA', border: '#E0A9A0' },
 }
 
