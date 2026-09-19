@@ -8,6 +8,8 @@ import { authHeaders } from '@/lib/authHeader'
 import { PlacePinIcon } from '../../icons'
 import Comments from '../../Comments'
 import { usePetsContext } from '../../PetsProvider'
+import PlacePicker, { type PlaceRef } from '../../PlacePicker'
+import PhotoPicker from '../../PhotoPicker'
 
 interface Post {
   id: number
@@ -16,6 +18,8 @@ interface Post {
   body: string
   views: number
   created_at: string
+  /** 고친 적 있으면 그 시각 */
+  edited_at?: string | null
   photos: string[]
   place_id: string | null
   place_title: string | null
@@ -29,6 +33,11 @@ interface Post {
   mine?: boolean
   /** 계정으로 쓴 글 — 지우기는 쓴 사람에게만 보인다 */
   byAccount?: boolean
+}
+
+const editField: React.CSSProperties = {
+  font: 'inherit', fontSize: 14, padding: '10px 12px', borderRadius: 10,
+  border: '1.5px solid #EAE3D6', background: '#FFFFFF', color: '#2B2420', outline: 'none', width: '100%',
 }
 
 export default function PostPage() {
@@ -46,6 +55,55 @@ export default function PostPage() {
   const [delError, setDelError] = useState('')
   /** 크게 보는 사진의 순번. null 이면 닫힘 */
   const [viewing, setViewing] = useState<number | null>(null)
+  /** 수정 — 'ask' 는 비회원 글의 비밀번호 확인 단계, 'edit' 은 폼 */
+  const [editing, setEditing] = useState<'ask' | 'edit' | null>(null)
+  const [editPw, setEditPw] = useState('')
+  const [editError, setEditError] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [eTitle, setETitle] = useState('')
+  const [eBody, setEBody] = useState('')
+  const [ePhotos, setEPhotos] = useState<string[]>([])
+  const [ePlace, setEPlace] = useState<PlaceRef | null>(null)
+
+  /** 폼을 현재 글 내용으로 채워서 연다 */
+  function openEdit() {
+    if (!post) return
+    setETitle(post.title); setEBody(post.body); setEPhotos(post.photos ?? [])
+    setEPlace(post.place_id && post.place_title ? { id: post.place_id, title: post.place_title, addr: post.place_addr ?? '' } : null)
+    setEditError('')
+    setEditing('edit')
+  }
+
+  /** 비회원 글 — 비밀번호가 맞는지 먼저 확인하고 폼을 연다. 다 고친 뒤에 틀렸다고 하면 허탈하다 */
+  async function verifyThenEdit(e: React.FormEvent) {
+    e.preventDefault()
+    setEditError('')
+    const r = await fetch(`/api/posts/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ password: editPw, verify: true }) })
+    const d = await r.json()
+    if (!r.ok) return setEditError(d.error ?? '확인하지 못했어요')
+    openEdit()
+  }
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault()
+    setEditError('')
+    setSaving(true)
+    try {
+      const r = await fetch(`/api/posts/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+        body: JSON.stringify({ password: editPw, title: eTitle, body: eBody, photos: ePhotos, place: ePlace ? { id: ePlace.id } : null }),
+      })
+      const d = await r.json()
+      if (!r.ok) return setEditError(d.error ?? '고치지 못했어요')
+      setPost({ ...post!, title: eTitle.trim(), body: eBody.trim(), photos: ePhotos, place_id: ePlace?.id ?? null, place_title: ePlace?.title ?? null, place_addr: ePlace?.addr ?? null, edited_at: new Date().toISOString() })
+      setEditing(null); setEditPw('')
+    } catch {
+      setEditError('고치지 못했어요. 잠시 후 다시 시도해주세요')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   useEffect(() => {
     authHeaders()
@@ -91,6 +149,7 @@ export default function PostPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: '#A08872', paddingBottom: 14, borderBottom: '1px solid #F3EEE4', flexWrap: 'wrap' }}>
                 <Author a={post} size={24} fontSize={13} />
                 <span>{new Date(post.created_at).toLocaleString('ko-KR', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                {post.edited_at && <span title={new Date(post.edited_at).toLocaleString('ko-KR')} style={{ color: '#C4B8A4' }}>· 수정됨</span>}
                 <span style={{ marginLeft: 'auto' }}>조회 {post.views}</span>
               </div>
               {/* 어느 곳 이야기인지 — 누르면 지도에서 그 장소가 열린다 */}
@@ -109,12 +168,36 @@ export default function PostPage() {
                 <span style={{ fontSize: 10.5, color: '#B3A78F', marginTop: -8 }}>장소 정보 · 데이터 출처: ⓒ한국관광공사</span>
               )}
 
+              {editing === 'edit' && (
+                <form onSubmit={save} style={{ display: 'flex', flexDirection: 'column', gap: 10, border: '1.5px solid #F3C9BB', background: '#FFFBF9', borderRadius: 12, padding: 12 }}>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: '#E85D3D' }}>글 수정</span>
+                  <input value={eTitle} onChange={(e) => setETitle(e.target.value)} maxLength={80} required placeholder="제목" style={editField} />
+                  <PlacePicker value={ePlace} onChange={setEPlace} />
+                  <textarea value={eBody} onChange={(e) => setEBody(e.target.value)} maxLength={4000} rows={8} required placeholder="내용"
+                    style={{ ...editField, resize: 'vertical', lineHeight: 1.7 }} />
+                  <PhotoPicker photos={ePhotos} onChange={setEPhotos} />
+                  {editError && <span style={{ fontSize: 12.5, color: '#C0392B' }}>{editError}</span>}
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button type="button" onClick={() => { setEditing(null); setEditError('') }}
+                      style={{ fontFamily: 'inherit', fontSize: 13.5, padding: '9px 14px', borderRadius: 10, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', cursor: 'pointer' }}>
+                      취소
+                    </button>
+                    <button type="submit" disabled={saving} className="btn-primary"
+                      style={{ flex: 1, fontFamily: 'inherit', fontSize: 14, fontWeight: 700, padding: '9px 0', borderRadius: 10, border: 'none', background: saving ? '#C4B8A4' : '#E85D3D', color: '#FFFFFF', cursor: saving ? 'default' : 'pointer' }}>
+                      {saving ? '저장 중…' : '저장'}
+                    </button>
+                  </div>
+                </form>
+              )}
+
               {/* 사용자가 쓴 글이라 그대로 보여준다. React 가 escape 하므로 HTML 은 실행되지 않는다 */}
+              {editing !== 'edit' && (
               <p style={{ margin: 0, fontSize: 14.5, lineHeight: 1.8, color: '#3E3830', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
                 {post.body}
               </p>
+              )}
 
-              {post.photos?.length > 0 && (
+              {editing !== 'edit' && post.photos?.length > 0 && (
                 <div style={{ display: 'grid', gridTemplateColumns: post.photos.length === 1 ? '1fr' : 'repeat(2, 1fr)', gap: 8 }}>
                   {post.photos.map((u, i) => (
                     // eslint-disable-next-line @next/next/no-img-element
@@ -134,20 +217,46 @@ export default function PostPage() {
             )}
 
             {post.mine ? (
-              <form onSubmit={remove} style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <form onSubmit={remove} style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12.5, color: '#B3A78F' }}>내 계정으로 쓴 글이에요</span>
+                {editing !== 'edit' && (
+                  <button type="button" onClick={openEdit}
+                    style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 700, padding: '7px 14px', borderRadius: 10, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#2B2420', cursor: 'pointer' }}>
+                    수정
+                  </button>
+                )}
                 <button type="submit"
                   style={{ fontFamily: 'inherit', fontSize: 13, fontWeight: 700, padding: '7px 14px', borderRadius: 10, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#C0392B', cursor: 'pointer' }}>
                   글 지우기
                 </button>
                 {delError && <span style={{ fontSize: 12.5, color: '#C0392B' }}>{delError}</span>}
               </form>
-            ) : post.byAccount ? null : !asking ? (
-              <button onClick={() => setAsking(true)}
-                style={{ alignSelf: 'flex-end', fontFamily: 'inherit', fontSize: 13, color: '#B3A78F', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
-                글 지우기
-              </button>
-            ) : (
+            ) : post.byAccount ? null : editing === 'ask' ? (
+              // 비회원 글 수정 — 비밀번호가 맞는지 먼저 본다
+              <form onSubmit={verifyThenEdit} style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <input value={editPw} onChange={(e) => setEditPw(e.target.value)} type="password" placeholder="비밀번호" required autoFocus style={{ ...editField, width: 150, padding: '8px 12px' }} />
+                <button type="submit"
+                  style={{ fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, padding: '8px 16px', borderRadius: 10, border: 'none', background: '#E85D3D', color: '#FFFFFF', cursor: 'pointer' }}>
+                  수정하기
+                </button>
+                <button type="button" onClick={() => { setEditing(null); setEditPw(''); setEditError('') }}
+                  style={{ fontFamily: 'inherit', fontSize: 13.5, padding: '8px 12px', borderRadius: 10, border: '1.5px solid #E3DCCE', background: '#FFFFFF', color: '#6E5F4D', cursor: 'pointer' }}>
+                  취소
+                </button>
+                {editError && <span style={{ fontSize: 12.5, color: '#C0392B', width: '100%', textAlign: 'right' }}>{editError}</span>}
+              </form>
+            ) : !asking && editing !== 'edit' ? (
+              <div style={{ alignSelf: 'flex-end', display: 'flex', gap: 14 }}>
+                <button onClick={() => { setEditing('ask'); setEditError('') }}
+                  style={{ fontFamily: 'inherit', fontSize: 13, color: '#8A7A65', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  수정
+                </button>
+                <button onClick={() => setAsking(true)}
+                  style={{ fontFamily: 'inherit', fontSize: 13, color: '#B3A78F', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
+                  글 지우기
+                </button>
+              </div>
+            ) : editing === 'edit' ? null : (
               <form onSubmit={remove}
                 style={{ alignSelf: 'flex-end', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
                 <input value={password} onChange={(e) => setPassword(e.target.value)}
