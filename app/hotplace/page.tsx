@@ -530,7 +530,7 @@ function CampView() {
         <span style={{ fontSize: 13.5, color: '#6E5F4D' }}>
           {pet
             ? <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 3 }}><PetFace emoji={pet.emoji} size={17} /></span><b>{pet.name}</b> ({pet.sizeLabel}) 기준 검색 결과</>
-            : <>🐶 프로필을 등록하면 크기 조건까지 우리 아이 기준으로 걸러요</>}
+            : <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 4 }}><PetFace emoji="🐶" size={16} /></span>프로필을 등록하면 크기 조건까지 우리 아이 기준으로 걸러요</>}
         </span>
 
         <span style={{ marginLeft: 'auto', fontSize: 13, color: '#B3A78F' }}>

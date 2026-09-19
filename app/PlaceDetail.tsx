@@ -379,8 +379,8 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
     const short = (v: string) => (v.length > 34 ? v.slice(0, 33) + '…' : v)
     if (st.kind === 'closed') return { icon: '✕', color: '#C0392B', text: `오늘(${todayLabel()}) 휴무 — ${st.label}` }
     if (st.kind === 'maybe') return { icon: '!', color: '#D4A000', text: `오늘(${todayLabel()}) 휴무일 수 있어요 — ${st.label}. ${st.note}` }
-    if (st.kind === 'always') return { icon: '✓', color: '#2F8F4E', text: `오늘 문 여는 날 · 연중무휴${hours ? ` · ${short(hours)}` : ''}` }
-    if (st.kind === 'open') return { icon: '✓', color: '#2F8F4E', text: `오늘 문 여는 날${hours ? ` · ${short(hours)}` : ''}${st.label ? ` (${st.label})` : ''}` }
+    if (st.kind === 'always') return { icon: '✓', color: '#2F8F4E', text: `오늘은 문 여는 날 · 연중무휴${hours ? ` · ${short(hours)}` : ''}` }
+    if (st.kind === 'open') return { icon: '✓', color: '#2F8F4E', text: `오늘은 문 여는 날${hours ? ` · ${short(hours)}` : ''}${st.label ? ` (${st.label})` : ''}` }
     if (hours) return { icon: '🕘', color: '#6E5F4D', text: `${short(hours)}${detail.restdate ? ` · 휴무 ${short(detail.restdate.split('\n')[0])}` : ''}` }
     return null
   })()
@@ -423,8 +423,9 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
         // 등록 전 — 판정 없이 원문 조건을 그대로 늘어놓는다. ✓/! 를 찍지 않는다
         <>
           {ruleLines(rules).map((line, i) => row('•', '#B3A78F', line, i))}
-          <div style={{ fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>
-            🐶 프로필 등록시, 반려동물 기준으로 체크 항목을 정리해줘요
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2, lineHeight: 1.45 }}>
+            <span style={{ flex: 'none', marginTop: 1 }}><PetFace emoji="🐶" size={17} /></span>
+            <span>프로필 등록시,<br />반려동물 기준으로 체크 항목을 정리해줘요</span>
           </div>
         </>
       ) : (
@@ -437,11 +438,11 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
             <a href={`tel:${tel.num.replace(/[^0-9+]/g, '')}`} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: '#2B2420', textDecoration: 'none' }}>
               <span style={{ color: '#A08872', display: 'flex' }}><PhoneIcon size={14} /></span>
-              <span>전화 번호 · {tel.num}</span>
+              <span>{tel.num}</span>
             </a>
             <button onClick={() => setAskOpen((v) => !v)} aria-expanded={askOpen}
               style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: '#E85D3D', background: 'none', border: 'none', padding: 0, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              전화로 물어볼 말 정리본 {askOpen ? '▴' : '▾'}
+              전화로 여쭤볼 말 정리 {askOpen ? '▴' : '▾'}
             </button>
           </div>
           {askOpen && (

@@ -503,7 +503,7 @@ export default function Home() {
             <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#FFC93C' }} />조건부 {condCount}</span>
           </>
         ) : (
-          <span style={{ color: '#E85D3D', fontWeight: 700 }}>🐶 프로필을 등록하면 동반 가능 여부를 필터링해요</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#E85D3D', fontWeight: 700 }}><PetFace emoji="🐶" size={15} />프로필을 등록하면 동반 가능 여부를 필터링해요</span>
         )}
         {hiddenCount > 0 && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#B3A78F' }}><span style={{ width: 9, height: 9, borderRadius: '50%', background: '#D8D0C0' }} />불가 {hiddenCount} 숨김</span>
@@ -823,7 +823,7 @@ export default function Home() {
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><span style={{ width: 11, height: 11, borderRadius: '50%', background: '#2F8F4E' }} />동반 조건 있음 {visible.filter((p) => p.state === 'info').length}</div>
-                <div style={{ color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>🐶 프로필을 등록하면 판정해요</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}><PetFace emoji="🐶" size={15} />프로필을 등록하면 판정해요</div>
               </>
             )}
             {visible.some((p) => p.state === 'loading') && (
@@ -836,7 +836,7 @@ export default function Home() {
           <div style={{ position: 'absolute', left: 16, top: 14, background: 'rgba(255,255,255,.94)', border: '1px solid #EAE3D6', borderRadius: 99, padding: '6px 14px', fontSize: 12.5, color: '#6E5F4D' }}>
             {pet
               ? <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 3 }}><PetFace emoji={pet.emoji} size={16} /></span><b>{pet.name}</b> 기준으로 판정된 지도예요</>
-              : <>🐶 <b>프로필을 등록</b>하면 등록한 아이 기준으로 동반 가능 여부를 필터링해요</>}
+              : <><span style={{ display: 'inline-block', verticalAlign: '-4px', marginRight: 4 }}><PetFace emoji="🐶" size={16} /></span><b>프로필을 등록</b>하면 등록한 아이 기준으로 동반 가능 여부를 필터링해요</>}
           </div>
           )}
 
