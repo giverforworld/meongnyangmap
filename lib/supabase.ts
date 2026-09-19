@@ -24,6 +24,19 @@ export async function sbSelect<T>(path: string): Promise<T[]> {
   return res.json()
 }
 
+/**
+ * 전부 읽는다. PostgREST 는 한 응답에 최대 1,000행(Supabase 기본 max-rows)만 주고 200 으로
+ * 조용히 잘라 버리므로, 큰 결과는 offset 으로 끝까지 넘겨 받아야 한다.
+ */
+export async function sbSelectAll<T>(path: string, page = 1000): Promise<T[]> {
+  const out: T[] = []
+  for (let offset = 0; ; offset += page) {
+    const rows = await sbSelect<T>(`${path}&limit=${page}&offset=${offset}`)
+    out.push(...rows)
+    if (rows.length < page) return out
+  }
+}
+
 export async function sbInsert<T>(table: string, row: unknown): Promise<T> {
   const res = await fetch(`${URL_}/rest/v1/${table}`, {
     method: 'POST',

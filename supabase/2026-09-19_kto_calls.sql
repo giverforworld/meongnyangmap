@@ -2,15 +2,23 @@
 -- 공공데이터포털 마이페이지에는 호출 통계 화면이 없다(한도만 보인다). 배치(GitHub Actions)·
 -- Vercel 서버·로컬 개발이 같은 인증키를 쓰므로, 한도 대조는 우리가 직접 세는 수밖에 없다.
 -- lib/kto.ts 의 call() 이 호출마다 한 행을 남긴다 (서버는 즉시, 배치는 모아서).
--- Supabase SQL Editor 에서 그대로 실행. 여러 번 실행해도 안전하다.
+-- Supabase SQL Editor 에서 그대로 실행. 여러 번 실행해도 안전하다 — 쌓인 기록은 지우지 않는다.
 --
--- ※ 이전 버전(날짜×오퍼레이션 합계 표 + kto_count RPC)은 지운다. 2026-09-19 하루치 합계만 있었다.
-
+-- 이전 버전(날짜×오퍼레이션 합계 표 kto_calls(day, op, n) + kto_count RPC)만 지운다.
+-- 그 표는 2026-09-19 하루치 합계뿐이었고, 지금 표와 컬럼이 달라 그대로 못 쓴다.
+-- 포털에 호출 통계가 없어 이 표가 유일한 누적 기록이다 — 새 스키마의 표는 절대 drop 하지 않는다.
+do $$
+begin
+  if exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public' and table_name = 'kto_calls' and column_name = 'n'
+  ) then
+    drop table public.kto_calls;
+  end if;
+end $$;
 drop function if exists public.kto_count(date, jsonb);
-drop view if exists public.kto_daily;
-drop table if exists public.kto_calls;
 
-create table public.kto_calls (
+create table if not exists public.kto_calls (
   id       bigint generated always as identity primary key,
   at       timestamptz not null,                 -- 호출 시각 (UTC 저장, 아래 at_kst 가 사람용)
   at_kst   text not null,                        -- '2026-09-19 05:07:31' — 트리거가 채운다. 포털 한도가 KST 자정에 초기화
@@ -24,8 +32,8 @@ create table public.kto_calls (
   ms       integer                               -- 응답까지 걸린 시간
 );
 
-create index kto_calls_at_idx on public.kto_calls (at desc);
-create index kto_calls_op_at_idx on public.kto_calls (op, at desc);
+create index if not exists kto_calls_at_idx on public.kto_calls (at desc);
+create index if not exists kto_calls_op_at_idx on public.kto_calls (op, at desc);
 
 -- service_role 만 쓴다. 정책이 없으므로 anon/authenticated 는 읽지도 쓰지도 못한다
 alter table public.kto_calls enable row level security;
@@ -48,7 +56,7 @@ create trigger kto_calls_fill_kst
 
 -- 날짜(KST)×오퍼레이션 합계 — npm run kto:stats 가 읽는다.
 -- 원본 표를 그대로 읽으면 전량 재수집 날 1만 행이라 PostgREST 1,000행 상한에 걸린다
-create view public.kto_daily
+create or replace view public.kto_daily
 with (security_invoker = false) as
 select
   (at at time zone 'Asia/Seoul')::date as day,

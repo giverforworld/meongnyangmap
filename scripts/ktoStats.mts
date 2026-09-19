@@ -18,7 +18,7 @@ for (const line of fs.readFileSync(path.join(ROOT, '.env.local'), 'utf8').split(
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim()
 }
 
-const { sbSelect } = await import('../lib/supabase.js')
+const { sbSelect, sbSelectAll } = await import('../lib/supabase.js')
 const argv = process.argv.slice(2)
 const fmt = (n: number) => n.toLocaleString()
 
@@ -75,7 +75,8 @@ if (argv[0] === 'recent') {
 const days = Number(argv[0]) || 10
 const since = new Date(Date.now() + 9 * 3600_000 - (days - 1) * 86400_000).toISOString().slice(0, 10)
 type Daily = { day: string; source: string; service: string; op: string; op_name: string; calls: number; failed: number; rows: number }
-const daily = await sbSelect<Daily>(`kto_daily?select=*&day=gte.${since}&order=day.desc,calls.desc`).catch(missing)
+// 뷰도 하루 15~25행씩 쌓여 90일이면 1,000행을 넘는다 — 페이지로 끝까지 읽는다
+const daily = await sbSelectAll<Daily>(`kto_daily?select=*&day=gte.${since}&order=day.desc,calls.desc`).catch(missing)
 
 if (daily.length === 0) {
   console.log(`최근 ${days}일 기록이 없어요 (${since} 이후). 배치가 돌았거나 사이트에서 공사 API 를 부른 뒤에 다시 보세요.`)

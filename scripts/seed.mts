@@ -266,4 +266,8 @@ main()
     process.exitCode = 1
   })
   // 성공이든 실패든 부른 기록은 kto_calls 에 남긴다
-  .finally(async () => (await import('../lib/kto.js')).flushStats())
+  .finally(async () => {
+    const { flushStats, flushState } = await import('../lib/kto.js')
+    const left = await flushStats(true)
+    if (left + flushState.dropped > 0) console.log(`⚠ kto_calls 에 ${left + flushState.dropped}건 기록 못 함 — ${flushState.lastError ?? '원인 모름'}`)
+  })

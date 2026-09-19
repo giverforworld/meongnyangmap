@@ -417,11 +417,17 @@ async function main() {
  * 포털 마이페이지에 호출 통계가 없어서 이 표가 유일한 누적 기록이다.
  */
 async function report() {
-  const { stats, flushStats } = await import('../lib/kto.js')
+  const { stats, flushStats, flushState } = await import('../lib/kto.js')
   const rows = Object.entries(stats.byOp).sort((a, b) => b[1] - a[1]).map(([k, v]) => `    ${k}: ${v.toLocaleString()}`)
   console.log(`\n공사 API 호출: 총 ${stats.total.toLocaleString()}건\n${rows.join('\n')}`)
-  if (process.env.SUPABASE_URL) await flushStats()
-  else console.log('  (SUPABASE_URL 이 없어 kto_calls 에 기록하지 않았어요)')
+  if (!process.env.SUPABASE_URL) {
+    console.log('  (SUPABASE_URL 이 없어 kto_calls 에 기록하지 않았어요)')
+    return
+  }
+  const left = await flushStats(true)
+  const lost = left + flushState.dropped
+  if (lost > 0) console.log(`  ⚠ kto_calls 에 ${lost.toLocaleString()}건 기록 못 함 — ${flushState.lastError ?? '원인 모름'}`)
+  else console.log('  → kto_calls 에 기록했어요')
 }
 
 main()

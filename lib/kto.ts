@@ -74,37 +74,64 @@ type CallRow = {
 /**
  * 아직 Supabase 에 넣지 않은 호출 행. 호출마다 INSERT 를 날리면 배치(하루 최대 1만 콜)가 두 배로
  * 느려지므로 모아서 보낸다 — 서버는 호출 끝마다 `flushStats()` 를 기다리고(Vercel 은 응답 뒤
- * 프로세스가 멈출 수 있어서), 배치는 `bufferStats()` 로 모아 두다가 500건마다·끝날 때 보낸다.
+ * 프로세스가 멈출 수 있어서), 배치는 `bufferStats()` 로 모아 두다가 CHUNK 마다·끝날 때 보낸다.
  * 기록이 실패해도 공사 API 호출은 성공으로 친다. 통계가 빠지는 쪽이 화면이 죽는 쪽보다 낫다.
+ *
+ * 실패하면 되돌려 두고 RETRY_AFTER 뒤에 다시 시도한다. 간격 없이 매 호출마다 전부를 다시 보내면
+ * 한 번 실패한 뒤로 페이로드가 호출 수의 제곱으로 자란다. 그래도 계속 실패하면 오래된 행부터
+ * 버린다(MAX_PENDING) — 메모리와 전송량에 상한이 있어야 한다.
  */
+const CHUNK = 500
+const MAX_PENDING = 5000
+const RETRY_AFTER = 30_000
+
 let pending: CallRow[] = []
 let buffered = false
 let flushing: Promise<void> | null = null
+let retryAt = 0
+/** 마지막 저장 실패 사유와 상한에 걸려 버린 행 수 — 배치가 끝날 때 report() 가 찍는다 */
+export const flushState = { lastError: null as string | null, dropped: 0 }
 
-/** 배치처럼 오래 사는 프로세스에서 부른다. 끝날 때 `flushStats()` 를 잊지 말 것 */
+/** 배치처럼 오래 사는 프로세스에서 부른다. 끝날 때 `flushStats(true)` 를 잊지 말 것 */
 export function bufferStats() {
   buffered = true
 }
 
-async function drain() {
+async function drain(force: boolean) {
+  if (!force && Date.now() < retryAt) return
   while (pending.length > 0) {
-    const rows = pending
-    pending = []
+    const rows = pending.splice(0, CHUNK)
     try {
       if (boardReady) await sbInsertMany('kto_calls', rows)
+      flushState.lastError = null
     } catch (e) {
-      // 되돌려 놓는다 — 다음 flush 가 다시 시도한다
+      // 되돌려 놓는다 — RETRY_AFTER 뒤의 flush 가 다시 시도한다
       pending = rows.concat(pending)
-      if (process.env.KTO_LOG === '1') console.log(`[kto] 호출 기록 저장 실패: ${(e as Error).message}`)
+      if (pending.length > MAX_PENDING) {
+        flushState.dropped += pending.length - MAX_PENDING
+        pending.splice(0, pending.length - MAX_PENDING)
+      }
+      retryAt = Date.now() + RETRY_AFTER
+      flushState.lastError = (e as Error).message
+      if (process.env.KTO_LOG === '1') console.log(`[kto] 호출 기록 저장 실패: ${flushState.lastError}`)
       return
     }
   }
 }
 
-/** 모아 둔 호출 행을 Supabase 에 넣는다. 동시에 여러 번 불려도 INSERT 는 한 번씩만 나간다 */
-export function flushStats(): Promise<void> {
-  if (!flushing) flushing = drain().finally(() => { flushing = null })
-  return flushing
+/**
+ * 모아 둔 호출 행을 Supabase 에 넣는다. 동시에 여러 번 불려도 INSERT 는 한 번씩만 나간다.
+ * `force` 는 프로세스가 끝날 때 — 재시도 간격을 무시하고, 진행 중인 flush 에 합류만 한 게 아니라
+ * 남은 행이 있으면 한 번 더 시도한다. 돌려주는 값은 아직 저장 못 한 행 수.
+ */
+export async function flushStats(force = false): Promise<number> {
+  if (!flushing) flushing = drain(force).finally(() => { flushing = null })
+  await flushing
+  if (force && pending.length > 0) {
+    flushing = drain(true).finally(() => { flushing = null })
+    await flushing
+  }
+  return pending.length
 }
 
 function serviceKey() {
@@ -160,9 +187,9 @@ export async function call<T = any>(
   } finally {
     row.ms = Date.now() - t0
     pending.push(row)
-    // 서버(Vercel)는 응답 뒤 프로세스가 멈출 수 있어 여기서 기다린다. 배치는 500건마다 흘려 보낸다
+    // 서버(Vercel)는 응답 뒤 프로세스가 멈출 수 있어 여기서 기다린다. 배치는 CHUNK 마다 흘려 보낸다
     if (!buffered) await flushStats()
-    else if (pending.length >= 500) void flushStats()
+    else if (pending.length >= CHUNK) void flushStats()
   }
 }
 
