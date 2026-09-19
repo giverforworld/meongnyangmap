@@ -89,7 +89,8 @@ type RuleChange = import('../lib/types.js').RuleChange
 type PetTourRaw = import('../lib/types.js').PetTourRaw
 
 async function main() {
-  const { call } = await import('../lib/kto.js')
+  const { call, bufferStats } = await import('../lib/kto.js')
+  bufferStats() // 호출 수는 모아서 끝날 때 Supabase 에 더한다 (report)
   const { parseRules } = await import('../lib/petTour.js')
   const { ruleLines } = await import('../lib/ruleText.js')
 
@@ -407,11 +408,16 @@ async function main() {
   }
 }
 
-/** 이번 실행이 공사 API 를 몇 번 불렀는지 — 포털 트래픽 통계와 맞춰 볼 수 있게 남긴다 */
+/**
+ * 이번 실행이 공사 API 를 몇 번 불렀는지 — 로그에 남기고 Supabase kto_calls 에 더한다.
+ * 포털 마이페이지에 호출 통계가 없어서 이 표가 유일한 누적 기록이다.
+ */
 async function report() {
-  const { stats } = await import('../lib/kto.js')
+  const { stats, flushStats } = await import('../lib/kto.js')
   const rows = Object.entries(stats.byOp).sort((a, b) => b[1] - a[1]).map(([k, v]) => `    ${k}: ${v.toLocaleString()}`)
   console.log(`\n공사 API 호출: 총 ${stats.total.toLocaleString()}건\n${rows.join('\n')}`)
+  if (process.env.SUPABASE_URL) await flushStats()
+  else console.log('  (SUPABASE_URL 이 없어 kto_calls 에 기록하지 않았어요)')
 }
 
 main()

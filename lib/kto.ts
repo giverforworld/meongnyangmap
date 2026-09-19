@@ -1,4 +1,5 @@
 /** 한국관광공사 OpenAPI 클라이언트 — 서버 전용 */
+import { boardReady, sbRpc } from './supabase'
 
 const BASE = 'https://apis.data.go.kr/B551011'
 
@@ -30,9 +31,56 @@ export type ContentTypeId = keyof typeof CONTENT_TYPES
 /**
  * 이 프로세스가 지금까지 공사 API 를 부른 횟수(서비스/오퍼레이션별).
  * 배치가 끝날 때 찍어 GitHub Actions 로그에 남기고, 서버에서는 KTO_LOG=1 이면 호출마다 한 줄 남긴다.
- * 공식 호출 내역은 공공데이터포털(마이페이지 → 활용신청 현황 → 트래픽)이 갖는다 — 이건 우리 쪽 대조용.
+ * 공공데이터포털 마이페이지에는 호출 통계가 없다(한도만 보인다) — 그래서 아래 카운터가 Supabase
+ * `kto_calls` 에 날짜×오퍼레이션으로 누적한다. 배치·Vercel·로컬이 같은 키를 쓰니 거기가 유일한 합계다.
  */
 export const stats = { total: 0, byOp: {} as Record<string, number> }
+
+/**
+ * 아직 Supabase 에 더하지 않은 호출 수. 호출마다 RPC 를 날리면 배치(하루 최대 1만 콜)가 두 배로
+ * 느려지므로 모아서 보낸다 — 서버는 응답 직전에 기다리고(호출 끝마다 flush), 배치는
+ * `bufferStats()` 로 모아 두다가 500건마다·끝날 때 보낸다.
+ * 카운터가 실패해도 공사 API 호출은 성공으로 친다. 통계가 빠지는 쪽이 화면이 죽는 쪽보다 낫다.
+ */
+const pending: Record<string, number> = {}
+let pendingN = 0
+let buffered = false
+let flushing: Promise<void> | null = null
+
+/** 배치처럼 오래 사는 프로세스에서 부른다. 끝날 때 `flushStats()` 를 잊지 말 것 */
+export function bufferStats() {
+  buffered = true
+}
+
+/** KST 날짜 — 포털 한도가 자정(KST)에 초기화된다 */
+function todayKST() {
+  return new Date(Date.now() + 9 * 3600_000).toISOString().slice(0, 10)
+}
+
+async function drain() {
+  while (pendingN > 0) {
+    const counts = { ...pending }
+    for (const k of Object.keys(pending)) delete pending[k]
+    pendingN = 0
+    try {
+      if (boardReady) await sbRpc('kto_count', { p_day: todayKST(), p_counts: counts })
+    } catch (e) {
+      // 되돌려 놓는다 — 다음 flush 가 다시 시도한다
+      for (const [k, v] of Object.entries(counts)) {
+        pending[k] = (pending[k] ?? 0) + v
+        pendingN += v
+      }
+      if (process.env.KTO_LOG === '1') console.log(`[kto] 카운터 저장 실패: ${(e as Error).message}`)
+      return
+    }
+  }
+}
+
+/** 모아 둔 호출 수를 Supabase 에 더한다. 동시에 여러 번 불려도 RPC 는 한 번씩만 나간다 */
+export function flushStats(): Promise<void> {
+  if (!flushing) flushing = drain().finally(() => { flushing = null })
+  return flushing
+}
 
 function serviceKey() {
   const k = process.env.KTO_SERVICE_KEY
@@ -59,11 +107,24 @@ export async function call<T = any>(
     ...Object.fromEntries(Object.entries(params).map(([k, v]) => [k, String(v)])),
   })
 
+  const key = `${service}/${op}`
   stats.total++
-  stats.byOp[`${service}/${op}`] = (stats.byOp[`${service}/${op}`] ?? 0) + 1
-  if (process.env.KTO_LOG === '1') console.log(`[kto] ${service}/${op}`)
+  stats.byOp[key] = (stats.byOp[key] ?? 0) + 1
+  pending[key] = (pending[key] ?? 0) + 1
+  pendingN++
+  if (process.env.KTO_LOG === '1') console.log(`[kto] ${key}`)
 
-  const res = await fetch(`${BASE}/${service}/${op}?${qs}`, { cache: 'no-store' })
+  try {
+    return await request<T>(op, `${BASE}/${service}/${op}?${qs}`)
+  } finally {
+    // 서버(Vercel)는 응답 뒤 프로세스가 멈출 수 있어 여기서 기다린다. 배치는 500건마다 흘려 보낸다
+    if (!buffered) await flushStats()
+    else if (pendingN >= 500) void flushStats()
+  }
+}
+
+async function request<T>(op: string, url: string): Promise<{ items: T[]; totalCount: number }> {
+  const res = await fetch(url, { cache: 'no-store' })
   const text = await res.text()
 
   // 인증 실패·한도 초과는 JSON이 아니라 XML로 온다

@@ -88,7 +88,8 @@ async function main() {
   const only = process.argv.slice(2).filter((a) => !a.startsWith('-'))
   const want = (step: string) => only.length === 0 || only.includes(step)
 
-  const { call, ALL } = await import('../lib/kto.js')
+  const { call, ALL, bufferStats } = await import('../lib/kto.js')
+  bufferStats()
   const { parseRules } = await import('../lib/petTour.js')
   const { CONTENT_TYPES } = await import('../lib/kto.js')
 
@@ -259,7 +260,10 @@ async function main() {
   console.log('\n끝났어요. Supabase 대시보드 → Table Editor 에서 확인하세요.')
 }
 
-main().catch((e) => {
-  console.error(`\n실패: ${(e as Error).message}`)
-  process.exit(1)
-})
+main()
+  .catch((e) => {
+    console.error(`\n실패: ${(e as Error).message}`)
+    process.exitCode = 1
+  })
+  // 성공이든 실패든 부른 횟수는 kto_calls 에 남긴다
+  .finally(async () => (await import('../lib/kto.js')).flushStats())

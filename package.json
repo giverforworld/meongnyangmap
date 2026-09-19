@@ -9,7 +9,8 @@
     "lint": "next lint",
     "collect": "tsx scripts/collect.mts",
     "test": "tsx --test tests/*.test.mts",
-    "seed": "tsx scripts/seed.mts"
+    "seed": "tsx scripts/seed.mts",
+    "kto:stats": "tsx scripts/ktoStats.mts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.116.0",

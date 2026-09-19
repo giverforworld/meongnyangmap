@@ -14,7 +14,9 @@ name: 관광데이터 수집
 # 저장하고 멈추므로, 다음 날 실행이 이어서 받는다.
 #
 # 필요한 시크릿: Settings > Secrets and variables > Actions
-#   KTO_SERVICE_KEY  공공데이터포털 인증키(인코딩키)
+#   KTO_SERVICE_KEY            공공데이터포털 인증키(인코딩키)
+#   SUPABASE_URL               호출 수를 kto_calls 표에 더하는 데 쓴다 (lib/kto.ts).
+#   SUPABASE_SERVICE_ROLE_KEY  없으면 수집은 그대로 되고 기록만 빠진다
 
 on:
   schedule:
@@ -40,7 +42,12 @@ jobs:
 
       # collect.mts 가 .env.local 을 직접 읽는다
       - name: 인증키 준비
-        run: echo "KTO_SERVICE_KEY=${{ secrets.KTO_SERVICE_KEY }}" > .env.local
+        run: |
+          {
+            echo "KTO_SERVICE_KEY=${{ secrets.KTO_SERVICE_KEY }}"
+            echo "SUPABASE_URL=${{ secrets.SUPABASE_URL }}"
+            echo "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+          } > .env.local
 
       - name: 수집
         run: npm run collect

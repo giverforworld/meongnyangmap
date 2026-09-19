@@ -43,6 +43,16 @@ export async function sbUpdate(table: string, filter: string, patch: unknown) {
   if (!res.ok) throw new Error(`수정 실패 (${res.status}): ${(await res.text()).slice(0, 200)}`)
 }
 
+/** Postgres 함수 호출. 결과는 쓰지 않는다 */
+export async function sbRpc(fn: string, args: Record<string, unknown>) {
+  const res = await fetch(`${URL_}/rest/v1/rpc/${fn}`, {
+    method: 'POST',
+    headers: headers(),
+    body: JSON.stringify(args),
+  })
+  if (!res.ok) throw new Error(`RPC 실패 (${fn} ${res.status}): ${(await res.text()).slice(0, 200)}`)
+}
+
 // ── Storage — 사진 ─────────────────────────────────────────────
 
 /** 사진 버킷 이름. supabase/2026-09-15_photos_reviews.sql 이 만든다 */
