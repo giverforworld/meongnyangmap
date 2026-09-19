@@ -29,15 +29,19 @@ function save(file: string, data: unknown) {
 }
 
 /**
- * 조건이 같은지 — 판정에 쓰는 필드만 본다. raw 원문 전체를 비교하면 공백·줄바꿈 수정에도
- * '바뀜'이 찍혀 변경 표시가 흔해지고, 흔해지면 아무도 안 본다.
+ * 조건이 같은지 — 공사가 준 **원문**(동반구분·가능동물·필요사항·기타정보)을 공백만 정리해 비교한다.
+ * 파싱 결과를 비교하면 우리 파서가 좋아질 때마다 전국이 '바뀜'으로 찍힌다 — 첫 실행에서 실제로
+ * 141곳이 그렇게 잘못 찍혔다(원문은 전부 동일). 원문이 같으면 규정은 안 바뀐 것이다.
  */
+const RAW_KEYS = ['acmpyTypeCd', 'acmpyPsblCpam', 'acmpyNeedMtr', 'etcAcmpyInfo'] as const
 function sameRules(a: PetRules | null, b: PetRules | null) {
   if (!a || !b) return a === b
-  const key = (r: PetRules) =>
-    JSON.stringify([r.zone, r.noPets, r.serviceDogOnly, r.maxKg, r.maxKgInclusive ?? null, r.allowedSizes ?? null, r.excludeDangerous ?? false, r.needs, r.zoneHint, r.notes])
-  return key(a) === key(b)
+  const norm = (v?: string) => (v ?? '').replace(/\s+/g, ' ').trim()
+  return RAW_KEYS.every((k) => norm(a.raw?.[k]) === norm(b.raw?.[k]))
 }
+
+/** 오늘(한국 시간) YYYY-MM-DD — 배치는 새벽 3시 KST 에 돌아 UTC 날짜는 전날이 된다 */
+const todayKST = () => new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10)
 
 /** 한도 초과는 여기서 멈춰야 한다 — 계속 두드려봐야 실패만 쌓인다 */
 const isQuota = (e: unknown) =>
@@ -183,11 +187,11 @@ async function main() {
         const beforeLines = ruleLines(before)
         const afterLines = ruleLines(g.rules)
         if (beforeLines.join('|') !== afterLines.join('|')) {
-          changes[g.id] = { at: new Date().toISOString().slice(0, 10), before: beforeLines, after: afterLines }
+          changes[g.id] = { at: todayKST(), before: beforeLines, after: afterLines }
           changed++
         }
       }
-      // 최근 변경 기록은 조건 객체에 함께 실어 화면이 따로 묻지 않게 한다
+      // 원문이 그대로면 예전에 기록된 change 도 그대로 이어받는다(60일은 화면이 자른다)
       const change = changes[g.id]
       rules[g.id] = g.rules ? { ...g.rules, ...(change ? { change } : {}) } : g.rules
       const m = byId.get(g.id)?.modifiedtime
