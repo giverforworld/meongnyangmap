@@ -256,7 +256,7 @@ export function PlaceReviews({
       {!writing && (
         <div style={{ border: `1.5px solid ${quick ? '#F3C9BB' : '#EFE8DA'}`, background: quick ? '#FFFBF9' : '#FAF8F3', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 8 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-            <b style={{ fontSize: 12.5 }}>{thanks ? '고마워요 — 다음 사람이 헛걸음을 덜어요 🐾' : '다녀오셨나요? 30초면 돼요'}</b>
+            <b style={{ fontSize: 12.5 }}>{thanks ? '고마워요 — 다음 사람이 헛걸음을 덜어요 🐾' : '좋은 경험이셨다면 후기를 남겨주세요~'}</b>
             {pet && !thanks && <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: '#A08872' }}><PetFace emoji={pet.emoji} size={14} />{pet.name} 기준</span>}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
