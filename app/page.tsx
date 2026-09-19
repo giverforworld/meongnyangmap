@@ -604,7 +604,7 @@ export default function Home() {
           )}
         </div>
       ) : (
-      <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '12px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
+      <header style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '8px 20px', background: '#FFFFFF', borderBottom: '1px solid #EAE3D6', flex: 'none' }}>
         {/* 아이콘은 글자 높이(15.5px)에 맞춘 22px, 간격은 글자와 같은 8px — 크면 셀렉트 박스가 아니라 배지처럼 보인다 */}
         <div className="hov-accent" style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#F6F1E7', border: '1.5px solid #EAE3D6', borderRadius: 13, padding: '9px 12px 9px 12px' }}>
           {/* 발자국 핀 — 꼬리가 아래라 1px 올려야 글자와 나란해 보인다 */}
