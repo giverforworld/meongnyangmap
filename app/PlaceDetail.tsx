@@ -115,18 +115,25 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
             오늘 문 여는지 → 아이 기준 조건 → 확인 전화 순서로, 위에서 아래로 읽으면 출발 준비가 끝난다 */}
         <Preflight pet={pet} detail={detail} detailLoading={detailLoading} rules={rules} j={sel.j} state={sel.state} checks={checks} />
 
-        {/* 영업시간·휴무·주차 원문 — 체크 첫 줄이 요약이고, 여기는 원문 그대로 */}
+        {/* 영업시간·휴무·주차 — 체크 첫 줄이 요약이고, 여기는 원문. 글머리표('- ')와 빈 줄은 걷어내고
+            이름표 : 값 표로 놓는다 — 원문을 그대로 붓던 예전 모양은 줄 간격이 들쭉날쭉했다 */}
         {detail && (detail.usetime || detail.restdate || detail.parking) && (() => {
           const st = restStatus(detail.restdate)
+          const lines = (v: string) => v.split('\n').map((l) => l.replace(/^[-*·•※]\s*/, '').trim()).filter(Boolean)
+          const rows: { label: string; lines: string[]; color?: string }[] = []
+          if (detail.usetime) rows.push({ label: '영업시간', lines: lines(detail.usetime) })
+          if (detail.restdate) rows.push({ label: '휴무', lines: lines(detail.restdate), color: st.kind === 'always' ? '#2F8F4E' : st.kind === 'closed' ? '#C0392B' : undefined })
+          if (detail.parking) rows.push({ label: '주차', lines: lines(detail.parking) })
           return (
-            <div style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '10px 13px', fontSize: 12.5, color: '#6E5F4D', display: 'flex', flexDirection: 'column', gap: 4, whiteSpace: 'pre-line' }}>
-              {detail.usetime && <div>🕘 {detail.usetime}</div>}
-              {detail.restdate && (
-                <div style={{ color: st.kind === 'always' ? '#2F8F4E' : st.kind === 'closed' ? '#C0392B' : '#8A6208' }}>
-                  📅 {detail.restdate}
-                </div>
-              )}
-              {detail.parking && <div>🅿️ 주차 {detail.parking}</div>}
+            <div style={{ border: '1.5px solid #EFE8DA', background: '#FAF8F3', borderRadius: 12, padding: '10px 13px', display: 'grid', gridTemplateColumns: 'auto 1fr', columnGap: 14, rowGap: 6, fontSize: 12.5, alignItems: 'baseline' }}>
+              {rows.map((r) => (
+                <Fragment key={r.label}>
+                  <span style={{ color: '#A08872', whiteSpace: 'nowrap' }}>{r.label}</span>
+                  <span style={{ color: r.color ?? '#2B2420', display: 'flex', flexDirection: 'column', gap: 2, wordBreak: 'keep-all' }}>
+                    {r.lines.map((l, i) => <span key={i}>{l}</span>)}
+                  </span>
+                </Fragment>
+              ))}
             </div>
           )
         })()}
@@ -400,9 +407,9 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
   return (
     <div style={{ border: `1.5px solid ${b.border}`, background: b.checkBg, borderRadius: 14, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 7 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700 }}>
-          {pet && <PetFace emoji={pet.emoji} size={18} />}
-          {pet ? `${pet.name}와 출발 전 체크` : '출발 전 체크'}
+        <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13.5, fontWeight: 700 }}>
+          <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 18, height: 18, borderRadius: '50%', background: b.color, color: '#FFFFFF', fontSize: 11, flex: 'none' }}>✓</span>
+          {pet ? `${pet.name}와 출발 전 체크 사항` : '출발 전 체크 사항'}
         </span>
         <span style={{ fontSize: 11.5, color: '#A08872', whiteSpace: 'nowrap' }}>{todayLabel()}요일 기준</span>
       </div>
@@ -417,7 +424,7 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
         <>
           {ruleLines(rules).map((line, i) => row('•', '#B3A78F', line, i))}
           <div style={{ fontSize: 12.5, color: '#E85D3D', fontWeight: 700, marginTop: 2 }}>
-            🐶 프로필을 등록하면 우리 아이 기준으로 체크리스트를 만들어요
+            🐶 프로필 등록시, 반려동물 기준으로 체크 항목을 정리해줘요
           </div>
         </>
       ) : (
@@ -430,11 +437,11 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
             <a href={`tel:${tel.num.replace(/[^0-9+]/g, '')}`} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, fontWeight: 700, color: '#2B2420', textDecoration: 'none' }}>
               <span style={{ color: '#A08872', display: 'flex' }}><PhoneIcon size={14} /></span>
-              <span>애매하면 전화로 확인 · {tel.num}</span>
+              <span>전화 번호 · {tel.num}</span>
             </a>
             <button onClick={() => setAskOpen((v) => !v)} aria-expanded={askOpen}
               style={{ fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: '#E85D3D', background: 'none', border: 'none', padding: 0, cursor: 'pointer', whiteSpace: 'nowrap' }}>
-              물어볼 말 {askOpen ? '접기 ▴' : '보기 ▾'}
+              전화로 물어볼 말 정리본 {askOpen ? '▴' : '▾'}
             </button>
           </div>
           {askOpen && (

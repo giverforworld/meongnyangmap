@@ -172,3 +172,26 @@ test('\'매주 금요일\' + 금요일 — closed', () => {
 test('KST 새벽 00:30 — 서버 TZ 가 UTC 여도 화요일로 계산돼야 한다', () => {
   assert.equal(restStatus('매주 월요일', new Date('2026-09-08T00:30:00+09:00')).kind, 'open')
 })
+
+// ── 2026-09-19 'open' 분기 회귀 가드 — 리뷰에서 잡힌 오판들. '오늘 문 여는 날'은 확실할 때만.
+test("'매주 월요일 / 1월 1일 / 설·추석 연휴' + 추석 연휴 → open 이면 안 된다", () => {
+  assert.equal(restStatus('매주 월요일 / 1월 1일 / 설·추석 연휴', new Date('2026-09-24T10:00:00+09:00')).kind, 'unknown')
+})
+test("'매주 월요일 / 공휴일' + 한글날 → unknown", () => {
+  assert.equal(restStatus('매주 월요일 / 공휴일', new Date('2026-10-09T10:00:00+09:00')).kind, 'unknown')
+})
+test("'(단, 공휴일이면 익일 휴관)' + 공휴일 다음 화요일 → 밀린 휴무일일 수 있으니 unknown", () => {
+  assert.equal(restStatus('매주 월요일(단, 월요일이 공휴일일 경우 익일 휴관)', new Date('2026-03-03T10:00:00+09:00')).kind, 'unknown')
+})
+test("'(단, 공휴일이면 익일 휴관)' + 평범한 토요일 → open", () => {
+  assert.deepEqual(restStatus('매주 월요일(단, 월요일이 공휴일일 경우 익일 휴관)', new Date('2026-09-19T10:00:00+09:00')), { kind: 'open', label: '매주 월요일 휴무' })
+})
+test("요일을 못 읽은 매주 줄('매주 월,화 … 미운영') → unknown", () => {
+  assert.equal(restStatus('매주 월,화 시설물 점검으로 미운영', new Date('2026-09-14T10:00:00+09:00')).kind, 'unknown')
+})
+test("'매주 주말' + 수요일 → open, 라벨은 '주말'", () => {
+  assert.deepEqual(restStatus('매주 주말', new Date('2026-09-16T10:00:00+09:00')), { kind: 'open', label: '매주 주말 휴무' })
+})
+test("연중무휴 뒤에 다른 시설의 요일·명절 휴무가 붙으면 always 가 아니다", () => {
+  assert.equal(restStatus('- 동의보감촌 연중무휴- 주제관·한의학박물관 1월 1일 / 설·추석 / 매주 월요일', new Date('2026-09-14T10:00:00+09:00')).kind, 'unknown')
+})

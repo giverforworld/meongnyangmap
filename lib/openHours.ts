@@ -151,7 +151,8 @@ export function restStatus(restdate?: string, now = new Date()): RestStatus {
   // ② 휴무일이 하루 밀리는 문구("공휴일이면 그 다음날 휴관")가 있고 어제가 공휴일이다 ③ 매주 줄 밖에 다른 휴무 문구가 있다.
   // 그리고 요일을 하나도 못 읽은 매주 줄("매주 월,화 미운영")은 읽은 게 아니다 — unknown 으로 둔다
   if (weekly.length > 0) {
-    const tail = weekly.join('\n').replace(/매주|주말|[월화수목금토일]요일?/g, '')
+    // 예외 절("(단, 월요일이 공휴일이면 익일 휴관)")은 SHIFTED 가 따로 보므로 여기선 걷어낸 뒤 남는 것을 본다
+    const tail = weekly.join('\n').replace(/\(?\s*(?:단\s*[,、]?|단서|다만)[^)\n]*\)?/g, '').replace(/매주|주말|[월화수목금토일]요일?/g, '')
     const extraDay = /공휴일|휴일|명절|설|추석|\d+\s*월\s*\d+\s*일|다음\s*날|익일|전날|당일|연휴|우천|임시|촬영|휴무|휴관|휴점|휴원|쉼|미운영/.test(tail)
     const yesterday = new Date(now)
     yesterday.setDate(yesterday.getDate() - 1)
