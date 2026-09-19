@@ -362,7 +362,13 @@ function HotView() {
               {!p.firstimage && (CAT_EMOJI[p.cat] ?? <span style={{ color: '#E85D3D' }}><PlacePinIcon size={34} /></span>)}
             </button>
             <div style={{ padding: '12px 14px 14px', display: 'flex', flexDirection: 'column', gap: 7, flex: 1 }}>
-              <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#2B2420', wordBreak: 'keep-all' }}>{p.title}</h2>
+              {/* 제목도 사진처럼 상세를 연다 — 사진 없는 카드에서도 누를 곳이 있어야 한다 */}
+              <h2 style={{ margin: 0, fontSize: 15.5, fontWeight: 700, color: '#2B2420', wordBreak: 'keep-all' }}>
+                <button type="button" onClick={() => setOpen(p)} className="hov-title"
+                  style={{ font: 'inherit', color: 'inherit', background: 'none', border: 'none', padding: 0, textAlign: 'left', cursor: 'pointer', wordBreak: 'keep-all' }}>
+                  {p.title}
+                </button>
+              </h2>
               <p style={{ margin: 0, fontSize: 12, color: '#A08872' }}>
                 {p.cat} · {p.addr1.split(' ').slice(0, 2).join(' ')}
                 {p.meters !== undefined && Number.isFinite(p.meters) && (

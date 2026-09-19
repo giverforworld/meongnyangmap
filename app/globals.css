@@ -241,3 +241,6 @@ textarea::placeholder {
 /* 개인정보처리방침 — 본문 p·ul 의 기본 여백을 섹션 간격에 맞춘다 */
 .privacy-body p { margin: 0; }
 .privacy-body ul { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }
+
+/* 핫플레이스 카드 제목 — 누르면 상세. 마우스를 올리면 주황으로 눌리는 곳임을 알린다 */
+.hov-title:hover { color: #E85D3D; }
