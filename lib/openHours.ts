@@ -22,6 +22,57 @@ export function clean(s?: string) {
     .trim()
 }
 
+/**
+ * 영업시간·휴무 원문을 줄로 나눈다. 개행 없이 "[하절기]- 화~금 10:00~21:00- 주말 10:00~22:00※ 시설별 상이"
+ * 처럼 글머리표·[머리]·※ 만으로 이어 붙인 원문(실측 9,376건 중 94건)도 그 자리에서 끊는다.
+ * 시간 범위의 '-'("10:00-18:00")와 요일 범위("월-금")는 끊지 않는다 — 숫자·괄호 뒤에 오고 숫자가 따라오지 않는 '-'만 글머리표로 본다
+ */
+export function hourLines(text?: string): string[] {
+  return clean(text)
+    .replace(/\s*(?=\[[^\]\n]{1,20}\])/g, '\n')
+    .replace(/\]\s*-\s+/g, '] ')
+    .replace(/\](?=[^\s\]])/g, '] ')
+    .replace(/(?<=[\d)\]])\s*-\s*(?=[^\d\s\-~])/g, '\n')
+    .replace(/(?<=\d{2}:\d{2}\)?)-\s+(?=\d)/g, '\n')
+    .replace(/\s*※\s*/g, '\n※ ')
+    .split('\n')
+    .map((l) => l.replace(/^[-*·•※]\s*/, '').trim())
+    .filter(Boolean)
+}
+
+const TIMEISH = /\d{1,2}\s*:\s*\d{2}|\d{1,2}\s*시|상시\s*개방|24\s*시간|일몰|일출/
+
+/**
+ * 체크 첫 줄에 놓는 영업시간 한 줄 — 시간이 적힌 첫 줄을 고르고, 바로 앞 줄이 "[하절기(3월~10월)]" 같은 머리면 붙인다.
+ * 시간이 어디에도 없으면 첫 줄.
+ */
+export function hoursSummary(usetime?: string): string {
+  const ls = hourLines(usetime)
+  const i = ls.findIndex((l) => TIMEISH.test(l))
+  if (i < 0) return ls[0] ?? ''
+  const head = i > 0 && /^\[[^\]]+\]$/.test(ls[i - 1]) ? ls[i - 1].slice(1, -1) + ' ' : ''
+  return head + ls[i].replace(/^\[([^\]]+)\]\s*/, '$1 ')
+}
+
+/**
+ * 글자 수로 자르되 낱말 중간("21:0…")에서는 자르지 않는다 — 공백·쉼표·빗금·괄호 뒤에서만.
+ * 절반 안에 그런 자리가 없으면 자르지 않고 그대로 둔다(화면에서 줄바꿈된다)
+ */
+export function cutAtWord(v: string, max: number): string {
+  if (v.length <= max) return v
+  const head = v.slice(0, max)
+  const at = Math.max(head.lastIndexOf(' '), head.lastIndexOf(','), head.lastIndexOf('/'), head.lastIndexOf('·'), head.lastIndexOf(')') + 1 || -1)
+  if (at < max / 2) return v
+  let out = head.slice(0, at)
+  // 닫히지 않은 괄호 앞에서 끊는다 — "(점심…" 은 정보가 아니다
+  const paren = out.lastIndexOf('(')
+  if (paren >= 0 && out.indexOf(')', paren) < 0) {
+    if (paren < 8) return v
+    out = out.slice(0, paren)
+  }
+  return out.replace(/[\s,·/]+$/, '') + '…'
+}
+
 export type RestStatus =
   /** 오늘 확실히 쉰다 */
   | { kind: 'closed'; label: string }

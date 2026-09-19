@@ -5,7 +5,7 @@ import type { CardState, Detail, Judgement, Place, PetRules, RulesEntry } from '
 import type { Pet } from '@/lib/types'
 import { judge } from '@/lib/petTour'
 import { crowdHint, crowdLevel, dowOf, type CrowdDay } from '@/lib/crowd'
-import { restStatus, todayLabel } from '@/lib/openHours'
+import { restStatus, todayLabel, hourLines, hoursSummary, cutAtWord } from '@/lib/openHours'
 import { phoneScript } from '@/lib/phoneScript'
 import { recentChange, shortDate } from '@/lib/ruleText'
 import { PlaceReviews, PlaceStories, type CheckSummary } from './PlaceSocial'
@@ -119,7 +119,7 @@ export default function PlaceDetail({ place, pet, rulesEntry, onClose, mobile, n
             이름표 : 값 표로 놓는다 — 원문을 그대로 붓던 예전 모양은 줄 간격이 들쭉날쭉했다 */}
         {detail && (detail.usetime || detail.restdate || detail.parking) && (() => {
           const st = restStatus(detail.restdate)
-          const lines = (v: string) => v.split('\n').map((l) => l.replace(/^[-*·•※]\s*/, '').trim()).filter(Boolean)
+          const lines = hourLines
           const rows: { label: string; lines: string[]; color?: string }[] = []
           if (detail.usetime) rows.push({ label: '영업시간', lines: lines(detail.usetime) })
           if (detail.restdate) rows.push({ label: '휴무', lines: lines(detail.restdate), color: st.kind === 'always' ? '#2F8F4E' : st.kind === 'closed' ? '#C0392B' : undefined })
@@ -374,14 +374,15 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
   const today = (() => {
     if (!detail) return detailLoading ? { icon: '…', color: '#B3A78F', text: '영업시간 확인 중' } : null
     const st = restStatus(detail.restdate)
-    // 원문 첫 줄만, 글머리표('- ')는 떼고. 전체는 아래 영업시간 블록에 그대로 있다
-    const hours = (detail.usetime ?? '').split('\n').map((l) => l.replace(/^[-*·•]\s*/, '').trim()).filter(Boolean)[0] ?? ''
-    const short = (v: string) => (v.length > 34 ? v.slice(0, 33) + '…' : v)
+    // 시간이 적힌 첫 줄만(머리가 있으면 붙여서). 전체는 아래 영업시간 블록에 그대로 있다.
+    // 길면 낱말 단위로만 줄인다 — "10:00~21:0…" 처럼 숫자 중간에서 끊긴 시간은 틀린 정보다
+    const hours = cutAtWord(hoursSummary(detail.usetime), 40)
+    const short = (v: string) => cutAtWord(v, 40)
     if (st.kind === 'closed') return { icon: '✕', color: '#C0392B', text: `오늘(${todayLabel()}) 휴무 — ${st.label}` }
     if (st.kind === 'maybe') return { icon: '!', color: '#D4A000', text: `오늘(${todayLabel()}) 휴무일 수 있어요 — ${st.label}. ${st.note}` }
-    if (st.kind === 'always') return { icon: '✓', color: '#2F8F4E', text: `오늘은 문 여는 날 · 연중무휴${hours ? ` · ${short(hours)}` : ''}` }
-    if (st.kind === 'open') return { icon: '✓', color: '#2F8F4E', text: `오늘은 문 여는 날${hours ? ` · ${short(hours)}` : ''}${st.label ? ` (${st.label})` : ''}` }
-    if (hours) return { icon: '🕘', color: '#6E5F4D', text: `${short(hours)}${detail.restdate ? ` · 휴무 ${short(detail.restdate.split('\n')[0])}` : ''}` }
+    if (st.kind === 'always') return { icon: '✓', color: '#2F8F4E', text: `오늘은 문 여는 날 · 연중무휴${hours ? ` · ${hours}` : ''}` }
+    if (st.kind === 'open') return { icon: '✓', color: '#2F8F4E', text: `오늘은 문 여는 날${hours ? ` · ${hours}` : ''}${st.label ? ` (${st.label})` : ''}` }
+    if (hours) return { icon: '🕘', color: '#6E5F4D', text: `${hours}${detail.restdate ? ` · 휴무 ${short(hourLines(detail.restdate)[0] ?? '')}` : ''}` }
     return null
   })()
 
@@ -467,7 +468,7 @@ function Preflight({ pet, detail, detailLoading, rules, j, state, checks }: {
       )}
 
       <div style={{ borderTop: '1.5px dashed #E3D9C6', paddingTop: 7, fontSize: 11.5, color: '#A08872' }}>
-        조건 정보 충실도 {rules?.completeness ?? '—'}등급 · 데이터 출처: ⓒ한국관광공사
+        데이터 출처: ⓒ한국관광공사
       </div>
     </div>
   )
