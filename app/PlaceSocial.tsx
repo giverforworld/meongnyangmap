@@ -397,9 +397,6 @@ export function PlaceReviews({
         </form>
       )}
 
-      {data && data.count === 0 && !writing && !quick && (
-        <span style={{ fontSize: 12.5, color: '#B3A78F' }}>아직 남긴 사람이 없어요. 다녀오셨다면 첫 확인을 남겨주세요</span>
-      )}
 
       {data?.reviews.map((r) => (
         <article key={r.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 0', borderTop: '1px solid #F3EEE4' }}>
