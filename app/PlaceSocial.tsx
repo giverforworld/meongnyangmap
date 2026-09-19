@@ -196,6 +196,8 @@ export function PlaceReviews({
 
   async function remove(id: number) {
     setDelError('')
+    // 되돌릴 수 없는 일이라 한 번 더 묻는다
+    if (!window.confirm('이 리뷰를 지울까요? 되돌릴 수 없어요.')) return
     const r = await fetch(`/api/reviews/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ password: delPw }) })
     const d = await r.json()
     if (!r.ok) return setDelError(d.error ?? '지우지 못했어요')

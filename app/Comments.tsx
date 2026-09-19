@@ -93,6 +93,8 @@ export default function Comments({
   }
 
   async function remove(id: number) {
+    // 되돌릴 수 없는 일이라 한 번 더 묻는다
+    if (!window.confirm('이 댓글을 지울까요? 되돌릴 수 없어요.')) return
     setDelError('')
     const r = await fetch(`/api/comments/${id}`, { method: 'DELETE', headers: { 'Content-Type': 'application/json', ...(await authHeaders()) }, body: JSON.stringify({ password: delPw }) })
     const d = await r.json()

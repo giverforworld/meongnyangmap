@@ -117,6 +117,8 @@ export default function PostPage() {
   async function remove(e: React.FormEvent) {
     e.preventDefault()
     setDelError('')
+    // 되돌릴 수 없는 일이라 한 번 더 묻는다
+    if (!window.confirm('이 글을 지울까요? 댓글도 함께 사라지고 되돌릴 수 없어요.')) return
     const r = await fetch(`/api/posts/${id}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
