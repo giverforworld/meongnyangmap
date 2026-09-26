@@ -56,4 +56,4 @@ main 을 따라잡을 때는 `git pull --rebase origin main`. 머지 커밋이 �
   `NEXT_PUBLIC_KAKAO_MAP_KEY` 뿐.
 - `detailPetTour2` 는 장소당 1콜이고 벌크 조회가 없다. 개발계정 일 1,000건이라
   화면에 그려질 것만 조회한다 (`app/api/pet-rules/route.ts`).
-- 테스트: `npm test` (판정 엔진 133개). 판정 로직을 고치면 여기부터 통과시킨다.
+- 테스트: `npm test` (판정 엔진 146개). 판정 로직을 고치면 여기부터 통과시킨다.
